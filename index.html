@@ -1714,6 +1714,135 @@ document.getElementById('search-input').addEventListener('input', handleSuggestI
 document.getElementById('search-input').addEventListener('focus', () => {
   if (document.getElementById('search-input').value.trim() === '') showSearchHistory();
 });
+
+// ========== HIDDEN ADMIN PANEL ==========
+// Access by visiting: yoursite.com/?admin=cf_x7k9m2
+// Only shows up with the exact secret code in the URL — regular visitors never see it.
+const ADMIN_SECRET = 'cf_x7k9m2';
+
+function checkAdminAccess() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('admin') === ADMIN_SECRET) {
+    loadAdminPanel();
+  }
+}
+
+async function loadAdminPanel() {
+  // Inject admin panel styles
+  const style = document.createElement('style');
+  style.textContent = `
+    #admin-overlay {
+      position: fixed; inset: 0; background: #0a0a0f; z-index: 9999;
+      overflow-y: auto; padding: 24px 16px 60px; font-family: 'Space Grotesk', sans-serif;
+    }
+    #admin-overlay .admin-header { text-align: center; margin-bottom: 20px; }
+    #admin-overlay .admin-header h1 { color: #e63946; font-size: 1.6rem; margin-bottom: 4px; }
+    #admin-overlay .admin-header p { color: #9494b5; font-size: .8rem; }
+    #admin-overlay .admin-summary {
+      display: flex; gap: 10px; justify-content: center; margin: 16px 0 24px; flex-wrap: wrap;
+    }
+    #admin-overlay .admin-stat {
+      background: #16161f; border: 1px solid #ffffff0f; border-radius: 10px;
+      padding: 10px 18px; text-align: center;
+    }
+    #admin-overlay .admin-stat .num { font-size: 1.4rem; font-weight: 700; }
+    #admin-overlay .admin-stat .lbl { font-size: .7rem; color: #9494b5; text-transform: uppercase; }
+    #admin-overlay .site-row {
+      display: flex; align-items: center; gap: 12px; background: #16161f;
+      border: 1px solid #ffffff0f; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+    }
+    #admin-overlay .site-row.down { border-color: rgba(230,57,70,.4); background: rgba(230,57,70,.06); }
+    #admin-overlay .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    #admin-overlay .status-dot.up { background: #06d6a0; }
+    #admin-overlay .status-dot.down { background: #e63946; }
+    #admin-overlay .site-name { font-weight: 600; color: #f0f0f5; flex: 1; }
+    #admin-overlay .site-meta { font-size: .72rem; color: #9494b5; }
+    #admin-overlay .replace-input {
+      width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 6px;
+      border: 1px solid #3A3448; background: #0a0a0f; color: #f0f0f5; font-size: .8rem;
+    }
+    #admin-overlay .close-admin {
+      position: fixed; top: 14px; right: 14px; background: #16161f; border: 1px solid #ffffff0f;
+      color: #f0f0f5; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 1rem;
+    }
+    #admin-overlay .refresh-note { text-align: center; color: #9494b5; font-size: .72rem; margin-top: 20px; }
+  `;
+  document.head.appendChild(style);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'admin-overlay';
+  overlay.innerHTML = `
+    <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
+    <div class="admin-header">
+      <h1>🔒 Site Status Admin</h1>
+      <p>Loading status.json...</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  try {
+    const res = await fetch('./status.json?t=' + Date.now()); // cache-bust
+    const data = await res.json();
+    renderAdminPanel(data);
+  } catch (err) {
+    overlay.querySelector('.admin-header p').textContent =
+      'Could not load status.json yet — the daily checker may not have run for the first time. Trigger it manually from the Actions tab on GitHub.';
+  }
+}
+
+function renderAdminPanel(data) {
+  const overlay = document.getElementById('admin-overlay');
+  const lastRun = new Date(data.lastRun).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
+
+  const rowsHtml = data.results.map(site => `
+    <div class="site-row ${site.status}">
+      <div class="status-dot ${site.status}"></div>
+      <div style="flex:1;">
+        <div class="site-name">${site.name} ${site.status === 'down' ? '🔴' : '🟢'}</div>
+        <div class="site-meta">${site.url} — ${site.status === 'up' ? 'HTTP ' + site.httpStatus : (site.error || 'down')}</div>
+        ${site.status === 'down' ? `
+          <input class="replace-input" placeholder="Paste replacement URL here (for your notes only)..." 
+                 onchange="saveReplacementNote('${site.name.replace(/'/g, "\\'")}', this.value)"
+                 value="${getReplacementNote(site.name)}">
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  overlay.innerHTML = `
+    <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
+    <div class="admin-header">
+      <h1>🔒 Site Status Admin</h1>
+      <p>Last checked: ${lastRun}</p>
+    </div>
+    <div class="admin-summary">
+      <div class="admin-stat"><div class="num" style="color:#06d6a0;">${data.upCount}</div><div class="lbl">Up</div></div>
+      <div class="admin-stat"><div class="num" style="color:#e63946;">${data.downCount}</div><div class="lbl">Down</div></div>
+      <div class="admin-stat"><div class="num">${data.totalSites}</div><div class="lbl">Total</div></div>
+    </div>
+    ${rowsHtml}
+    <p class="refresh-note">Checked automatically every day. Replacement notes are saved only on this device — update SITES_DIRECTORY in the code when ready.</p>
+  `;
+}
+
+// Replacement notes are stored locally so only you (on your device) see them —
+// they don't publish anywhere or affect the live site automatically.
+function getReplacementNote(siteName) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('cinefind-admin-notes') || '{}');
+    return notes[siteName] || '';
+  } catch (e) { return ''; }
+}
+
+function saveReplacementNote(siteName, value) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('cinefind-admin-notes') || '{}');
+    notes[siteName] = value;
+    localStorage.setItem('cinefind-admin-notes', JSON.stringify(notes));
+  } catch (e) { /* ignore */ }
+}
+
+window.addEventListener('load', checkAdminAccess);
 </script>
 </body>
 </html>
