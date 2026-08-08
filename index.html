@@ -1752,9 +1752,15 @@ async function loadAdminPanel() {
       border: 1px solid #ffffff0f; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
     }
     #admin-overlay .site-row.down { border-color: rgba(230,57,70,.4); background: rgba(230,57,70,.06); }
+    #admin-overlay .site-row.blocked { border-color: rgba(240,180,40,.4); background: rgba(240,180,40,.06); }
     #admin-overlay .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     #admin-overlay .status-dot.up { background: #06d6a0; }
     #admin-overlay .status-dot.down { background: #e63946; }
+    #admin-overlay .status-dot.blocked { background: #f0b428; }
+    #admin-overlay .quick-test-btn {
+      background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px;
+    }
     #admin-overlay .site-name { font-weight: 600; color: #f0f0f5; flex: 1; }
     #admin-overlay .site-meta { font-size: .72rem; color: #9494b5; }
     #admin-overlay .replace-input {
@@ -1766,6 +1772,29 @@ async function loadAdminPanel() {
       color: #f0f0f5; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 1rem;
     }
     #admin-overlay .refresh-note { text-align: center; color: #9494b5; font-size: .72rem; margin-top: 20px; }
+    #admin-overlay .test-link-box {
+      background: #16161f; border: 1px solid #ffffff0f; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 20px;
+    }
+    #admin-overlay .test-link-title { font-weight: 600; color: #f0f0f5; font-size: .85rem; margin-bottom: 10px; }
+    #admin-overlay .test-link-row { display: flex; gap: 8px; }
+    #admin-overlay .test-link-input {
+      flex: 1; min-width: 0; padding: 8px 10px; border-radius: 6px; border: 1px solid #3A3448;
+      background: #0a0a0f; color: #f0f0f5; font-size: .8rem; font-family: inherit;
+    }
+    #admin-overlay .test-link-btn {
+      background: #e63946; color: #fff; border: none; border-radius: 6px;
+      padding: 8px 16px; font-size: .8rem; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    }
+    #admin-overlay .test-link-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .test-link-result { margin-top: 10px; font-size: .78rem; display: none; }
+    #admin-overlay .test-link-result.show { display: block; }
+    #admin-overlay .test-link-status { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    #admin-overlay .test-link-note { color: #9494b5; font-size: .72rem; margin-bottom: 10px; line-height: 1.4; }
+    #admin-overlay .test-link-open-btn {
+      background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
+      border-radius: 6px; padding: 6px 14px; font-size: .76rem; cursor: pointer;
+    }
   `;
   document.head.appendChild(style);
 
@@ -1776,6 +1805,14 @@ async function loadAdminPanel() {
     <div class="admin-header">
       <h1>🔒 Site Status Admin</h1>
       <p>Loading status.json...</p>
+    </div>
+    <div class="test-link-box">
+      <div class="test-link-title">🔗 Test a Link</div>
+      <div class="test-link-row">
+        <input type="text" id="test-link-input" class="test-link-input" placeholder="Paste a URL to test..." onkeydown="if(event.key==='Enter') testLink()">
+        <button class="test-link-btn" onclick="testLink()">Test</button>
+      </div>
+      <div id="test-link-result" class="test-link-result"></div>
     </div>
   `;
   document.body.appendChild(overlay);
@@ -1794,12 +1831,22 @@ function renderAdminPanel(data) {
   const overlay = document.getElementById('admin-overlay');
   const lastRun = new Date(data.lastRun).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
 
-  const rowsHtml = data.results.map(site => `
+  const rowsHtml = data.results.map(site => {
+    const icon = site.status === 'up' ? '🟢' : site.status === 'blocked' ? '🟡' : '🔴';
+    const metaText = site.status === 'up'
+      ? 'HTTP ' + site.httpStatus
+      : (site.httpStatus ? 'HTTP ' + site.httpStatus : (site.error || site.status));
+    const safeUrl = site.url.replace(/'/g, "\\'");
+    return `
     <div class="site-row ${site.status}">
       <div class="status-dot ${site.status}"></div>
       <div style="flex:1;">
-        <div class="site-name">${site.name} ${site.status === 'down' ? '🔴' : '🟢'}</div>
-        <div class="site-meta">${site.url} — ${site.status === 'up' ? 'HTTP ' + site.httpStatus : (site.error || 'down')}</div>
+        <div class="site-name">${site.name} ${icon}</div>
+        <div class="site-meta">${site.url} — ${metaText}</div>
+        ${site.status === 'blocked' ? `
+          <div class="site-meta" style="margin-top:2px; color:#f0b428;">Might just be blocking this server's IP — verify from your own browser.</div>
+          <button class="quick-test-btn" onclick="document.getElementById('test-link-input').value='${safeUrl}'; testLink(); document.getElementById('test-link-input').scrollIntoView({behavior:'smooth', block:'center'});">🔗 Test This Link</button>
+        ` : ''}
         ${site.status === 'down' ? `
           <input class="replace-input" placeholder="Paste replacement URL here (for your notes only)..." 
                  onchange="saveReplacementNote('${site.name.replace(/'/g, "\\'")}', this.value)"
@@ -1807,7 +1854,8 @@ function renderAdminPanel(data) {
         ` : ''}
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   overlay.innerHTML = `
     <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
@@ -1815,8 +1863,17 @@ function renderAdminPanel(data) {
       <h1>🔒 Site Status Admin</h1>
       <p>Last checked: ${lastRun}</p>
     </div>
+    <div class="test-link-box">
+      <div class="test-link-title">🔗 Test a Link</div>
+      <div class="test-link-row">
+        <input type="text" id="test-link-input" class="test-link-input" placeholder="Paste a URL to test..." onkeydown="if(event.key==='Enter') testLink()">
+        <button class="test-link-btn" onclick="testLink()">Test</button>
+      </div>
+      <div id="test-link-result" class="test-link-result"></div>
+    </div>
     <div class="admin-summary">
       <div class="admin-stat"><div class="num" style="color:#06d6a0;">${data.upCount}</div><div class="lbl">Up</div></div>
+      <div class="admin-stat"><div class="num" style="color:#f0b428;">${data.blockedCount || 0}</div><div class="lbl">Blocked</div></div>
       <div class="admin-stat"><div class="num" style="color:#e63946;">${data.downCount}</div><div class="lbl">Down</div></div>
       <div class="admin-stat"><div class="num">${data.totalSites}</div><div class="lbl">Total</div></div>
     </div>
@@ -1840,6 +1897,63 @@ function saveReplacementNote(siteName, value) {
     notes[siteName] = value;
     localStorage.setItem('cinefind-admin-notes', JSON.stringify(notes));
   } catch (e) { /* ignore */ }
+}
+
+// ========== TEST LINK (admin panel) ==========
+// Client-side only reachability check. Browsers block cross-origin fetches
+// from reading the real response (CORS), so this can't confirm HTTP status
+// or page content — it can only tell you whether the request errored out
+// (DNS failure, connection refused, timeout, offline) vs. got some kind of
+// response back. Always eyeball the actual page via "Open This Link".
+let testLinkAbortController = null;
+
+function escapeForAttr(str) {
+  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+async function testLink() {
+  const input = document.getElementById('test-link-input');
+  const resultBox = document.getElementById('test-link-result');
+  const btn = document.querySelector('.test-link-btn');
+  if (!input || !resultBox) return;
+
+  let url = input.value.trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  const safeUrl = escapeForAttr(url);
+
+  if (testLinkAbortController) testLinkAbortController.abort();
+  testLinkAbortController = new AbortController();
+  const timeoutId = setTimeout(() => testLinkAbortController.abort(), 8000);
+
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  resultBox.classList.add('show');
+  resultBox.innerHTML = `<div class="test-link-status"><span>⏳</span><span>Checking ${url}...</span></div>`;
+
+  try {
+    // no-cors gives an opaque response we can't inspect — but if it resolves
+    // without throwing, the browser was at least able to reach the host.
+    await fetch(url, { mode: 'no-cors', signal: testLinkAbortController.signal, cache: 'no-store' });
+    clearTimeout(timeoutId);
+    resultBox.innerHTML = `
+      <div class="test-link-status"><span style="color:#06d6a0;">🟢</span><span>Looks reachable — the browser was able to connect.</span></div>
+      <div class="test-link-note">Note: due to browser security (CORS), this can't confirm the actual page content or HTTP status — just that something answered. Open the link to verify visually.</div>
+      <button class="test-link-open-btn" onclick="window.open('${safeUrl}', '_blank')">↗ Open This Link</button>
+    `;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    const timedOut = err.name === 'AbortError';
+    resultBox.innerHTML = `
+      <div class="test-link-status"><span style="color:#e63946;">🔴</span><span>${timedOut ? 'Timed out — no response after 8 seconds.' : 'Could not reach this link (blocked, offline, or invalid URL).'}</span></div>
+      <div class="test-link-note">This check can have false negatives too (e.g. sites that block automated requests). Open the link to double-check yourself.</div>
+      <button class="test-link-open-btn" onclick="window.open('${safeUrl}', '_blank')">↗ Open This Link Anyway</button>
+    `;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Test';
+  }
 }
 
 window.addEventListener('load', checkAdminAccess);
