@@ -1,0 +1,177 @@
+{
+  "lastRun": "2026-08-08T05:11:02.943Z",
+  "totalSites": 24,
+  "upCount": 21,
+  "downCount": 3,
+  "results": [
+    {
+      "name": "Plex",
+      "url": "https://watch.plex.tv/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:52.159Z"
+    },
+    {
+      "name": "MyAsianTV",
+      "url": "https://myasiantv.com.lv/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:53.438Z"
+    },
+    {
+      "name": "DramaCool",
+      "url": "https://dramacool.com.tw/",
+      "status": "down",
+      "httpStatus": null,
+      "error": "fetch failed",
+      "checkedAt": "2026-08-08T05:10:53.492Z"
+    },
+    {
+      "name": "KissKH",
+      "url": "https://kisskh.co/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:53.567Z"
+    },
+    {
+      "name": "AsianCrush",
+      "url": "https://www.asiancrush.com/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:54.017Z"
+    },
+    {
+      "name": "Viki",
+      "url": "https://www.viki.com/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:54.235Z"
+    },
+    {
+      "name": "Viu",
+      "url": "https://www.viu.com/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:54.614Z"
+    },
+    {
+      "name": "Kocowa",
+      "url": "https://www.kocowa.com/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:54.767Z"
+    },
+    {
+      "name": "OnDemandKorea",
+      "url": "https://www.ondemandkorea.com/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:54.901Z"
+    },
+    {
+      "name": "WeTV",
+      "url": "https://wetv.vip/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:55.604Z"
+    },
+    {
+      "name": "iQIYI",
+      "url": "https://www.iq.com/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:56.162Z"
+    },
+    {
+      "name": "Amasian TV",
+      "url": "https://amasiantv.com/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:56.915Z"
+    },
+    {
+      "name": "1Shows",
+      "url": "https://1shows.org/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:57.340Z"
+    },
+    {
+      "name": "FlickyStream",
+      "url": "https://flickystream.dad/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:58.053Z"
+    },
+    {
+      "name": "MovieBox",
+      "url": "https://movie-box.co/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:58.422Z"
+    },
+    {
+      "name": "1Flex",
+      "url": "https://1flex.org/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:58.982Z"
+    },
+    {
+      "name": "1Tube",
+      "url": "https://1tube.org/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:10:59.663Z"
+    },
+    {
+      "name": "Cineby",
+      "url": "https://cineby.at/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:11:01.486Z"
+    },
+    {
+      "name": "FMovies",
+      "url": "https://fmovies-hd.to/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:11:02.142Z"
+    },
+    {
+      "name": "ReAnime",
+      "url": "https://reanime.to/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:11:02.360Z"
+    },
+    {
+      "name": "Animepahe",
+      "url": "https://animepahe.pw/",
+      "status": "down",
+      "httpStatus": 403,
+      "checkedAt": "2026-08-08T05:11:02.403Z"
+    },
+    {
+      "name": "Miruro",
+      "url": "https://miruro.to/",
+      "status": "down",
+      "httpStatus": 403,
+      "checkedAt": "2026-08-08T05:11:02.453Z"
+    },
+    {
+      "name": "Anikoto",
+      "url": "https://anikototv.to/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:11:02.521Z"
+    },
+    {
+      "name": "Enma",
+      "url": "https://enma.lol/",
+      "status": "up",
+      "httpStatus": 200,
+      "checkedAt": "2026-08-08T05:11:02.943Z"
+    }
+  ]
+}
