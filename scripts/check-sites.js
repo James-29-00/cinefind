@@ -1,6 +1,13 @@
 // scripts/check-sites.js
 // Reads sites.json, checks each URL, writes result to status.json
 // Run automatically by .github/workflows/check-sites.yml (daily)
+//
+// v2: adds browser-like headers, retries for likely bot-blocks, and a
+// 3-state status (up / blocked / down) so the admin panel can tell the
+// difference between "confirmed dead" and "probably fine, just flagged
+// as a bot by the site's protection" (Cloudflare/DDoS-Guard etc. commonly
+// block GitHub Actions' datacenter IPs even when the site works fine for
+// real visitors).
 
 const fs = require('fs');
 const path = require('path');
@@ -9,39 +16,106 @@ const SITES_PATH = path.join(__dirname, '..', 'sites.json');
 const OUTPUT_PATH = path.join(__dirname, '..', 'status.json');
 const TIMEOUT_MS = 10000;
 
-async function checkSite(site) {
+// HTTP codes commonly returned by bot-protection layers (Cloudflare,
+// DDoS-Guard, etc.) rather than the site actually being down.
+const BLOCK_LIKE_STATUS_CODES = new Set([403, 429, 503]);
+
+// Browser-like headers so a plain GET looks less like an obvious script.
+// This won't defeat real JS-challenge pages, but it clears the simpler
+// User-Agent-only checks some sites use.
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Referer': 'https://www.google.com/'
+};
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// A single fetch attempt. Never throws — always resolves to a result shape
+// so the retry loop can decide what to do with it.
+async function attemptFetch(url) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const res = await fetch(site.url, {
+    const res = await fetch(url, {
       method: 'GET',
       redirect: 'follow',
       signal: controller.signal,
-      headers: {
-        // Some sites block requests with no browser-like User-Agent
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
-      }
+      headers: BROWSER_HEADERS
     });
     clearTimeout(timeout);
-    return {
-      name: site.name,
-      url: site.url,
-      status: res.ok || (res.status >= 200 && res.status < 400) ? 'up' : 'down',
-      httpStatus: res.status,
-      checkedAt: new Date().toISOString()
-    };
+    return { ok: true, httpStatus: res.status };
   } catch (err) {
     clearTimeout(timeout);
     return {
-      name: site.name,
-      url: site.url,
-      status: 'down',
-      httpStatus: null,
-      error: err.name === 'AbortError' ? 'timeout' : err.message,
-      checkedAt: new Date().toISOString()
+      ok: false,
+      error: err.name === 'AbortError' ? 'timeout' : err.message
     };
   }
+}
+
+// Retries only for outcomes that look like a transient bot-block or
+// network blip (403/429/503 or timeout). A hard failure like DNS
+// not resolving won't get "fixed" by retrying, so we don't waste time
+// retrying those — one shot is enough to call it confirmed down.
+const RETRYABLE_NETWORK_ERRORS = ['timeout', 'fetch failed', 'ECONNRESET', 'ETIMEDOUT'];
+
+async function checkSite(site, maxAttempts = 3) {
+  let lastResult = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const result = await attemptFetch(site.url);
+    lastResult = result;
+
+    if (result.ok && !BLOCK_LIKE_STATUS_CODES.has(result.httpStatus)) {
+      // Clean success — no need to retry further.
+      break;
+    }
+
+    const isRetryableHttp = result.ok && BLOCK_LIKE_STATUS_CODES.has(result.httpStatus);
+    const isRetryableNetwork = !result.ok &&
+      RETRYABLE_NETWORK_ERRORS.some(e => (result.error || '').includes(e));
+
+    if (!isRetryableHttp && !isRetryableNetwork) {
+      // Hard failure (e.g. DNS not found) — retrying won't help.
+      break;
+    }
+
+    if (attempt < maxAttempts) {
+      await sleep(3000 * attempt); // 3s, then 6s backoff
+    }
+  }
+
+  return classifyResult(site, lastResult);
+}
+
+function classifyResult(site, result) {
+  const base = { name: site.name, url: site.url, checkedAt: new Date().toISOString() };
+
+  if (result.ok) {
+    if (BLOCK_LIKE_STATUS_CODES.has(result.httpStatus)) {
+      return { ...base, status: 'blocked', httpStatus: result.httpStatus };
+    }
+    if (result.httpStatus >= 200 && result.httpStatus < 400) {
+      return { ...base, status: 'up', httpStatus: result.httpStatus };
+    }
+    // Other 4xx/5xx not in the block-like set (e.g. 404) — treat as down.
+    return { ...base, status: 'down', httpStatus: result.httpStatus };
+  }
+
+  // Network-level failure. Timeouts after retries are ambiguous (could be
+  // a slow/blocking site or a genuinely dead one) — label 'blocked' so a
+  // human double-checks rather than assuming it's confirmed dead. DNS/
+  // connection-refused errors are as close to "confirmed down" as this
+  // script can get.
+  if (result.error === 'timeout') {
+    return { ...base, status: 'blocked', httpStatus: null, error: 'timeout after retries' };
+  }
+  return { ...base, status: 'down', httpStatus: null, error: result.error };
 }
 
 async function main() {
@@ -52,20 +126,23 @@ async function main() {
   // Check sequentially with small delay to avoid rate-limiting / looking like a bot flood
   for (const site of sites) {
     const result = await checkSite(site);
-    console.log(`${result.status === 'up' ? '✅' : '❌'} ${result.name} (${result.httpStatus || result.error})`);
+    const icon = result.status === 'up' ? '✅' : result.status === 'blocked' ? '🟡' : '❌';
+    console.log(`${icon} ${result.name} (${result.httpStatus || result.error})`);
     results.push(result);
+    await sleep(500); // small courtesy delay between different sites
   }
 
   const output = {
     lastRun: new Date().toISOString(),
     totalSites: results.length,
     upCount: results.filter(r => r.status === 'up').length,
+    blockedCount: results.filter(r => r.status === 'blocked').length,
     downCount: results.filter(r => r.status === 'down').length,
     results
   };
 
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(output, null, 2));
-  console.log(`\nDone. ${output.upCount} up, ${output.downCount} down. Written to status.json`);
+  console.log(`\nDone. ${output.upCount} up, ${output.blockedCount} blocked (needs manual check), ${output.downCount} confirmed down. Written to status.json`);
 }
 
 main().catch(err => {
