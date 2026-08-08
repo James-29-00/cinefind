@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineFind — Free Movie Search</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Light Mode Colors */
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #ffffff0f;
+    --accent: #e63946;
+    --accent2: #ff6b6b;
+    --gold: #ffd166;
+    --text: #f0f0f5;
+    --muted: #9494b5;
+    --green: #06d6a0;
+  }
+
+  /* Dark Mode (Default) */
+  body.dark-mode {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #ffffff0f;
+    --text: #f0f0f5;
+    --muted: #9494b5;
+  }
+
+  /* Light Mode */
+  body.light-mode {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --card: #f0f2f5;
+    --border: #0000001a;
+    --text: #1a1a2e;
+    --muted: #6c757d;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background .3s, color .3s;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: .4;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(230,57,70,.12) 0%, transparent 70%);
+    top: -200px; left: 50%; transform: translateX(-50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+
+  header { text-align: center; padding: 44px 0 24px; position: relative; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 10vw, 6rem);
+    letter-spacing: .04em; line-height: 1;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    flex: 1;
+  }
+  .logo span { color: var(--accent); -webkit-text-fill-color: var(--accent); }
+  .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
+
+  .safety-tip {
+    max-width: 420px; margin: 14px auto 0;
+    display: flex; align-items: center; gap: 7px;
+    font-size: .72rem; color: var(--muted); line-height: 1.5;
+  }
+  .safety-tip .tip-icon { font-size: .85rem; opacity: .7; flex-shrink: 0; }
+  .safety-tip strong { color: var(--accent2); font-weight: 600; }
+
+  /* Theme Toggle Button */
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 50%; width: 45px; height: 45px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.2rem;
+    transition: all .3s; position: absolute;
+    top: 0; right: 0;
+  }
+  .theme-toggle:hover { border-color: var(--accent); transform: scale(1.1); }
+
+  .search-wrap { position: relative; margin: 20px 0 12px; }
+  .search-wrap input {
+    width: 100%; padding: 18px 60px 18px 22px;
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 14px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem; color: var(--text); outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230,57,70,.15); }
+
+  .suggestions-box {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 14px;
+    overflow: hidden; z-index: 20; max-height: 320px; overflow-y: auto;
+    box-shadow: 0 12px 30px rgba(0,0,0,.4); display: none;
+  }
+  .suggestions-box.open { display: block; }
+  .suggestion-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--border);
+  }
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-item:hover, .suggestion-item.active { background: rgba(230,57,70,.1); }
+  .suggestion-poster { width: 32px; height: 46px; border-radius: 5px; background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .9rem; overflow: hidden; }
+  .suggestion-poster img { width: 100%; height: 100%; object-fit: cover; }
+  .suggestion-text { flex: 1; min-width: 0; }
+  .suggestion-title { font-size: .85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .suggestion-meta { font-size: .7rem; color: var(--muted); }
+  .search-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: var(--accent); border: none; border-radius: 10px;
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .2s, transform .15s; font-size: 18px;
+  }
+  .search-btn:hover { background: var(--accent2); transform: translateY(-50%) scale(1.05); }
+
+  .filters { display: flex; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 28px; align-items: center; }
+  .filter-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .filter-select {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid #3A3448;
+    background: var(--card); color: var(--text); font-family: 'Space Grotesk', sans-serif;
+    font-size: .8rem; cursor: pointer; transition: all .2s;
+    outline: none;
+  }
+  .filter-select:focus, .filter-select:hover { border-color: var(--accent); }
+  .filter-chip {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid #3A3448;
+    background: transparent; color: #C9C6D6; font-family: 'Space Grotesk', sans-serif;
+    font-size: .8rem; cursor: pointer; transition: all .2s;
+  }
+  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(230,57,70,.08); }
+  .filter-chip.fav-chip { color: var(--accent2); border-color: rgba(230,57,70,.35); }
+  .filter-chip.fav-chip:hover { background: rgba(230,57,70,.1); }
+  .fav-quick-link {
+    background: none; border: none; cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif; font-size: .8rem;
+    color: var(--muted); padding: 4px 2px;
+    display: inline-flex; align-items: center; gap: 5px;
+    transition: color .2s;
+  }
+  .fav-quick-link:hover { color: var(--accent2); }
+
+  /* ===== Genre pill chips (gradient border trick) ===== */
+  .pill-container {
+    display: flex; align-items: center; justify-content: flex-start;
+    gap: 8px; padding: 12px 16px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .pill-container::-webkit-scrollbar { display: none; }
+  .genre-pill {
+    background-color: transparent;
+    color: var(--muted);
+    font-size: 13px; font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    border: 1.5px solid transparent;
+    cursor: pointer; white-space: nowrap;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .genre-pill:hover { opacity: 0.85; transform: translateY(-1px); }
+  .dual-gradient-pill {
+    background-color: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
+    background-image:
+      linear-gradient(var(--card), var(--card)),
+      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(230,57,70,.55) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+  .dual-gradient-pill.active {
+    color: var(--text); font-weight: 600;
+    transform: scale(1.05);
+    background-image:
+      linear-gradient(var(--card), var(--card)),
+      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(230,57,70,.55) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border-color: transparent;
+    box-shadow: 0 0 0 1px rgba(230,57,70,.6), 0 0 16px rgba(230,57,70,.55);
+  }
+
+  .genre-chip {
+    padding: 9px 20px 9px 16px; border-radius: 24px; border: 1.5px solid var(--accent);
+    background: transparent; color: var(--accent2); font-family: 'Space Grotesk', sans-serif;
+    font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .genre-chip:hover { background: rgba(230,57,70,.1); transform: translateY(-1px); }
+  .genre-chip.active { background: var(--accent); color: #fff; }
+  .genre-chip .icon { display: inline-flex; opacity: .7; flex-shrink: 0; }
+  .genre-chip .icon svg { display: block; }
+
+  #result-area { min-height: 200px; }
+
+  .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 60px 0; color: var(--muted); }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .movie-header {
+    display: flex; gap: 20px; align-items: flex-start;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 24px; margin-bottom: 20px;
+    animation: fadeUp .4s ease forwards;
+  }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: none; } }
+  @keyframes posterShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .poster-loading {
+    background: linear-gradient(90deg, var(--surface) 25%, rgba(255,255,255,.08) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: posterShimmer 1.4s ease-in-out infinite;
+  }
+  .poster-img { opacity: 0; transition: opacity .3s ease; }
+  .movie-poster {
+    width: 90px; height: 130px; border-radius: 10px; background: var(--surface);
+    display: flex; align-items: center; justify-content: center; font-size: 2.5rem;
+    flex-shrink: 0; border: 1px solid var(--border); overflow: hidden;
+    position: relative;
+  }
+  .movie-poster img { width: 100%; height: 100%; object-fit: cover; }
+  .fav-btn {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(0,0,0,.6); border: none; border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.2rem; transition: all .2s;
+    z-index: 10;
+  }
+  .fav-btn:hover { background: rgba(230,57,70,.9); transform: scale(1.15); }
+  .fav-btn.favorited { background: rgba(230,57,70,.9); }
+
+  .movie-info { flex: 1; }
+  .movie-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
+  .movie-meta { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; font-size: .8rem; color: var(--muted); }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+  .badge-year { background: rgba(255,255,255,.07); color: var(--text); }
+  .badge-genre { background: rgba(230,57,70,.15); color: var(--accent2); }
+  .badge-rating { background: rgba(255,209,102,.12); color: var(--gold); }
+  .movie-desc { font-size: .88rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .section-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .sites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
+
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .result-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; cursor: pointer; text-align: left;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    animation: fadeUp .4s ease forwards; display: flex; flex-direction: column;
+  }
+  .result-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(230,57,70,.15); }
+  .result-card .result-poster { width: 100%; aspect-ratio: 2/3; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 2rem; overflow: hidden; }
+  .result-card .result-poster img { width: 100%; height: 100%; object-fit: cover; }
+  .result-card .result-info { padding: 10px 12px 12px; }
+  .result-card .result-title { font-size: .88rem; font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: .7rem; color: var(--muted); }
+  .site-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; text-decoration: none; color: var(--text);
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    animation: fadeUp .4s ease forwards;
+  }
+  .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(230,57,70,.15); }
+  .site-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+  .site-logo-box {
+    width: 64px; height: 46px; border-radius: 10px; flex-shrink: 0;
+    background: #14141c; border: 1px solid rgba(255,255,255,.07);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .site-logo-box > * { transform: scale(.62); transform-origin: center; }
+  .site-info { flex: 1; }
+  .site-name { font-weight: 600; font-size: .95rem; }
+  .site-note { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+  .site-free { font-size: .7rem; font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+  .arrow { color: var(--muted); font-size: .8rem; }
+  .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 20px; align-items: stretch; }
+
+  /* ===== Gradient-border directory card ===== */
+  .gradient-card-wrapper {
+    position: relative;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(230,57,70,.45) 0%, rgba(6,214,160,.35) 100%);
+    transition: transform .25s ease, box-shadow .25s ease;
+    animation: fadeUp .4s ease forwards;
+    height: 100%;
+  }
+  .gradient-card-wrapper:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(135deg, rgba(230,57,70,.75) 0%, rgba(6,214,160,.55) 100%);
+    box-shadow: 0 8px 24px rgba(230,57,70,.12);
+  }
+  .card-content {
+    background-color: #16161f;
+    border-radius: 15px;
+    display: flex; flex-direction: column;
+    text-decoration: none; color: var(--text);
+    height: 130px;
+    position: relative;
+    overflow: hidden;
+  }
+  .pin-icon {
+    color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
+    background: none; border: none; line-height: 1; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
+
+  /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
+  .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; }
+  .card-logo svg { width: 38px; height: 26px; display: block; }
+  .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.65rem; letter-spacing: -.01em; line-height: 1; }
+  .lw-white { color: #fff; }
+  .lw-accent { color: var(--accent); }
+  .lw-outline { color: transparent; -webkit-text-stroke: 1.7px #5b8def; font-weight: 800; margin-right: 1px; }
+  .logo-mtn, .logo-clapper { display: inline-flex; align-items: center; }
+  .logo-plex .lw-plex-x { background: linear-gradient(135deg, #ffb347 0%, #ff5f6d 60%, #a259ff 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-tubi { color: #ff5b3a; font-style: italic; font-weight: 800; letter-spacing: -.02em; background: linear-gradient(120deg, #ff7a3d, #ff3d6e); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-pluto { display: inline-flex; align-items: center; gap: 6px; }
+  .pluto-ring {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 29px; height: 29px; border-radius: 50%; font-size: .68rem; font-weight: 800; color: #fff;
+    background: conic-gradient(#ff3d6e, #ffb347, #ffe45e, #4dd4ac, #4d9fff, #a259ff, #ff3d6e);
+  }
+
+  .copy-link-btn {
+    background: rgba(255,255,255,.06); border: none; border-radius: 8px;
+    width: 30px; height: 30px; flex-shrink: 0; cursor: pointer;
+    font-size: .85rem; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); transition: background .2s, color .2s;
+  }
+  .copy-link-btn:hover { background: rgba(230,57,70,.15); color: var(--accent); }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--card); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 20px; border-radius: 30px; font-size: .85rem; z-index: 100;
+    opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .tips-box {
+    background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--gold);
+    border-radius: 0 12px 12px 0; padding: 14px 18px; font-size: .85rem; color: var(--muted);
+    line-height: 1.6; margin-top: 8px; animation: fadeUp .4s ease forwards;
+  }
+  .tips-box strong { color: var(--gold); }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty .big { font-size: 3rem; margin-bottom: 12px; }
+  .empty p { font-size: .95rem; }
+
+  .popular-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .popular-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .genre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .genre-grid .genre-chip { width: 100%; justify-content: center; }
+  .pop-chip {
+    padding: 8px 16px; border-radius: 20px; background: var(--card); border: 1px solid #3A3448;
+    color: #C9C6D6; font-size: .85rem; cursor: pointer; transition: all .2s; font-family: 'Space Grotesk', sans-serif;
+  }
+  .pop-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  footer { text-align: center; padding: 30px 0 0; font-size: .78rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 40px; }
+
+  @media (max-width: 500px) {
+    .movie-header { flex-direction: column; }
+    .movie-poster { width: 100%; height: 180px; }
+    .sites-grid { grid-template-columns: 1fr; }
+    .theme-toggle { width: 38px; height: 38px; font-size: 1rem; }
+    .filters { gap: 10px; }
+    .filter-group { width: 100%; justify-content: space-between; }
+    .filter-select { flex: 1; }
+  }
+</style>
+</head>
+<body class="dark-mode">
+<div class="bg-glow"></div>
+<div class="wrapper">
+  <header>
+    <div class="header-top">
+      <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">🌙</button>
+    </div>
+    <div class="logo">Cine<span>Find</span></div>
+    <p class="tagline">Find where to watch any movie or drama — for free</p>
+    <div class="safety-tip">
+      <span class="tip-icon">🛡️</span>
+      <span>Tip: use a browser with built-in ad/tracker blocking (like <strong>Brave Browser <img src="https://www.google.com/s2/favicons?domain=brave.com&sz=64" width="13" height="13" alt="Brave" style="vertical-align:-2px; display:inline-block; border-radius:3px; opacity:.8;"></strong>) before opening any streaming site</span>
+    </div>
+  </header>
+
+  <div class="search-wrap">
+    <input type="text" id="search-input" placeholder="Search any movie or drama..." aria-label="Search any movie or drama" autocomplete="off">
+    <button class="search-btn" onclick="searchMovie()" aria-label="Search">🔍</button>
+    <div class="suggestions-box" id="suggestions-box"></div>
+  </div>
+
+  <div style="display:flex; justify-content:flex-end; margin:-6px 0 18px;">
+    <button class="fav-quick-link" onclick="showFavorites()"><span style="color:var(--gold);">★</span> My Favorites (<span id="fav-count">0</span>)</button>
+  </div>
+
+  <!-- ADVANCED FILTERS SECTION — hidden until there's a results list to filter -->
+  <div class="filters" id="filters-bar" style="display:none;">
+    <div class="filter-group">
+      <label class="filter-label">Year:</label>
+      <select class="filter-select" id="year-filter" onchange="applyFilters()">
+        <option value="">All years</option>
+        <option value="2010s">2010s</option>
+        <option value="2000s">2000s</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Rating:</label>
+      <select class="filter-select" id="rating-filter" onchange="applyFilters()">
+        <option value="">All ratings</option>
+        <option value="9">9.0+</option>
+        <option value="8">8.0+</option>
+        <option value="7">7.0+</option>
+        <option value="6">6.0+</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Type:</label>
+      <select class="filter-select" id="type-filter" onchange="applyFilters()">
+        <option value="">All types</option>
+        <option value="movie">Movie</option>
+        <option value="series">Series</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="result-area">
+    <!-- Filled in by renderHomepage() on page load -->
+  </div>
+
+  <footer>
+    <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
+  </footer>
+</div>
+
+<script>
+// ========== THEME TOGGLE ==========
+function initTheme() {
+  const savedTheme = localStorage.getItem('cinefind-theme') || 'dark-mode';
+  document.body.className = savedTheme;
+  updateThemeButton();
+}
+
+function toggleTheme() {
+  const isDark = document.body.classList.contains('dark-mode');
+  if (isDark) {
+    document.body.classList.remove('dark-mode');
+    document.body.classList.add('light-mode');
+    localStorage.setItem('cinefind-theme', 'light-mode');
+  } else {
+    document.body.classList.remove('light-mode');
+    document.body.classList.add('dark-mode');
+    localStorage.setItem('cinefind-theme', 'dark-mode');
+  }
+  updateThemeButton();
+}
+
+function updateThemeButton() {
+  const btn = document.getElementById('theme-toggle');
+  if (document.body.classList.contains('dark-mode')) {
+    btn.textContent = '🌙';
+  } else {
+    btn.textContent = '☀️';
+  }
+}
+
+// ========== TOAST / SHARE / COPY LINK ==========
+let toastTimer = null;
+
+function showToast(message) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  // Fallback for browsers/webviews without the Clipboard API
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      resolve();
+    } catch (err) {
+      reject(err);
+    } finally {
+      document.body.removeChild(ta);
+    }
+  });
+}
+
+function copySiteLink(e, url, btn) {
+  e.preventDefault();
+  e.stopPropagation();
+  copyTextToClipboard(url)
+    .then(() => {
+      const original = btn.innerHTML;
+      btn.innerHTML = '✅';
+      showToast('Link copied!');
+      setTimeout(() => { btn.innerHTML = original; }, 1500);
+    })
+    .catch(() => showToast("Couldn't copy — try again"));
+}
+
+function shareMovie() {
+  const movie = window.currentMovie;
+  if (!movie) return;
+
+  const text = `Check out "${movie.title}"${movie.year ? ' (' + movie.year + ')' : ''} — found it on CineFind 🎬`;
+
+  if (navigator.share) {
+    navigator.share({ title: movie.title, text, url: window.location.href }).catch(() => { /* user cancelled — no-op */ });
+  } else {
+    copyTextToClipboard(`${text}\n${window.location.href}`)
+      .then(() => showToast('Copied to clipboard!'))
+      .catch(() => showToast("Couldn't copy — try again"));
+  }
+}
+// ========== FAVORITES SYSTEM ==========
+function getFavorites() {
+  const saved = localStorage.getItem('cinefind-favorites');
+  return saved ? JSON.parse(saved) : [];
+}
+
+function saveFavorites(favs) {
+  localStorage.setItem('cinefind-favorites', JSON.stringify(favs));
+  updateFavCount();
+}
+
+function addFavorite(movie) {
+  const favs = getFavorites();
+  const exists = favs.some(f => f.title === movie.title);
+  if (!exists) {
+    favs.push({ ...movie, dateAdded: Date.now() });
+    saveFavorites(favs);
+  }
+}
+
+function removeFavorite(title) {
+  let favs = getFavorites();
+  favs = favs.filter(f => f.title !== title);
+  saveFavorites(favs);
+}
+
+function updateFavCount() {
+  document.getElementById('fav-count').textContent = getFavorites().length;
+}
+
+function showFavorites(sortBy) {
+  hideFiltersBar();
+  sortBy = sortBy || 'date-desc';
+  const favs = getFavorites();
+  if (favs.length === 0) {
+    document.getElementById('result-area').innerHTML = `
+      <div class="empty">
+        <div class="big">⭐</div>
+        <p>No favorites yet. Search and star movies to add them here!</p>
+        <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
+      </div>`;
+    return;
+  }
+
+  const sorted = [...favs].sort((a, b) => {
+    switch (sortBy) {
+      case 'date-asc': return (a.dateAdded || 0) - (b.dateAdded || 0);
+      case 'rating-desc': return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+      case 'az': return a.title.localeCompare(b.title);
+      case 'za': return b.title.localeCompare(a.title);
+      case 'date-desc':
+      default: return (b.dateAdded || 0) - (a.dateAdded || 0);
+    }
+  });
+
+  let html = `
+    <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <button class="pop-chip" onclick="resetSearch()">← Back to search</button>
+      <select class="filter-select" onchange="showFavorites(this.value)" style="width:auto;">
+        <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>Newest added</option>
+        <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>Oldest added</option>
+        <option value="rating-desc" ${sortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
+        <option value="az" ${sortBy === 'az' ? 'selected' : ''}>Title A–Z</option>
+        <option value="za" ${sortBy === 'za' ? 'selected' : ''}>Title Z–A</option>
+      </select>
+    </div>`;
+  sorted.forEach(movie => {
+    html += `
+      <div class="movie-header" style="margin-bottom:16px;">
+        <div class="movie-poster${movie.poster ? ' poster-loading' : ''}" id="poster-${movie.title}">
+          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
+        </div>
+        <div class="movie-info">
+          <div class="movie-title">${movie.title}</div>
+          <div class="movie-meta">
+            ${movie.year ? `<span class="badge badge-year">${movie.year}</span>` : ''}
+            ${movie.rating ? `<span class="badge badge-rating">⭐ ${movie.rating}</span>` : ''}
+          </div>
+          <p class="movie-desc">${movie.description || ''}</p>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="pop-chip" onclick='renderResult(${escapeAttr(JSON.stringify(movie))}, "${escapeAttr(movie.title)}")'>▶️ View</button>
+            <button class="pop-chip" onclick="removeFavorite('${escapeAttr(movie.title)}'); showFavorites('${sortBy}');" style="color:#e63946;">🗑️ Remove</button>
+          </div>
+        </div>
+      </div>`;
+  });
+  document.getElementById('result-area').innerHTML = html;
+}
+
+// ========== FILTERING SYSTEM ==========
+let lastSearchResult = null;      // full, unfiltered list from the last search
+let currentDisplayedResults = null; // whatever list (filtered or not) is currently shown as cards
+
+// The Year/Rating/Type filter bar only makes sense once there's a results
+// list on screen — hidden otherwise so it doesn't look "dead" on the homepage.
+function showFiltersBar() {
+  document.getElementById('filters-bar').style.display = 'flex';
+}
+function hideFiltersBar() {
+  document.getElementById('filters-bar').style.display = 'none';
+}
+
+function applyFilters() {
+  if (!lastSearchResult) return;
+
+  const yearFilter = document.getElementById('year-filter').value;
+  const ratingFilter = document.getElementById('rating-filter').value;
+  const typeFilter = document.getElementById('type-filter').value;
+
+  let filtered = lastSearchResult;
+
+  if (yearFilter) {
+    const year = parseInt(yearFilter);
+    if (yearFilter === '2010s') {
+      filtered = filtered.filter(m => m.year >= 2010 && m.year < 2020);
+    } else if (yearFilter === '2000s') {
+      filtered = filtered.filter(m => m.year >= 2000 && m.year < 2010);
+    } else {
+      filtered = filtered.filter(m => m.year === year);
+    }
+  }
+
+  if (ratingFilter) {
+    const rating = parseFloat(ratingFilter);
+    filtered = filtered.filter(m => m.rating && parseFloat(m.rating) >= rating);
+  }
+
+  if (typeFilter) {
+    filtered = filtered.filter(m => m.type === typeFilter);
+  }
+
+  if (filtered.length === 0) {
+    currentDisplayedResults = [];
+    document.getElementById('result-area').innerHTML = `
+      <div class="empty">
+        <div class="big">🔍</div>
+        <p>No results match your filters. Try adjusting them.</p>
+      </div>`;
+    return;
+  }
+
+  // Show every matching result, not just the first one
+  renderResultsGrid(filtered);
+}
+
+// Renders a grid of clickable result cards for a list of movies/series
+const RESULTS_PER_PAGE = 9;
+let visibleResultsCount = RESULTS_PER_PAGE;
+let currentResultsLabel = null; // optional custom header, e.g. "🎭 Comedy"
+let currentResultsRaw = null;   // original, unsorted order — kept so sorting can always start fresh
+let currentSortBy = 'default';
+
+function renderResultsGrid(movies, label) {
+  currentResultsRaw = movies;
+  currentDisplayedResults = movies;
+  currentResultsLabel = label || null;
+  currentSortBy = 'default';
+  visibleResultsCount = RESULTS_PER_PAGE; // reset to first page whenever a new list is shown
+  showFiltersBar();
+  renderVisibleResults();
+}
+
+// Returns a new sorted copy — never mutates the original list
+function sortMovies(list, sortBy) {
+  const copy = [...(list || [])];
+  switch (sortBy) {
+    case 'rating-desc': return copy.sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+    case 'year-desc': return copy.sort((a, b) => (b.year || 0) - (a.year || 0));
+    case 'year-asc': return copy.sort((a, b) => (a.year || 0) - (b.year || 0));
+    case 'az': return copy.sort((a, b) => a.title.localeCompare(b.title));
+    case 'default':
+    default: return copy;
+  }
+}
+
+// Called when the user picks a sort option — re-sorts from the original
+// order and resets pagination so the first page reflects the new order.
+function setResultsSort(sortBy) {
+  currentSortBy = sortBy;
+  currentDisplayedResults = sortMovies(currentResultsRaw, sortBy);
+  visibleResultsCount = RESULTS_PER_PAGE;
+  renderVisibleResults();
+}
+
+// Renders however many results are currently "unlocked" (visibleResultsCount),
+// plus a Load More button if there are more left to show.
+function renderVisibleResults() {
+  const movies = currentDisplayedResults || [];
+  const area = document.getElementById('result-area');
+  const visible = movies.slice(0, visibleResultsCount);
+
+  const cards = visible.map((m, i) => `
+    <div class="result-card" onclick="selectMovie(${i})" style="animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
+      <div class="result-poster${m.poster ? ' poster-loading' : ''}">
+        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+      </div>
+      <div class="result-info">
+        <div class="result-title">${m.title}</div>
+        <div class="result-meta">
+          ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
+          ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+
+  const hasMore = visibleResultsCount < movies.length;
+  const headerText = currentResultsLabel || `✅ Found ${movies.length} result(s) — tap one to see streaming links`;
+
+  area.innerHTML = `
+    <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div class="popular-label" style="margin-bottom:0;">${headerText}</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <select class="filter-select" onchange="setResultsSort(this.value)" style="width:auto;" aria-label="Sort results by">
+          <option value="default" ${currentSortBy === 'default' ? 'selected' : ''}>Sort: Relevance</option>
+          <option value="rating-desc" ${currentSortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
+          <option value="year-desc" ${currentSortBy === 'year-desc' ? 'selected' : ''}>Newest first</option>
+          <option value="year-asc" ${currentSortBy === 'year-asc' ? 'selected' : ''}>Oldest first</option>
+          <option value="az" ${currentSortBy === 'az' ? 'selected' : ''}>Title A–Z</option>
+        </select>
+        <button class="pop-chip" onclick="resetSearch()" style="font-size:.75rem; padding:6px 12px;">← Home</button>
+      </div>
+    </div>
+    <div class="results-grid">${cards}</div>
+    ${hasMore ? `
+      <div style="text-align:center; margin-top:18px;">
+        <button class="pop-chip" onclick="loadMoreResults()">Load More (${movies.length - visibleResultsCount} left)</button>
+      </div>` : ''}`;
+}
+
+function loadMoreResults() {
+  visibleResultsCount += RESULTS_PER_PAGE;
+  renderVisibleResults();
+}
+
+// Called when the user taps a card in the results grid
+function selectMovie(index) {
+  const movie = currentDisplayedResults && currentDisplayedResults[index];
+  if (!movie) return;
+  renderResult(movie, movie.title);
+}
+
+// ========== LIVE SEARCH SUGGESTIONS ==========
+const SUGGEST_MIN_CHARS = 2;
+const SUGGEST_DEBOUNCE_MS = 350;
+let suggestDebounceTimer = null;
+let suggestAbortController = null;
+
+// ========== SAFE STRING ESCAPING ==========
+// Used anywhere a title/query gets interpolated into an HTML attribute (like onclick="fn('...')").
+// Escaping only the single quote (as the old code did) still leaves double quotes, angle
+// brackets, etc. able to break out of the attribute or inject markup. This escapes everything
+// HTML-attribute-unsafe, so it's safe regardless of what characters end up in a TMDB title.
+function escapeAttr(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function handleSuggestInput() {
+  const box = document.getElementById('suggestions-box');
+  const query = document.getElementById('search-input').value.trim();
+
+  clearTimeout(suggestDebounceTimer);
+
+  if (query.length === 0) {
+    showSearchHistory();
+    return;
+  }
+
+  if (query.length < SUGGEST_MIN_CHARS) {
+    closeSuggestions();
+    return;
+  }
+
+  suggestDebounceTimer = setTimeout(() => fetchSuggestions(query), SUGGEST_DEBOUNCE_MS);
+}
+
+function fetchSuggestions(query) {
+  // Cancel any suggestion request still in flight so results don't stack up
+  if (suggestAbortController) suggestAbortController.abort();
+  suggestAbortController = new AbortController();
+
+  // Show a lightweight loading state so the dropdown doesn't look frozen while typing
+  const box = document.getElementById('suggestions-box');
+  box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--muted); font-size:.8rem;">Searching…</div>`;
+  box.classList.add('open');
+
+  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(query)}`, {
+    signal: suggestAbortController.signal
+  })
+    .then(r => r.json())
+    .then(tmdb => {
+      const results = (tmdb.results || [])
+        .filter(m => m.media_type === 'movie' || m.media_type === 'tv')
+        .slice(0, 6);
+      renderSuggestions(results, query);
+    })
+    .catch(err => {
+      if (err.name === 'AbortError') return; // superseded by a newer keystroke — just let that one render
+      // Show a brief inline message instead of silently closing, so the user knows it failed
+      // rather than assuming there were simply no matches.
+      if (document.getElementById('search-input').value.trim() === query) {
+        box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--muted); font-size:.8rem;">Couldn't load suggestions</div>`;
+      }
+    });
+}
+
+function renderSuggestions(results, currentQuery) {
+  const box = document.getElementById('suggestions-box');
+
+  // The input may have changed (or been cleared) while this request was in flight
+  if (document.getElementById('search-input').value.trim() !== currentQuery) return;
+
+  if (results.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  box.innerHTML = results.map(r => {
+    const title = r.title || r.name;
+    const year = (r.release_date || r.first_air_date || '').split('-')[0];
+    const type = r.media_type === 'tv' ? 'Series' : 'Movie';
+    const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : null;
+    return `
+      <div class="suggestion-item" onclick="selectSuggestion('${escapeAttr(title)}')">
+        <div class="suggestion-poster">${poster ? `<img class="poster-img" src="${poster}" alt="" onload="this.style.opacity=1">` : (r.media_type === 'tv' ? '📺' : '🎬')}</div>
+        <div class="suggestion-text">
+          <div class="suggestion-title">${escapeAttr(title)}</div>
+          <div class="suggestion-meta">${type}${year ? ' • ' + year : ''}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  box.classList.add('open');
+}
+
+function selectSuggestion(title) {
+  document.getElementById('search-input').value = title;
+  closeSuggestions();
+  searchMovie();
+}
+
+function closeSuggestions() {
+  const box = document.getElementById('suggestions-box');
+  box.classList.remove('open');
+  box.innerHTML = '';
+}
+
+// Close the dropdown when tapping/clicking outside the search box
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-wrap')) closeSuggestions();
+});
+
+// ========== SEARCH HISTORY ==========
+const SEARCH_HISTORY_KEY = 'cinefind-search-history';
+const SEARCH_HISTORY_MAX = 8;
+
+function getSearchHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSearchHistory(query) {
+  let history = getSearchHistory();
+  history = history.filter(h => h.toLowerCase() !== query.toLowerCase()); // no duplicates
+  history.unshift(query);
+  history = history.slice(0, SEARCH_HISTORY_MAX);
+  try { localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history)); } catch (e) { /* storage full/unavailable */ }
+}
+
+function clearSearchHistory() {
+  localStorage.removeItem(SEARCH_HISTORY_KEY);
+  closeSuggestions();
+}
+
+function showSearchHistory() {
+  const history = getSearchHistory();
+  const box = document.getElementById('suggestions-box');
+  if (history.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--border);">
+      <span style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🕐 Recent searches</span>
+      <button onclick="clearSearchHistory()" style="background:none; border:none; color:var(--muted); font-size:.7rem; cursor:pointer; text-decoration:underline;">Clear</button>
+    </div>
+    ${history.map(h => `
+      <div class="suggestion-item" onclick="selectSuggestion('${escapeAttr(h)}')">
+        <div class="suggestion-poster">🕐</div>
+        <div class="suggestion-text">
+          <div class="suggestion-title">${escapeAttr(h)}</div>
+        </div>
+      </div>`).join('')}`;
+  box.classList.add('open');
+}
+
+// ========== ORIGINAL CODE WITH MODIFICATIONS ==========
+// ⚠️ Replace this with YOUR deployed Cloudflare Worker URL (Step 3 of the guide)
+const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
+const COOLDOWN_MS = 4000;
+let isSearching = false;
+let cooldownUntil = 0;
+let isQuotaWait = false;
+let extraCooldownMs = 0;
+
+function startCooldownDisplay() {
+  const interval = setInterval(() => {
+    const timeLeft = Math.max(0, cooldownUntil - Date.now());
+    const btn = document.querySelector('.search-btn');
+    if (timeLeft > 0) {
+      btn.textContent = Math.ceil(timeLeft / 1000) + 's';
+      btn.disabled = true;
+    } else {
+      btn.textContent = '🔍';
+      btn.disabled = false;
+      clearInterval(interval);
+    }
+  }, 100);
+}
+
+function quickSearch(term) {
+  document.getElementById('search-input').value = term;
+  searchMovie();
+}
+
+const CACHE_MAX_ENTRIES = 40;
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Bump this whenever the shape of cached data changes (e.g. sites list format,
+// number of sites per result). Old cached entries under a stale version are
+// wiped on load so users don't see outdated results after an update.
+const CACHE_VERSION = 2;
+
+(function migrateCacheIfStale() {
+  const storedVersion = parseInt(localStorage.getItem('cinefind-cache-version') || '1', 10);
+  if (storedVersion !== CACHE_VERSION) {
+    localStorage.removeItem('cinefind-cache');
+    localStorage.setItem('cinefind-cache-version', String(CACHE_VERSION));
+  }
+})();
+
+function saveToCache(query, data) {
+  let cache = JSON.parse(localStorage.getItem('cinefind-cache') || '{}');
+
+  // Drop expired entries first so they don't count against the size limit
+  const now = Date.now();
+  cache = Object.fromEntries(
+    Object.entries(cache).filter(([, v]) => now - v.timestamp < CACHE_TTL_MS)
+  );
+
+  cache[query.toLowerCase()] = { data, timestamp: now };
+
+  // If still over the limit, evict the oldest entries until we're back under it
+  const entries = Object.entries(cache);
+  if (entries.length > CACHE_MAX_ENTRIES) {
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp); // oldest first
+    const toRemove = entries.length - CACHE_MAX_ENTRIES;
+    for (let i = 0; i < toRemove; i++) delete cache[entries[i][0]];
+  }
+
+  try {
+    localStorage.setItem('cinefind-cache', JSON.stringify(cache));
+  } catch (e) {
+    // Storage quota exceeded — clear the cache and try once more with just this entry
+    try {
+      localStorage.setItem('cinefind-cache', JSON.stringify({ [query.toLowerCase()]: { data, timestamp: now } }));
+    } catch (e2) { /* give up silently — cache is a nice-to-have, not critical */ }
+  }
+}
+
+function getFromCache(query) {
+  const cache = JSON.parse(localStorage.getItem('cinefind-cache') || '{}');
+  const cached = cache[query.toLowerCase()];
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+  return null;
+}
+
+// TMDB genre IDs -> display names. Movie and TV genre lists overlap mostly,
+// but a few IDs differ between the two (e.g. 10759 = Action & Adventure on TV).
+// Merged into one map since parseTmdbItem doesn't know media type at lookup time in all callers.
+const TMDB_GENRE_MAP = {
+  28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+  99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+  27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance',
+  878: 'Sci-Fi', 10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western',
+  10759: 'Action & Adventure', 10762: 'Kids', 10763: 'News', 10764: 'Reality',
+  10765: 'Sci-Fi & Fantasy', 10766: 'Soap', 10767: 'Talk', 10768: 'War & Politics'
+};
+
+function genreIdsToLabel(genreIds) {
+  if (!genreIds || !genreIds.length) return '';
+  const names = genreIds.map(id => TMDB_GENRE_MAP[id]).filter(Boolean);
+  return names[0] || '';
+}
+
+// Four separate site lists so results actually match what's being searched:
+// movies show movie-focused free sites, k-dramas/general series show drama sites,
+// and anime (movie or series) shows anime-focused sites — detected via
+// detectCategory() below, not just the movie/series split.
+// Sites with a known /search?... URL pattern link straight to search results;
+// the rest link to the homepage with a "search inside site" note since we don't
+// have a confirmed search-URL pattern for them.
+const MOVIE_SITES = (title) => [
+  {name: 'Plex', url: `https://watch.plex.tv/search?q=${encodeURIComponent(title)}`, note: 'Movies & Shows', linkType: 'search', free: true},
+  {name: '1Shows', url: 'https://1shows.org/', note: 'Search inside site', linkType: 'home'},
+  {name: 'FlickyStream', url: 'https://flickystream.dad/', note: 'Search inside site', linkType: 'home'},
+  {name: 'MovieBox', url: 'https://movie-box.co/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Flex', url: 'https://1flex.org/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
+  {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
+];
+
+// General (non-anime, non-K-drama) TV series — same free aggregators as movies,
+// since these sites typically host both.
+const SERIES_SITES = (title) => [
+  {name: 'Plex', url: `https://watch.plex.tv/search?q=${encodeURIComponent(title)}`, note: 'Movies & Shows', linkType: 'search', free: true},
+  {name: '1Shows', url: 'https://1shows.org/', note: 'Search inside site', linkType: 'home'},
+  {name: 'FlickyStream', url: 'https://flickystream.dad/', note: 'Search inside site', linkType: 'home'},
+  {name: 'MovieBox', url: 'https://movie-box.co/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Flex', url: 'https://1flex.org/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
+  {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
+];
+
+// K-drama / Asian drama — only real drama-focused sites.
+const DRAMA_SITES = (title) => [
+  {name: 'Plex', url: `https://watch.plex.tv/search?q=${encodeURIComponent(title)}`, note: 'Movies & Shows', linkType: 'search', free: true},
+  {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?s=${encodeURIComponent(title)}`, note: 'Asian content', linkType: 'search'},
+  {name: 'DramaCool', url: 'https://dramacool.com.tw/', note: 'Search inside site', linkType: 'home'},
+  {name: 'KissKH', url: 'https://kisskh.co/', note: 'Search inside site', linkType: 'home'},
+  {name: 'AsianCrush', url: 'https://www.asiancrush.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Viki', url: 'https://www.viki.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Viu', url: 'https://www.viu.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Kocowa', url: 'https://www.kocowa.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'WeTV', url: 'https://wetv.vip/', note: 'Search inside site', linkType: 'home'},
+  {name: 'iQIYI', url: 'https://www.iq.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Amasian TV', url: 'https://amasiantv.com/', note: 'Search inside site', linkType: 'home'},
+];
+
+// Anime (movie or series) — dedicated anime sites only.
+const ANIME_SITES = (title) => [
+  {name: 'Plex', url: `https://watch.plex.tv/search?q=${encodeURIComponent(title)}`, note: 'Movies & Shows', linkType: 'search', free: true},
+  {name: 'ReAnime', url: 'https://reanime.to/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Animepahe', url: 'https://animepahe.pw/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Miruro', url: 'https://miruro.to/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Anikoto', url: 'https://anikototv.to/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Enma', url: 'https://enma.lol/', note: 'Search inside site', linkType: 'home'},
+];
+
+// Works out which of the 4 buckets a TMDB result belongs to, using genre +
+// original language/origin country rather than just the movie/series split —
+// so "Iron Man" gets movie sites, an anime movie or series gets anime sites,
+// and a K-drama gets drama sites, regardless of type.
+function detectCategory(r, type) {
+  const isAnime = (r.genre_ids || []).includes(16) && r.original_language === 'ja';
+  if (isAnime) return 'anime';
+  if (type === 'series') {
+    const isKDrama = r.original_language === 'ko' || (r.origin_country || []).includes('KR');
+    return isKDrama ? 'drama' : 'series';
+  }
+  return 'movie';
+}
+
+const CATEGORY_SITES = {
+  movie: MOVIE_SITES,
+  series: SERIES_SITES,
+  drama: DRAMA_SITES,
+  anime: ANIME_SITES,
+};
+
+// Shared parser: turns a raw TMDB result object into the shape our UI uses.
+// Used by both search and trending so the card/detail rendering stays consistent.
+function parseTmdbItem(r, fallbackMediaType) {
+  const title = r.title || r.name;
+  const mediaType = r.media_type || fallbackMediaType; // recommendations endpoint doesn't include media_type
+  const type = mediaType === 'tv' ? 'series' : 'movie';
+  const category = detectCategory(r, type);
+  return {
+    id: r.id,
+    title,
+    type,
+    category,
+    year: parseInt((r.release_date || r.first_air_date || '').split('-')[0]),
+    rating: r.vote_average?.toFixed(1),
+    description: r.overview || '',
+    genre: genreIdsToLabel(r.genre_ids),
+    poster: r.poster_path ? `https://image.tmdb.org/t/p/w300${r.poster_path}` : null,
+    sites: CATEGORY_SITES[category](title),
+    tip: `Tip: Search for "<strong>${title}</strong>" on the site directly if direct link doesn't work.`
+  };
+}
+
+function searchMovie() {
+  closeSuggestions();
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+
+  const now = Date.now();
+  if (isSearching || now < cooldownUntil) {
+    const timeLeft = Math.max(0, cooldownUntil - now);
+    if (timeLeft > 0) {
+      console.warn(`Wait ${Math.ceil(timeLeft / 1000)}s before searching again`);
+    }
+    return;
+  }
+
+  saveSearchHistory(query);
+  isSearching = true;
+  const area = document.getElementById('result-area');
+  area.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching...</p></div>';
+
+  let cached = getFromCache(query);
+  if (cached && !Array.isArray(cached)) cached = [cached]; // back-compat with old single-object cache format
+  if (cached) {
+    lastSearchResult = cached;
+    if (cached.length === 1) {
+      currentDisplayedResults = cached;
+      renderResult(cached[0], query);
+    } else {
+      renderResultsGrid(cached);
+    }
+    isSearching = false;
+    cooldownUntil = Date.now() + COOLDOWN_MS;
+    startCooldownDisplay();
+    return;
+  }
+
+  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(tmdb => {
+      const results = tmdb.results?.filter(m => (m.media_type === 'movie' || m.media_type === 'tv') && m.poster_path) || [];
+
+      if (results.length === 0) {
+        hideFiltersBar();
+        const suggestions = tmdb.results?.slice(0, 3).map(r => r.title || r.name) || [];
+        const suggestionCards = suggestions.map(s => `
+          <button class="pop-chip" onclick="quickSearch('${escapeAttr(s)}')" style="margin-right:8px; margin-top:8px;">
+            🔍 ${escapeAttr(s)}
+          </button>`).join('');
+        area.innerHTML = `
+          <div class="empty">
+            <div class="big">🤔</div>
+            <p style="margin-bottom:20px;">Couldn't find "<strong>${query}</strong>". Did you mean...</p>
+            ${suggestionCards}
+          </div>`;
+        return;
+      }
+
+      // Map EVERY matching result (not just results[0]) so filters have
+      // an actual list to work with.
+      const parsedList = results.map(parseTmdbItem);
+
+      saveToCache(query, parsedList);
+      lastSearchResult = parsedList;
+
+      if (parsedList.length === 1) {
+        currentDisplayedResults = parsedList;
+        renderResult(parsedList[0], query);
+      } else {
+        renderResultsGrid(parsedList);
+      }
+    })
+    .catch(err => {
+      console.error('Search failed:', err);
+      let userMessage = 'Something went wrong. Please try again.';
+      let icon = '😔';
+
+      const errMsg = (err.message || '').toLowerCase();
+      if (errMsg.includes('network') || errMsg.includes('fetch')) {
+        userMessage = 'Connection issue. Please check your internet and try again.';
+        icon = '🌐';
+      } else if (errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('rate limit')) {
+        userMessage = 'Too many searches. Please wait a moment and try again.';
+        icon = '⏳';
+      }
+
+      area.innerHTML = `
+        <div class="empty">
+          <div class="big">${icon}</div>
+          <p>Couldn't find results for "<strong>${query}</strong>".<br>${userMessage}</p>
+          <button class="pop-chip" onclick="searchMovie()" style="margin-top:16px;">🔄 Try again</button>
+        </div>`;
+    })
+    .finally(() => {
+      isSearching = false;
+      cooldownUntil = Date.now() + COOLDOWN_MS;
+      startCooldownDisplay();
+    });
+}
+
+function showMoreSites() {
+  const hidden = document.getElementById('hidden-sites');
+  const btn = document.getElementById('show-more-sites-btn');
+  if (hidden) hidden.style.display = 'contents';
+  if (btn) btn.remove();
+}
+
+function renderResult(data, query) {
+  hideFiltersBar(); // filters apply to result lists, not a single detail view
+  const area = document.getElementById('result-area');
+  const favs = getFavorites();
+  const isFavorited = favs.some(f => f.title === data.title);
+
+  // Show verified search-link sites first (more reliable — links straight to results)
+  // before "search inside site" homepage links, so the most useful sites appear
+  // in the initial visible batch rather than at random.
+  const sortedSites = [...(data.sites || [])].sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0));
+  const SITES_VISIBLE_INITIAL = 4;
+
+  // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
+  // instead of generic emoji icons, so a site looks the same wherever it shows up.
+  const buildSiteCard = (s, i) => {
+    const dirMatch = SITES_DIRECTORY.find(d =>
+      s.name.toLowerCase().includes(d.name.toLowerCase()) || d.name.toLowerCase().includes(s.name.toLowerCase())
+    );
+    const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
+    return `
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" style="animation-delay:${i*0.07}s">
+      <div class="site-logo-box">${logoInner}</div>
+      <div class="site-info">
+        <div class="site-name">${s.name}</div>
+        <div class="site-note">${s.note || 'Free streaming'}</div>
+        ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
+      </div>
+      <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+      <span class="arrow">→</span>
+    </a>`;
+  };
+
+  const visibleSites = sortedSites.slice(0, SITES_VISIBLE_INITIAL);
+  const hiddenSites = sortedSites.slice(SITES_VISIBLE_INITIAL);
+
+  const siteCards = visibleSites.map(buildSiteCard).join('')
+    + (hiddenSites.length > 0
+        ? `<div id="hidden-sites" style="display:none;">${hiddenSites.map((s, i) => buildSiteCard(s, i + SITES_VISIBLE_INITIAL)).join('')}</div>
+           <button class="pop-chip" id="show-more-sites-btn" onclick="showMoreSites()" style="width:100%; margin-top:4px; grid-column:1/-1;">Show ${hiddenSites.length} more sites ↓</button>`
+        : '');
+
+  const canGoBack = currentDisplayedResults && currentDisplayedResults.length > 1;
+
+  area.innerHTML = `
+    <div class="movie-header">
+      <div class="movie-poster${data.poster ? ' poster-loading' : ''}" id="poster-box">
+        ${data.poster
+          ? `<img class="poster-img" src="${data.poster}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${data.type === 'series' ? '📺' : '🎬'}'">`
+          : (data.type === 'series' ? '📺' : '🎬')}
+        <button class="fav-btn ${isFavorited ? 'favorited' : ''}" onclick="toggleFavorite(event)" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-label="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-pressed="${isFavorited}">⭐</button>
+      </div>
+      <div class="movie-info">
+        <div class="movie-title">${data.title || query}</div>
+        <div class="movie-meta">
+          ${data.year ? `<span class="badge badge-year">${data.year}</span>` : ''}
+          ${data.rating ? `<span class="badge badge-rating">⭐ ${data.rating}</span>` : ''}
+          <span class="badge" style="background:rgba(255,255,255,.05);color:var(--muted)">${data.type === 'series' ? '📺 Series' : '🎬 Movie'}</span>
+        </div>
+        <p class="movie-desc">${data.description || ''}</p>
+      </div>
+    </div>
+
+    <div class="section-label">🌐 Free streaming sites</div>
+    <div class="sites-grid">${siteCards}</div>
+
+    ${data.tip ? `<div class="tips-box">💡 <strong>Tip:</strong> ${data.tip}</div>` : ''}
+
+    <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
+      ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
+      <button class="pop-chip" onclick="resetSearch()">${canGoBack ? '🔄 New search' : '← Search again'}</button>
+      <button class="pop-chip" onclick="shareMovie()">📤 Share</button>
+    </div>
+
+    ${data.id ? `
+      <div class="section-label" style="margin-top:32px;">🎯 You might also like</div>
+      <div class="results-grid" id="similar-grid">
+        <div class="loading" style="grid-column:1/-1;"><div class="spinner"></div></div>
+      </div>` : ''}
+  `;
+
+  // Store current data for favorites
+  window.currentMovie = data;
+
+  if (data.id) loadSimilar(data);
+}
+
+// ========== SIMILAR / RELATED ==========
+let similarResults = [];
+
+function loadSimilar(movie) {
+  const mediaType = movie.type === 'series' ? 'tv' : 'movie';
+  fetch(`${TMDB_PROXY_URL}?mode=recommendations&media_type=${mediaType}&id=${movie.id}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(tmdb => {
+      const results = (tmdb.results || [])
+        .filter(m => m.poster_path)
+        .slice(0, 6)
+        .map(r => parseTmdbItem(r, mediaType));
+
+      similarResults = results;
+      const grid = document.getElementById('similar-grid');
+      if (!grid) return; // user may have navigated away already
+
+      if (results.length === 0) {
+        grid.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">No recommendations found for this title.</p>`;
+        return;
+      }
+
+      grid.innerHTML = results.map((m, i) => `
+        <div class="result-card" onclick="selectSimilar(${i})" style="animation-delay:${i * 0.05}s">
+          <div class="result-poster${m.poster ? ' poster-loading' : ''}">
+            ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+          </div>
+          <div class="result-info">
+            <div class="result-title">${m.title}</div>
+            <div class="result-meta">
+              ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
+              ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
+            </div>
+          </div>
+        </div>`).join('');
+    })
+    .catch(() => {
+      const grid = document.getElementById('similar-grid');
+      if (grid) grid.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">Couldn't load recommendations right now.</p>`;
+    });
+}
+
+function selectSimilar(index) {
+  const movie = similarResults[index];
+  if (!movie) return;
+  currentDisplayedResults = similarResults; // lets "Back to results" return to this list
+  renderResult(movie, movie.title);
+}
+
+function toggleFavorite(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const movie = window.currentMovie;
+  if (!movie) return;
+
+  const btn = e.target.closest('.fav-btn');
+  const isFav = btn.classList.contains('favorited');
+  
+  if (isFav) {
+    removeFavorite(movie.title);
+    btn.classList.remove('favorited');
+    btn.title = 'Add to favorites';
+    btn.setAttribute('aria-label', 'Add to favorites');
+    btn.setAttribute('aria-pressed', 'false');
+  } else {
+    addFavorite(movie);
+    btn.classList.add('favorited');
+    btn.title = 'Remove from favorites';
+    btn.setAttribute('aria-label', 'Remove from favorites');
+    btn.setAttribute('aria-pressed', 'true');
+  }
+}
+
+function resetSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('year-filter').value = '';
+  document.getElementById('rating-filter').value = '';
+  document.getElementById('type-filter').value = '';
+  renderHomepage();
+  lastSearchResult = null;
+  currentDisplayedResults = null;
+  currentResultsRaw = null;
+  currentSortBy = 'default';
+}
+
+// ========== FREE WEBSITES DIRECTORY ==========
+// Add more entries here anytime — categories: 'drama', 'anime', 'movie' (a site can have more than one)
+// logoHtml: stylized wordmark shown in the card (falls back to icon+name split if omitted)
+const SITES_DIRECTORY = [
+  { name: 'MyAsianTV', url: 'https://myasiantv.com.lv/', domain: 'myasiantv.com.lv', categories: ['drama'], icon: '🏔️',
+    logoHtml: `<span class="logo-mtn" aria-hidden="true"><svg viewBox="0 0 40 26" width="34" height="22"><path d="M2 24 L14 6 L20 15 L24 9 L38 24 Z" fill="#fff"/><path d="M20 15 L24 9 L38 24 L22 24 Z" fill="#e63946"/><path d="M13 8 L15 6 L17 9" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-word"><span class="lw-white">M</span><span class="lw-accent">A</span></span>` },
+  { name: 'DramaCool',  url: 'https://dramacool.com.tw/', domain: 'dramacool.com.tw', categories: ['drama'], icon: '🎬',
+    logoHtml: `<span class="logo-clapper" aria-hidden="true"><svg viewBox="0 0 40 30" width="30" height="22"><rect x="4" y="12" width="32" height="16" rx="2" fill="none" stroke="#5b8def" stroke-width="2.4"/><path d="M4 12 L10 4 L16 4 L11 12 Z" fill="#5b8def"/><path d="M15 12 L21 4 L27 4 L22 12 Z" fill="#5b8def"/><path d="M26 12 L32 4 L36 4 L36 12 Z" fill="#5b8def"/></svg></span><span class="logo-word"><span class="lw-outline">D</span><span class="lw-white">C</span></span>` },
+  { name: 'Plex',       url: 'https://watch.plex.tv/', domain: 'plex.tv', categories: ['movie', 'hot'], icon: '▶️',
+    logoHtml: `<span class="logo-word logo-plex"><span class="lw-white">PLE</span><span class="lw-plex-x">X</span></span>` },
+  { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span style="color:#ff4d8f;">Kiss</span><span class="lw-white">KH</span></span>` },
+  { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:#fff;">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
+  { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:#00c2b8;">ki</span></span>` },
+  { name: 'Viu',           url: 'https://www.viu.com/',         domain: 'viu.com',              categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span style="color:#00c2b8;">Vi</span><span class="lw-white">u</span></span>` },
+  { name: 'Kocowa',        url: 'https://www.kocowa.com/',      domain: 'kocowa.com',           categories: ['drama'],
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#ff7a59;">Ko</span><span class="lw-white">cowa</span></span>` },
+  { name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', domain: 'ondemandkorea.com',  categories: ['drama'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.7rem;letter-spacing:.06em;color:rgba(255,255,255,.5);text-transform:uppercase;">OnDemand</span><span style="font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:1.5rem;letter-spacing:.04em;color:var(--accent);">KOREA</span></div>` },
+  { name: 'WeTV',          url: 'https://wetv.vip/',            domain: 'wetv.vip',             categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">We</span><span style="color:#06d6a0;">TV</span></span>` },
+  { name: 'iQIYI',         url: 'https://www.iq.com/',          domain: 'iq.com',               categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span style="color:#00c853;">i</span><span class="lw-white">QIYI</span></span>` },
+  { name: 'Amasian TV',    url: 'https://amasiantv.com/',       domain: 'amasiantv.com',        categories: ['drama'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.15rem;line-height:1.05;color:#fff;">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
+  { name: '1Shows',        url: 'https://1shows.org/',          domain: '1shows.org',           categories: ['movie'],
+    logoHtml: `<span class="logo-word"><span style="color:#4da6ff;">1</span><span class="lw-white">Shows</span></span>` },
+  { name: 'FlickyStream',  url: 'https://flickystream.dad/',    domain: 'flickystream.dad',     categories: ['movie'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.35rem;line-height:1.05;background:linear-gradient(90deg,#5b8def,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">flicky</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.1rem;line-height:1.05;background:linear-gradient(90deg,#c084fc,#ff6b9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">stream</span></div>` },
+  { name: 'MovieBox',      url: 'https://movie-box.co/',        domain: 'movie-box.co',         categories: ['movie'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
+  { name: '1Flex',         url: 'https://1flex.org/',           domain: '1flex.org',            categories: ['movie'],
+    logoHtml: `<span class="logo-word" style="font-style:italic;transform:skewX(-6deg);display:inline-block;color:#ef4444;">1FLEX</span>` },
+  { name: '1Tube',         url: 'https://1tube.org/',           domain: '1tube.org',            categories: ['movie'],
+    logoHtml: `<span class="logo-word"><span style="color:#a855f7;">1</span><span class="lw-white">Tube</span></span>` },
+  { name: 'Cineby',        url: 'https://cineby.at/',           domain: 'cineby.at',            categories: ['movie'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:#06d6a0;">by</span></span>` },
+  { name: 'FMovies',       url: 'https://fmovies-hd.to/',       domain: 'fmovies-hd.to',        categories: ['movie'],
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--accent);">F</span><span class="lw-white">Movies</span></span>` },
+  { name: 'ReAnime',       url: 'https://reanime.to/',          domain: 'reanime.to',           categories: ['anime'],
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#06d6a0;">Re</span><span class="lw-white">Anime</span></span>` },
+  { name: 'Animepahe',     url: 'https://animepahe.pw/',        domain: 'animepahe.pw',         categories: ['anime'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">pahe</span></div>` },
+  { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:#a855f7;">ro</span></span>` },
+  { name: 'Anikoto',       url: 'https://anikototv.to/',        domain: 'anikototv.to',         categories: ['anime'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;line-height:1.05;color:#fff;">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
+  { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'],
+    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:#ff8a3d;">ma</span></span>` },
+];
+
+let activeDirFilters = []; // multi-select: any combo of 'drama' / 'anime' / 'movie'
+
+function getDirFavs() {
+  try { return JSON.parse(localStorage.getItem('cinefind-dir-favs') || '[]'); }
+  catch (e) { return []; }
+}
+
+function toggleDirFav(e, name) {
+  e.preventDefault();
+  e.stopPropagation();
+  let favs = getDirFavs();
+  if (favs.includes(name)) favs = favs.filter(n => n !== name);
+  else favs.push(name);
+  localStorage.setItem('cinefind-dir-favs', JSON.stringify(favs));
+  renderSitesDirectory();
+}
+
+function renderSitesDirectory() {
+  const wrap = document.getElementById('sites-directory-grid');
+  if (!wrap) return; // user may have navigated away already
+
+  const favs = getDirFavs();
+
+  // "pinned" isn't a real category on the site data — it's derived from favs —
+  // so it's filtered separately here instead of via s.categories like the rest.
+  let filtered;
+  if (activeDirFilters.includes('pinned')) {
+    filtered = SITES_DIRECTORY.filter(s => favs.includes(s.name));
+  } else if (activeDirFilters.length === 0) {
+    filtered = SITES_DIRECTORY;
+  } else {
+    filtered = SITES_DIRECTORY.filter(s => s.categories.some(c => activeDirFilters.includes(c)));
+  }
+
+  if (filtered.length === 0) {
+    const emptyMsg = activeDirFilters.includes('pinned')
+      ? 'No pinned sites yet — tap the 📌 on any site to save it here.'
+      : 'No sites in this category yet.';
+    wrap.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">${emptyMsg}</p>`;
+    return;
+  }
+
+  wrap.innerHTML = filtered.map((s, i) => {
+    const isFav = favs.includes(s.name);
+    const pinIcon = isFav
+      ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>`
+      : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>`;
+    return `
+    <div class="gradient-card-wrapper" style="animation-delay:${(i % 6) * 0.04}s;">
+      <a href="${s.url}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Unpin site' : 'Pin site'}">${pinIcon}</button>
+        <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
+      </a>
+    </div>`;
+  }).join('');
+}
+
+// Fallback logo for any directory entry that doesn't have a custom logoHtml wordmark.
+// Currently every entry in SITES_DIRECTORY supplies its own logoHtml, so this only
+// kicks in for new entries added without one — keeps the grid from breaking either way.
+function defaultLogoHtml(s) {
+  return `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; width:100%; padding:0 8px; overflow:hidden;">
+    <span style="font-size:1.4rem; line-height:1;">${s.icon || '🎥'}</span>
+    <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:.68rem; color:#f0f0f5; text-align:center; line-height:1.15; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; width:100%;">${escapeAttr(s.name)}</span>
+  </div>`;
+}
+
+// Selects exactly one category filter at a time (radio-button style — picking
+// Movie clears K-Drama/Anime/Hot, and vice versa). Clicking the currently
+// active pill again clears the filter back to "All". "pinned" is treated the
+// same way, so only one filter (a category or Pinned) is ever active at once.
+function toggleDirFilter(cat, el) {
+  if (activeDirFilters.length === 1 && activeDirFilters[0] === cat) {
+    activeDirFilters = []; // clicking the active pill again resets to "All"
+  } else {
+    activeDirFilters = [cat];
+  }
+  syncDirFilterChipsUI();
+  renderSitesDirectory();
+}
+
+function clearDirFilters(el) {
+  activeDirFilters = [];
+  syncDirFilterChipsUI();
+  renderSitesDirectory();
+}
+
+function syncDirFilterChipsUI() {
+  const allBtn = document.querySelector('#dir-filter-chips .dual-gradient-pill:first-child');
+  if (allBtn) allBtn.classList.toggle('active', activeDirFilters.length === 0);
+  document.querySelectorAll('#dir-filter-chips .dual-gradient-pill[data-cat]').forEach(c => {
+    c.classList.toggle('active', activeDirFilters.includes(c.dataset.cat));
+  });
+}
+
+function renderHomepage() {
+  hideFiltersBar();
+  document.getElementById('result-area').innerHTML = `
+    <div style="margin-bottom:12px" class="popular-label">🌐 Free Websites</div>
+    <div class="pill-container" id="dir-filter-chips">
+      <button class="genre-pill dual-gradient-pill active" onclick="clearDirFilters(this)">All</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="movie" onclick="toggleDirFilter('movie', this)">Movie</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="drama" onclick="toggleDirFilter('drama', this)">K-Drama</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="anime" onclick="toggleDirFilter('anime', this)">Anime</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="hot" onclick="toggleDirFilter('hot', this)">Hot</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="pinned" onclick="toggleDirFilter('pinned', this)">📌 Pinned</button>
+    </div>
+    <div class="safety-tip" style="max-width:none; margin:0 0 14px; justify-content:flex-start;">
+      <span class="tip-icon">🛡️</span>
+      <span>Tip: these are third-party sites we don't control — keep your ad/tracker blocker on and avoid clicking pop-ups or "download" prompts</span>
+    </div>
+    <div class="dir-grid" id="sites-directory-grid"></div>
+
+    <div style="margin:24px 0 12px" class="popular-label">🎭 Browse by Genre</div>
+    <div class="genre-grid" id="genre-grid">
+      <button class="genre-chip" data-genre="28" onclick="browseGenre(28, 'Action', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></span>Action</button>
+      <button class="genre-chip" data-genre="35" onclick="browseGenre(35, 'Comedy', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 13c1 1.5 2.5 2.3 4 2.3s3-.8 4-2.3"/><circle cx="9" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".6" fill="currentColor" stroke="none"/></svg></span>Comedy</button>
+      <button class="genre-chip" data-genre="18" onclick="browseGenre(18, 'Drama', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="6"/><path d="M5.5 14c1 1 2 1.3 2.5 1.3s1.5-.3 2.5-1.3"/><circle cx="16" cy="12" r="6"/><path d="M13.5 10c1-1 2-1.3 2.5-1.3s1.5.3 2.5 1.3"/></svg></span>Drama</button>
+      <button class="genre-chip" data-genre="27" onclick="browseGenre(27, 'Horror', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 00-7 7v4l1.5 2v2h2v-2h1v2h1v-2h2v2h1v-2h1v2h2v-2L19 14v-4a7 7 0 00-7-7z"/><circle cx="9.3" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg></span>Horror</button>
+      <button class="genre-chip" data-genre="10749" onclick="browseGenre(10749, 'Romance', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C1 8 2 4.5 5.5 4 8 3.6 10 5 12 7c2-2 4-3.4 6.5-3 3.5.5 4.5 4 3 7-2.5 4.5-9.5 9-9.5 9z"/></svg></span>Romance</button>
+      <button class="genre-chip" data-genre="878" onclick="browseGenre(878, 'Sci-Fi', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2 4.5 6 4 10l-4 4-4-4c-.5-4 1-8 4-10z"/><path d="M8.5 13.5 5 15l1-4"/><path d="M15.5 13.5 19 15l-1-4"/><path d="M10 21l1-3h2l1 3"/><circle cx="12" cy="9" r="1.3" fill="currentColor" stroke="none"/></svg></span>Sci-Fi</button>
+      <button class="genre-chip" data-genre="16" onclick="browseGenre(16, 'Animation', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.2 0 2-1 2-2 0-.6-.3-1-.6-1.4-.3-.4-.4-.8-.1-1.2.3-.4.9-.4 1.4-.4H16a4 4 0 004-4c0-5-3.6-9-8-9z"/><circle cx="7.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="9.5" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="11" r="1" fill="currentColor" stroke="none"/></svg></span>Animation</button>
+      <button class="genre-chip" data-genre="53" onclick="browseGenre(53, 'Thriller', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span>Thriller</button>
+    </div>
+
+    <div style="margin:24px 0 12px" class="popular-label">🔎 Popular searches</div>
+    <div class="popular-chips">
+      <button class="pop-chip" onclick="quickSearch('0.5 no Otoko')">0.5 no Otoko</button>
+      <button class="pop-chip" onclick="quickSearch('Squid Game')">Squid Game</button>
+      <button class="pop-chip" onclick="quickSearch('Your Name')">Your Name</button>
+      <button class="pop-chip" onclick="quickSearch('Parasite')">Parasite</button>
+      <button class="pop-chip" onclick="quickSearch('Demon Slayer')">Demon Slayer</button>
+      <button class="pop-chip" onclick="quickSearch('My Love from the Star')">My Love from the Star</button>
+      <button class="pop-chip" onclick="quickSearch('Attack on Titan')">Attack on Titan</button>
+      <button class="pop-chip" onclick="quickSearch('Crash Landing on You')">Crash Landing on You</button>
+    </div>`;
+  renderSitesDirectory();
+}
+
+function browseGenre(genreId, label, el) {
+  const grid = document.getElementById('genre-grid');
+  if (grid) grid.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const area = document.getElementById('result-area');
+  area.innerHTML = `<div class="loading"><div class="spinner"></div><p>Loading ${label}...</p></div>`;
+
+  fetch(`${TMDB_PROXY_URL}?mode=genre&media_type=movie&genre_id=${genreId}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(tmdb => {
+      const results = (tmdb.results || [])
+        .filter(m => m.poster_path)
+        .map(r => parseTmdbItem(r, 'movie'));
+
+      if (results.length === 0) {
+        area.innerHTML = `
+          <div class="empty">
+            <div class="big">🤔</div>
+            <p>No titles found for ${label} right now.</p>
+            <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
+          </div>`;
+        return;
+      }
+
+      lastSearchResult = results; // so Year/Rating/Type filters work on genre results too
+      renderResultsGrid(results, label);
+    })
+    .catch(() => {
+      area.innerHTML = `
+        <div class="empty">
+          <div class="big">😔</div>
+          <p>Couldn't load ${label} right now. Try again.</p>
+          <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
+        </div>`;
+    });
+}
+
+// Initialize on load
+window.addEventListener('load', () => {
+  initTheme();
+  updateFavCount();
+  renderHomepage();
+  const yearEl = document.getElementById('footer-year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  // Populate recent individual years (current year down to 2020) dynamically
+  const yearFilterEl = document.getElementById('year-filter');
+  if (yearFilterEl) {
+    const currentYear = new Date().getFullYear();
+    const decadesOption = yearFilterEl.querySelector('option[value="2010s"]');
+    for (let y = currentYear; y >= 2020; y--) {
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = String(y);
+      yearFilterEl.insertBefore(opt, decadesOption);
+    }
+  }
+});
+
+// Event listeners
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+document.getElementById('search-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    closeSuggestions();
+    searchMovie();
+  }
+});
+document.getElementById('search-input').addEventListener('input', handleSuggestInput);
+document.getElementById('search-input').addEventListener('focus', () => {
+  if (document.getElementById('search-input').value.trim() === '') showSearchHistory();
+});
+</script>
+</body>
+</html>
