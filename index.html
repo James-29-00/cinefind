@@ -3,7 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CineFind — Free Movie Search</title>
+<title>CineFind — Free Movie & Show Search</title>
+<meta name="description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
+
+<!-- Favicon: inline SVG, no separate file needed. Fixed red brand mark
+     regardless of active theme, same reasoning as the logo colors — a
+     favicon is a brand identity, not decorative UI chrome. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwZDBkMTIiLz4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTYzOTQ2IiBzdHJva2Utd2lkdGg9IjQiLz4KICA8cGF0aCBkPSJNMjYgMjIgTDQ0IDMyIEwyNiA0MiBaIiBmaWxsPSIjZTYzOTQ2Ii8+Cjwvc3ZnPgo=">
+
+<!-- Open Graph / social preview (Facebook, Discord, Messenger, etc.) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="CineFind — Free Movie & Show Search">
+<meta property="og:description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
+<meta property="og:image" content="https://James-29-00.github.io/cinefind/og-image.png">
+<meta property="og:url" content="https://James-29-00.github.io/cinefind/">
+
+<!-- Twitter/X card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CineFind — Free Movie & Show Search">
+<meta name="twitter:description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
+<meta name="twitter:image" content="https://James-29-00.github.io/cinefind/og-image.png">
+
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -40,6 +60,99 @@
     --muted: #6c757d;
   }
 
+  /* ===== Color Themes ===== */
+  /* Three full themes cycled via the moon button — Crimson (default) is the
+     original look; Cyber Neon swaps in a cyan/starfield aesthetic; Galaxy
+     swaps in a pink/purple nebula aesthetic. All three set the full color
+     palette (not just --accent) since each changes the background too. */
+  body, body.theme-crimson {
+    --accent: #e63946; --accent2: #ff6b6b; --bg-glow-rgb: 230,57,70;
+  }
+  body.theme-cyber {
+    --bg: #05060f; --surface: #0a0d1f; --card: #0d1226;
+    --border: rgba(34,229,229,.35);
+    --text: #eef2ff; --muted: #8b93b8;
+    --accent: #22e5e5; --accent2: #6df0ff; --bg-glow-rgb: 34,229,229;
+  }
+  body.theme-galaxy {
+    --bg: #120a1e; --surface: #1a1028; --card: #1c1230;
+    --border: #ff5fa233;
+    --text: #f5f0fa; --muted: #c3b3dc;
+    --accent: #ff5fa2; --accent2: #ff8fc4; --gold: #c9a8ff; --bg-glow-rgb: 255,95,162;
+  }
+  /* Starfield + nebula glow, only rendered in Cyber Neon mode. Pure CSS
+     (radial gradients / SVG data-URI), so no extra image requests. */
+  body.theme-cyber .bg-glow {
+    background: radial-gradient(ellipse, rgba(34,229,229,.15) 0%, rgba(99,102,241,.08) 40%, transparent 70%);
+    width: 700px; height: 500px;
+  }
+  .starfield {
+    display: none;
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(1.5px 1.5px at 20% 15%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 75% 8%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 45% 25%, #fff 100%, transparent),
+      radial-gradient(2px 2px at 90% 30%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 10% 45%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 60% 12%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 30% 60%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 85% 55%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 15% 75%, #fff 100%, transparent),
+      radial-gradient(2px 2px at 65% 80%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 95% 70%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 40% 90%, #fff 100%, transparent);
+    opacity: .5;
+  }
+  body.theme-cyber .starfield { display: block; }
+
+  /* Circuit-board texture overlay on site cards, Cyber Neon only */
+  body.theme-cyber .site-card::before {
+    content: ''; position: absolute; inset: 0; opacity: .35; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2322e5e5' stroke-width='1'%3E%3Cpath d='M10 10 H50 V30 H90'/%3E%3Cpath d='M10 60 H30 V90 H70 V110'/%3E%3Cpath d='M100 10 V50 H80 V80'/%3E%3Cpath d='M110 100 H90 V70'/%3E%3C/g%3E%3Cg fill='%2322e5e5'%3E%3Ccircle cx='50' cy='30' r='2.2'/%3E%3Ccircle cx='30' cy='90' r='2.2'/%3E%3Ccircle cx='80' cy='50' r='2.2'/%3E%3Ccircle cx='90' cy='70' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 120px 120px;
+  }
+  body.theme-cyber .site-card > * { position: relative; z-index: 1; }
+  body.theme-cyber .site-card:hover {
+    border-color: var(--accent); box-shadow: 0 0 24px rgba(34,229,229,.35);
+  }
+  body.theme-cyber .search-box,
+  body.theme-cyber .search-wrap > div:first-child {
+    box-shadow: 0 0 24px rgba(34,229,229,.25);
+  }
+  body.theme-cyber .logo span {
+    filter: drop-shadow(0 0 12px rgba(34,229,229,.6));
+  }
+
+  /* Nebula glow + twinkling stars, Galaxy theme only */
+  body.theme-galaxy .bg-glow {
+    background: radial-gradient(ellipse, rgba(255,95,162,.2) 0%, rgba(167,139,250,.12) 40%, transparent 70%);
+    width: 700px; height: 500px;
+  }
+  body.theme-galaxy .starfield {
+    display: block;
+    opacity: .8;
+    animation: galaxyTwinkle 5s ease-in-out infinite alternate;
+  }
+  @keyframes galaxyTwinkle { from { opacity: .5; } to { opacity: .85; } }
+  body.theme-galaxy .site-card:hover {
+    border-color: var(--accent); box-shadow: 0 0 24px rgba(255,95,162,.35);
+  }
+  body.theme-galaxy .search-box,
+  body.theme-galaxy .search-wrap > div:first-child {
+    box-shadow: 0 0 24px rgba(255,95,162,.25);
+  }
+  body.theme-galaxy .logo span {
+    filter: drop-shadow(0 0 12px rgba(255,95,162,.6));
+  }
+
+  /* My Favorites star — follows the active theme's accent color + glow */
+  .fav-star-icon {
+    color: var(--accent);
+    filter: drop-shadow(0 0 5px rgba(var(--bg-glow-rgb), .75));
+    transition: color .3s, filter .3s;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -62,15 +175,15 @@
     position: fixed;
     width: 600px; height: 600px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(230,57,70,.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(var(--bg-glow-rgb, 230,57,70),.12) 0%, transparent 70%);
     top: -200px; left: 50%; transform: translateX(-50%);
     pointer-events: none; z-index: 0;
   }
 
   .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
 
-  header { text-align: center; padding: 44px 0 24px; position: relative; }
-  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  header { text-align: center; padding: 20px 0 24px; position: relative; }
+  .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 4px; }
   .logo {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(3.5rem, 10vw, 6rem);
@@ -90,16 +203,19 @@
   .safety-tip .tip-icon { font-size: .85rem; opacity: .7; flex-shrink: 0; }
   .safety-tip strong { color: var(--accent2); font-weight: 600; }
 
-  /* Theme Toggle Button */
+  /* Moon Button — icon color/glow matches the active theme's accent:
+     crimson red on the default theme, cyan on Cyber Neon. Uses `color` so
+     the inline SVG moon (fill="currentColor") follows it automatically. */
   .theme-toggle {
-    background: var(--card); border: 1px solid var(--border);
+    background: var(--card); border: 2px solid var(--accent);
+    color: var(--accent);
     border-radius: 50%; width: 45px; height: 45px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 1.2rem;
-    transition: all .3s; position: absolute;
-    top: 0; right: 0;
+    cursor: pointer;
+    transition: all .3s;
+    box-shadow: 0 0 10px var(--accent);
   }
-  .theme-toggle:hover { border-color: var(--accent); transform: scale(1.1); }
+  .theme-toggle:hover { transform: scale(1.1); box-shadow: 0 0 18px var(--accent), 0 0 6px var(--accent); }
 
   .search-wrap { position: relative; margin: 20px 0 12px; }
   .search-wrap input {
@@ -110,7 +226,7 @@
     transition: border-color .2s, box-shadow .2s;
   }
   .search-wrap input::placeholder { color: var(--muted); }
-  .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(230,57,70,.15); }
+  .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--bg-glow-rgb),.15); }
 
   .suggestions-box {
     position: absolute; top: calc(100% + 6px); left: 0; right: 0;
@@ -124,7 +240,7 @@
     cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--border);
   }
   .suggestion-item:last-child { border-bottom: none; }
-  .suggestion-item:hover, .suggestion-item.active { background: rgba(230,57,70,.1); }
+  .suggestion-item:hover, .suggestion-item.active { background: rgba(var(--bg-glow-rgb),.1); }
   .suggestion-poster { width: 32px; height: 46px; border-radius: 5px; background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .9rem; overflow: hidden; }
   .suggestion-poster img { width: 100%; height: 100%; object-fit: cover; }
   .suggestion-text { flex: 1; min-width: 0; }
@@ -153,9 +269,9 @@
     background: transparent; color: #C9C6D6; font-family: 'Space Grotesk', sans-serif;
     font-size: .8rem; cursor: pointer; transition: all .2s;
   }
-  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(230,57,70,.08); }
-  .filter-chip.fav-chip { color: var(--accent2); border-color: rgba(230,57,70,.35); }
-  .filter-chip.fav-chip:hover { background: rgba(230,57,70,.1); }
+  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(var(--bg-glow-rgb),.08); }
+  .filter-chip.fav-chip { color: var(--accent2); border-color: rgba(var(--bg-glow-rgb),.35); }
+  .filter-chip.fav-chip:hover { background: rgba(var(--bg-glow-rgb),.1); }
   .fav-quick-link {
     background: none; border: none; cursor: pointer;
     font-family: 'Space Grotesk', sans-serif; font-size: .8rem;
@@ -194,7 +310,7 @@
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
     background-image:
       linear-gradient(var(--card), var(--card)),
-      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(230,57,70,.55) 100%);
+      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
   }
@@ -203,11 +319,11 @@
     transform: scale(1.05);
     background-image:
       linear-gradient(var(--card), var(--card)),
-      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(230,57,70,.55) 100%);
+      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
     border-color: transparent;
-    box-shadow: 0 0 0 1px rgba(230,57,70,.6), 0 0 16px rgba(230,57,70,.55);
+    box-shadow: 0 0 0 1px rgba(var(--bg-glow-rgb),.6), 0 0 16px rgba(var(--bg-glow-rgb),.55);
   }
 
   .genre-chip {
@@ -216,7 +332,7 @@
     font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s;
     display: inline-flex; align-items: center; gap: 7px;
   }
-  .genre-chip:hover { background: rgba(230,57,70,.1); transform: translateY(-1px); }
+  .genre-chip:hover { background: rgba(var(--bg-glow-rgb),.1); transform: translateY(-1px); }
   .genre-chip.active { background: var(--accent); color: #fff; }
   .genre-chip .icon { display: inline-flex; opacity: .7; flex-shrink: 0; }
   .genre-chip .icon svg { display: block; }
@@ -226,6 +342,7 @@
   .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 60px 0; color: var(--muted); }
   .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes aiPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.7); } }
 
   .movie-header {
     display: flex; gap: 20px; align-items: flex-start;
@@ -255,17 +372,19 @@
     cursor: pointer; font-size: 1.2rem; transition: all .2s;
     z-index: 10;
   }
-  .fav-btn:hover { background: rgba(230,57,70,.9); transform: scale(1.15); }
-  .fav-btn.favorited { background: rgba(230,57,70,.9); }
+  .fav-btn:hover { background: rgba(var(--bg-glow-rgb),.9); transform: scale(1.15); }
+  .fav-btn.favorited { background: rgba(var(--bg-glow-rgb),.9); }
 
   .movie-info { flex: 1; }
   .movie-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
   .movie-meta { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; font-size: .8rem; color: var(--muted); }
   .badge { padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
   .badge-year { background: rgba(255,255,255,.07); color: var(--text); }
-  .badge-genre { background: rgba(230,57,70,.15); color: var(--accent2); }
+  .badge-genre { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent2); }
   .badge-rating { background: rgba(255,209,102,.12); color: var(--gold); }
-  .movie-desc { font-size: .88rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .movie-desc { font-size: .88rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  .movie-desc.expanded { display: block; -webkit-line-clamp: unset; }
+  .movie-desc-toggle { font-size: .78rem; color: var(--accent); font-weight: 600; margin-top: 4px; cursor: pointer; background: none; border: none; padding: 0; }
 
   .section-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
   .sites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -277,20 +396,21 @@
     transition: border-color .2s, transform .2s, box-shadow .2s;
     animation: fadeUp .4s ease forwards; display: flex; flex-direction: column;
   }
-  .result-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(230,57,70,.15); }
+  .result-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
   .result-card .result-poster { width: 100%; aspect-ratio: 2/3; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 2rem; overflow: hidden; }
   .result-card .result-poster img { width: 100%; height: 100%; object-fit: cover; }
   .result-card .result-info { padding: 10px 12px 12px; }
   .result-card .result-title { font-size: .88rem; font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: .7rem; color: var(--muted); }
   .site-card {
+    position: relative;
     background: var(--card); border: 1px solid var(--border); border-radius: 14px;
     padding: 16px; text-decoration: none; color: var(--text);
     display: flex; align-items: center; gap: 14px;
     transition: border-color .2s, transform .2s, box-shadow .2s;
     animation: fadeUp .4s ease forwards;
   }
-  .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(230,57,70,.15); }
+  .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
   .site-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
   .site-logo-box {
     width: 64px; height: 46px; border-radius: 10px; flex-shrink: 0;
@@ -310,15 +430,15 @@
     position: relative;
     border-radius: 16px;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(230,57,70,.45) 0%, rgba(6,214,160,.35) 100%);
+    background: linear-gradient(135deg, rgba(var(--bg-glow-rgb),.45) 0%, rgba(6,214,160,.35) 100%);
     transition: transform .25s ease, box-shadow .25s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
   }
   .gradient-card-wrapper:hover {
     transform: translateY(-3px);
-    background: linear-gradient(135deg, rgba(230,57,70,.75) 0%, rgba(6,214,160,.55) 100%);
-    box-shadow: 0 8px 24px rgba(230,57,70,.12);
+    background: linear-gradient(135deg, rgba(var(--bg-glow-rgb),.75) 0%, rgba(6,214,160,.55) 100%);
+    box-shadow: 0 8px 24px rgba(var(--bg-glow-rgb),.12);
   }
   .card-content {
     background-color: #16161f;
@@ -344,7 +464,6 @@
   .lw-accent { color: var(--accent); }
   .lw-outline { color: transparent; -webkit-text-stroke: 1.7px #5b8def; font-weight: 800; margin-right: 1px; }
   .logo-mtn, .logo-clapper { display: inline-flex; align-items: center; }
-  .logo-plex .lw-plex-x { background: linear-gradient(135deg, #ffb347 0%, #ff5f6d 60%, #a259ff 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   .logo-tubi { color: #ff5b3a; font-style: italic; font-weight: 800; letter-spacing: -.02em; background: linear-gradient(120deg, #ff7a3d, #ff3d6e); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   .logo-pluto { display: inline-flex; align-items: center; gap: 6px; }
   .pluto-ring {
@@ -359,7 +478,7 @@
     font-size: .85rem; display: flex; align-items: center; justify-content: center;
     color: var(--muted); transition: background .2s, color .2s;
   }
-  .copy-link-btn:hover { background: rgba(230,57,70,.15); color: var(--accent); }
+  .copy-link-btn:hover { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent); }
 
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -404,12 +523,17 @@
   }
 </style>
 </head>
-<body class="dark-mode">
+<body class="dark-mode theme-crimson">
+<div class="starfield"></div>
 <div class="bg-glow"></div>
 <div class="wrapper">
   <header>
     <div class="header-top">
-      <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">🌙</button>
+      <div class="theme-picker-wrap" style="position:relative;">
+        <button class="theme-toggle" id="theme-picker-btn" title="Toggle glow" aria-label="Toggle glow" onclick="toggleMoonGlow()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
     </div>
     <div class="logo">Cine<span>Find</span></div>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
@@ -426,7 +550,7 @@
   </div>
 
   <div style="display:flex; justify-content:flex-end; margin:-6px 0 18px;">
-    <button class="fav-quick-link" onclick="showFavorites()"><span style="color:var(--gold);">★</span> My Favorites (<span id="fav-count">0</span>)</button>
+    <button class="fav-quick-link" onclick="showFavorites()"><span class="fav-star-icon">★</span> My Favorites (<span id="fav-count">0</span>)</button>
   </div>
 
   <!-- ADVANCED FILTERS SECTION — hidden until there's a results list to filter -->
@@ -471,34 +595,32 @@
 </div>
 
 <script>
-// ========== THEME TOGGLE ==========
+// ========== THEME TOGGLE (Crimson -> Cyber Neon -> Galaxy, via moon button) ==========
 function initTheme() {
-  const savedTheme = localStorage.getItem('cinefind-theme') || 'dark-mode';
-  document.body.className = savedTheme;
-  updateThemeButton();
+  loadColorTheme();
 }
 
-function toggleTheme() {
-  const isDark = document.body.classList.contains('dark-mode');
-  if (isDark) {
-    document.body.classList.remove('dark-mode');
-    document.body.classList.add('light-mode');
-    localStorage.setItem('cinefind-theme', 'light-mode');
-  } else {
-    document.body.classList.remove('light-mode');
-    document.body.classList.add('dark-mode');
-    localStorage.setItem('cinefind-theme', 'dark-mode');
-  }
-  updateThemeButton();
+const THEME_KEY = 'cinefind-theme-mode';
+const THEME_CYCLE = ['theme-crimson', 'theme-cyber', 'theme-galaxy'];
+
+function toggleMoonGlow() {
+  const current = THEME_CYCLE.find(t => document.body.classList.contains(t)) || 'theme-crimson';
+  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+  applyTheme(next);
 }
 
-function updateThemeButton() {
-  const btn = document.getElementById('theme-toggle');
-  if (document.body.classList.contains('dark-mode')) {
-    btn.textContent = '🌙';
-  } else {
-    btn.textContent = '☀️';
-  }
+function applyTheme(themeClass) {
+  document.body.classList.remove(...THEME_CYCLE);
+  document.body.classList.add(themeClass);
+  localStorage.setItem(THEME_KEY, themeClass);
+  // No JS-driven color logic needed for the button itself — it reads
+  // var(--accent), which the theme-* CSS classes already set, so the
+  // icon color/glow follows automatically.
+}
+
+function loadColorTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  applyTheme(THEME_CYCLE.includes(saved) ? saved : 'theme-crimson');
 }
 
 // ========== TOAST / SHARE / COPY LINK ==========
@@ -570,8 +692,8 @@ function shareMovie() {
 }
 // ========== FAVORITES SYSTEM ==========
 function getFavorites() {
-  const saved = localStorage.getItem('cinefind-favorites');
-  return saved ? JSON.parse(saved) : [];
+  try { return JSON.parse(localStorage.getItem('cinefind-favorites') || '[]'); }
+  catch (e) { return []; } // corrupted/old data shouldn't crash the whole page
 }
 
 function saveFavorites(favs) {
@@ -895,7 +1017,7 @@ function renderSuggestions(results, currentQuery) {
     const type = r.media_type === 'tv' ? 'Series' : 'Movie';
     const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : null;
     return `
-      <div class="suggestion-item" onclick="selectSuggestion('${escapeAttr(title)}')">
+      <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(title)}')">
         <div class="suggestion-poster">${poster ? `<img class="poster-img" src="${poster}" alt="" onload="this.style.opacity=1">` : (r.media_type === 'tv' ? '📺' : '🎬')}</div>
         <div class="suggestion-text">
           <div class="suggestion-title">${escapeAttr(title)}</div>
@@ -960,10 +1082,10 @@ function showSearchHistory() {
   box.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--border);">
       <span style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🕐 Recent searches</span>
-      <button onclick="clearSearchHistory()" style="background:none; border:none; color:var(--muted); font-size:.7rem; cursor:pointer; text-decoration:underline;">Clear</button>
+      <button onmousedown="event.preventDefault(); clearSearchHistory()" style="background:none; border:none; color:var(--muted); font-size:.7rem; cursor:pointer; text-decoration:underline;">Clear</button>
     </div>
     ${history.map(h => `
-      <div class="suggestion-item" onclick="selectSuggestion('${escapeAttr(h)}')">
+      <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(h)}')">
         <div class="suggestion-poster">🕐</div>
         <div class="suggestion-text">
           <div class="suggestion-title">${escapeAttr(h)}</div>
@@ -975,6 +1097,19 @@ function showSearchHistory() {
 // ========== ORIGINAL CODE WITH MODIFICATIONS ==========
 // ⚠️ Replace this with YOUR deployed Cloudflare Worker URL (Step 3 of the guide)
 const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
+const AI_VERIFY_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev';
+
+// DEBUG ONLY — set to true to temporarily hide the static site list so you
+// can test the AI-verified sites feature in isolation. Static list code is
+// untouched; this only controls whether it's rendered. Set back to false
+// (or delete this block) when done testing.
+const DEBUG_HIDE_STATIC_SITES = false;
+
+// Debug mode toggle: append ?debug=1 to the page URL to see the on-page
+// debug log (🐛 AI check debug log) and have it expanded by default.
+// Without the URL param, regular users never see this panel.
+const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
+
 const COOLDOWN_MS = 4000;
 let isSearching = false;
 let cooldownUntil = 0;
@@ -1081,7 +1216,6 @@ function genreIdsToLabel(genreIds) {
 // the rest link to the homepage with a "search inside site" note since we don't
 // have a confirmed search-URL pattern for them.
 const MOVIE_SITES = (title) => [
-  {name: 'Plex', url: `https://watch.plex.tv/search?q=${encodeURIComponent(title)}`, note: 'Movies & Shows', linkType: 'search', free: true},
   {name: '1Shows', url: 'https://1shows.org/', note: 'Search inside site', linkType: 'home'},
   {name: 'FlickyStream', url: 'https://flickystream.dad/', note: 'Search inside site', linkType: 'home'},
   {name: 'MovieBox', url: 'https://movie-box.co/', note: 'Search inside site', linkType: 'home'},
@@ -1094,7 +1228,6 @@ const MOVIE_SITES = (title) => [
 // General (non-anime, non-K-drama) TV series — same free aggregators as movies,
 // since these sites typically host both.
 const SERIES_SITES = (title) => [
-  {name: 'Plex', url: `https://watch.plex.tv/search?q=${encodeURIComponent(title)}`, note: 'Movies & Shows', linkType: 'search', free: true},
   {name: '1Shows', url: 'https://1shows.org/', note: 'Search inside site', linkType: 'home'},
   {name: 'FlickyStream', url: 'https://flickystream.dad/', note: 'Search inside site', linkType: 'home'},
   {name: 'MovieBox', url: 'https://movie-box.co/', note: 'Search inside site', linkType: 'home'},
@@ -1106,7 +1239,6 @@ const SERIES_SITES = (title) => [
 
 // K-drama / Asian drama — only real drama-focused sites.
 const DRAMA_SITES = (title) => [
-  {name: 'Plex', url: `https://watch.plex.tv/search?q=${encodeURIComponent(title)}`, note: 'Movies & Shows', linkType: 'search', free: true},
   {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?s=${encodeURIComponent(title)}`, note: 'Asian content', linkType: 'search'},
   {name: 'DramaCool', url: 'https://dramacool.com.tw/', note: 'Search inside site', linkType: 'home'},
   {name: 'KissKH', url: 'https://kisskh.co/', note: 'Search inside site', linkType: 'home'},
@@ -1122,7 +1254,6 @@ const DRAMA_SITES = (title) => [
 
 // Anime (movie or series) — dedicated anime sites only.
 const ANIME_SITES = (title) => [
-  {name: 'Plex', url: `https://watch.plex.tv/search?q=${encodeURIComponent(title)}`, note: 'Movies & Shows', linkType: 'search', free: true},
   {name: 'ReAnime', url: 'https://reanime.to/', note: 'Search inside site', linkType: 'home'},
   {name: 'Animepahe', url: 'https://animepahe.pw/', note: 'Search inside site', linkType: 'home'},
   {name: 'Miruro', url: 'https://miruro.to/', note: 'Search inside site', linkType: 'home'},
@@ -1278,6 +1409,36 @@ function showMoreSites() {
   if (btn) btn.remove();
 }
 
+// Scrolls down to the streaming sites section — triggered by the dedicated
+// "Jump to streaming sites" button under the movie description.
+function scrollToSites() {
+  const target = document.getElementById('ai-verify-section');
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggleDescription() {
+  const desc = document.getElementById('movie-desc');
+  const toggleBtn = document.getElementById('movie-desc-toggle');
+  if (!desc) return;
+  const isExpanded = desc.classList.toggle('expanded');
+  if (toggleBtn) toggleBtn.textContent = isExpanded ? 'Show less' : 'Show more';
+}
+
+// Runs after renderResult paints the description — checks whether the text
+// actually overflows its 3-line clamp, and only then reveals the "Show more"
+// toggle. A short description that already fits fully shouldn't show a
+// toggle that does nothing when tapped.
+function checkDescOverflow() {
+  const desc = document.getElementById('movie-desc');
+  const toggleBtn = document.getElementById('movie-desc-toggle');
+  if (!desc || !toggleBtn) return;
+  // scrollHeight > clientHeight means the clamped text is taller than the
+  // visible box, i.e. there's hidden content below the 3-line cutoff.
+  if (desc.scrollHeight > desc.clientHeight + 2) {
+    toggleBtn.style.display = 'inline-block';
+  }
+}
+
 function renderResult(data, query) {
   hideFiltersBar(); // filters apply to result lists, not a single detail view
   const area = document.getElementById('result-area');
@@ -1336,14 +1497,23 @@ function renderResult(data, query) {
           ${data.rating ? `<span class="badge badge-rating">⭐ ${data.rating}</span>` : ''}
           <span class="badge" style="background:rgba(255,255,255,.05);color:var(--muted)">${data.type === 'series' ? '📺 Series' : '🎬 Movie'}</span>
         </div>
-        <p class="movie-desc">${data.description || ''}</p>
+        <button class="pop-chip" onclick="scrollToSites()" style="margin-top:10px; background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;">🌐 See free streaming sites ↓</button>
+        <p class="movie-desc" id="movie-desc" onclick="toggleDescription()">${escapeAttr(data.description || '')}</p>
+        <button class="movie-desc-toggle" id="movie-desc-toggle" onclick="toggleDescription()" style="display:none;">Show more</button>
       </div>
     </div>
 
-    <div class="section-label">🌐 Free streaming sites</div>
-    <div class="sites-grid">${siteCards}</div>
-
-    ${data.tip ? `<div class="tips-box">💡 <strong>Tip:</strong> ${data.tip}</div>` : ''}
+    <div id="ai-verify-section">
+      <div class="section-label" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        🔮 Verifying sites with AI
+        <span id="ai-verify-indicator" style="font-size:.68rem; font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); display:inline-flex; align-items:center; gap:5px;">
+          <span style="width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; animation:aiPulse 1s ease-in-out infinite;"></span>
+          Checking in real time... (up to 12s)
+        </span>
+      </div>
+      <div class="loading" style="padding:16px 0;"><div class="spinner"></div></div>
+    </div>
+    <div id="ai-debug-box"></div>
 
     <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
       ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
@@ -1362,6 +1532,264 @@ function renderResult(data, query) {
   window.currentMovie = data;
 
   if (data.id) loadSimilar(data);
+
+  // Automatically kick off the AI verification check in the background —
+  // no button needed. The static list above is already fully visible and
+  // usable regardless of what happens here.
+  // AI-verified check now runs FIRST and is what the user sees immediately.
+  // The static list (siteCards/data.tip, already built above) is kept as a
+  // fallback — it only gets shown if Gemini hasn't answered within 12s, or
+  // answers with no confidently-verified sites.
+  checkAIVerifiedSites(data, { siteCards, tip: data.tip });
+
+  // Deferred so the browser has painted the just-inserted innerHTML first —
+  // scrollHeight reads 0 (or a stale value) if checked synchronously right
+  // after setting innerHTML.
+  setTimeout(checkDescOverflow, 0);
+}
+
+// ========== AI-VERIFIED SITES (automatic, background, real-time Gemini check) ==========
+// Uses the same Worker + prompt structure/rules as the older Gemini-powered
+// version of CineFind, adapted to verify sites for a title we already know
+// (from TMDB) instead of asking Gemini to identify the title itself.
+// Runs automatically per search with a 5s budget. If Gemini doesn't answer
+// in time (or errors), the small "Checking..." indicator just quietly
+// disappears — the static list was already visible the whole time, so
+// nothing on screen breaks or needs explaining.
+async function checkAIVerifiedSites(movie, staticFallback) {
+  const indicator = document.getElementById('ai-verify-indicator');
+  const container = document.getElementById('ai-verify-section');
+  if (!movie || !indicator || !container) return;
+
+  const categoryHint = movie.category === 'anime' ? ' — this is anime'
+    : movie.category === 'drama' ? ' — this is a K-Drama/J-Drama'
+    : '';
+
+  const prompt = `Verify current, real, working FREE streaming sites where someone can watch "${movie.title}"${movie.year ? ' (' + movie.year + ')' : ''} right now. This is a ${movie.type === 'series' ? 'TV series' : 'movie'}${categoryHint}.
+
+Respond ONLY in this exact JSON format, no markdown, no extra text:
+{
+  "sites": [
+    {
+      "name": "Site name",
+      "url": "https://full-direct-url-to-the-title-on-that-site",
+      "note": "Short note e.g. English sub, Free with ads",
+      "linkType": "direct"
+    }
+  ],
+  "tip": "One helpful tip for watching this right now"
+}
+
+Rules:
+- Use Google Search to verify real-time whether this title is actually available on each site before including it. Do not rely on memory alone.
+- Only include REAL, working, free streaming sites (no paid/subscription required)
+- Good sites to check: MyAsianTV (myasiantv.com.lv), DramaCool (dramacool.com.tw), KissKH (kisskh.co), AsianCrush, Viki (free tier), 1Shows (1shows.org), FlickyStream (flickystream.dad), ReAnime (reanime.to), Animepahe (animepahe.pw), Miruro (miruro.to), MovieBox (movie-box.co), 1Flex (1flex.org), 1Tube (1tube.org), Anikoto (anikototv.to), Enma (enma.lol), Cineby (cineby.at), FMovies (fmovies-hd.to)
+- Additional K-Drama / J-Drama / Asian drama sites to check: Viu (viu.com), Kocowa (kocowa.com), OnDemandKorea (ondemandkorea.com), WeTV (wetv.vip), iQIYI (iq.com), Amasian TV (amasiantv.com)
+- IMPORTANT: Only recommend a site if you are CONFIDENT this specific title is actually available and watchable there right now
+- Put the site where the title is MOST LIKELY available and working at the TOP of the list
+- URL rule (follow in this priority order):
+  1. ONLY set "linkType": "direct" if you have 100% verified through actual search that this exact URL leads directly to this specific title and it is currently watchable. If there is ANY doubt, do NOT use "direct".
+  2. If you're confident the title exists on the site but are not 100% sure of the exact URL, use that site's search results page URL instead and set "linkType": "search_required"
+  3. Never invent or guess a direct URL — a wrong guessed link is worse than a search-page link.
+- Include up to 5 sites, ranked from MOST reliable to least reliable
+- If no sites can be confidently verified, respond with {"sites": [], "tip": ""}
+- Keep it family-friendly`;
+
+  const controller = new AbortController();
+  // 12s budget: AI-verified results are now shown FIRST (nothing else is on
+  // screen for this section yet), so if Gemini hasn't answered within 12s we
+  // fall back to the static list rather than leaving the user staring at a
+  // spinner indefinitely.
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const startTime = performance.now();
+
+  // Debug trail collected on every run (cheap — just array pushes + console.log,
+  // no user-visible effect). Only rendered on-page when ?debug=1 is in the URL
+  // (see renderDebugBox), so normal users never see this; useful for diagnosing
+  // on mobile where devtools aren't easily available.
+  const debugLines = [];
+  const since = () => `+${((performance.now() - startTime) / 1000).toFixed(1)}s`;
+  const log = (msg) => { debugLines.push(`[${since()}] ${msg}`); console.log('[AI-verify]', msg); };
+
+  log(`Worker URL: ${AI_VERIFY_WORKER_URL}`);
+  log(`Prompt length: ${prompt.length} chars`);
+
+  try {
+    log('Sending POST request...');
+    const res = await fetch(AI_VERIFY_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    log(`HTTP response received: ${res.status} ${res.statusText}`);
+
+    // Read as raw text first so a non-JSON response (HTML error page, plain
+    // text, etc.) doesn't just throw an opaque "Unexpected token" error —
+    // we can show exactly what the Worker actually sent back.
+    const rawBody = await res.text();
+    log(`Raw response body (${rawBody.length} chars): ${rawBody.slice(0, 500)}${rawBody.length > 500 ? '…' : ''}`);
+
+    let resData;
+    try {
+      resData = JSON.parse(rawBody);
+    } catch (parseErr) {
+      throw new Error(`Worker did not return valid JSON (HTTP ${res.status} ${res.statusText}).`);
+    }
+
+    if (!res.ok || resData.error) {
+      const apiMsg = resData.details
+        || (typeof resData.error === 'string' ? resData.error : resData.error?.message)
+        || `HTTP ${res.status} ${res.statusText}`;
+      throw new Error(apiMsg);
+    }
+
+    const text = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!text) {
+      throw new Error(`Empty response from Gemini. Full JSON: ${JSON.stringify(resData).slice(0, 400)}`);
+    }
+
+    const clean = text.replace(/```json|```/g, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(clean); }
+    catch (e) {
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+      else throw new Error('Could not parse AI response as JSON.');
+    }
+
+    log(`✅ Success — Gemini returned ${(parsed.sites || []).length} site(s)`);
+
+    // Only apply if the user is still looking at the same movie
+    // (they may have navigated away during the 12s window).
+    if (window.currentMovie === movie) renderAIVerifiedSites(parsed, staticFallback);
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (window.currentMovie !== movie) return;
+
+    const isTimeout = err.name === 'AbortError';
+    // "Failed to fetch" from the fetch() call itself (before any HTTP
+    // response is even received) almost always means CORS or a network/
+    // DNS problem, not something wrong with Gemini or the JSON — flag
+    // that distinctly since the fix is completely different. A genuine CORS
+    // block normally fails FAST (well under 12s) since the browser blocks
+    // it client-side before waiting for a real response — so isTimeout and
+    // isNetworkFail are treated as mutually exclusive, distinguishable
+    // failure modes.
+    const isNetworkFail = !isTimeout && /failed to fetch|networkerror|load failed/i.test(err.message || '');
+    const isQuota = /quota|429|rate limit|resource_exhausted/i.test(err.message || '');
+    const elapsed = since();
+    const failureType = isTimeout ? 'TIMEOUT (12s cap hit)'
+      : isNetworkFail ? 'CORS/network error (blocked before any HTTP response)'
+      : isQuota ? 'QUOTA/RATE LIMIT — Gemini API quota likely exhausted'
+      : 'error';
+    log(`❌ Failed at ${elapsed} — ${failureType}: ${err.message || err.toString()}`);
+
+    const el = document.getElementById('ai-verify-indicator');
+    if (el) el.remove();
+
+    renderStaticFallbackSites(staticFallback, { err, elapsed: elapsed.replace('+', '').replace('s', ''), isTimeout, isNetworkFail, isQuota });
+  } finally {
+    renderDebugBox(debugLines);
+  }
+}
+
+// Always-on debug trail, written directly into the page (collapsible) so the
+// exact request/response/error is visible without needing devtools —
+// especially useful when debugging on mobile. Only rendered when the page
+// is loaded with ?debug=1 in the URL; regular users never see this panel.
+function renderDebugBox(lines) {
+  const box = document.getElementById('ai-debug-box');
+  if (!box || lines.length === 0) return;
+  if (!DEBUG_MODE) { box.innerHTML = ''; return; }
+  box.innerHTML = `
+    <details open style="margin-top:10px; font-size:.72rem; color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
+      <summary style="cursor:pointer; font-weight:600; color:var(--text);">🐛 AI check debug log</summary>
+      <pre style="white-space:pre-wrap; word-break:break-word; margin-top:8px; font-family:monospace; font-size:.68rem; line-height:1.5;">${escapeAttr(lines.join('\n'))}</pre>
+    </details>
+  `;
+}
+
+// Renders the plain static site list into the AI-verify slot — used when
+// Gemini times out (12s), errors, or comes back with no confidently
+// verified sites. `failure`, if present, is shown as a short on-screen note
+// (timed out / CORS-or-network / other) so failures are diagnosable without
+// opening devtools — especially useful on mobile.
+function renderStaticFallbackSites(staticFallback, failure) {
+  const container = document.getElementById('ai-verify-section');
+  if (!container || !staticFallback) return;
+
+  // User-facing note is intentionally generic — no raw error text, timing,
+  // or technical details. Full failure detail (timeout vs network vs quota,
+  // exact error message, elapsed time) goes to the debug log instead
+  // (see the `log(...)` calls in the caller), visible only with ?debug=1.
+  const errNote = failure
+    ? `<p style="font-size:.7rem; color:var(--muted); margin-bottom:10px;">⚠️ AI check unavailable — showing the regular list instead.</p>`
+    : '';
+
+  container.innerHTML = `
+    <div class="section-label">🌐 Free streaming sites</div>
+    ${errNote}
+    <div class="sites-grid">${staticFallback.siteCards}</div>
+    ${staticFallback.tip ? `<div class="tips-box">💡 <strong>Tip:</strong> ${staticFallback.tip}</div>` : ''}
+  `;
+}
+
+function renderAIVerifiedSites(parsed, staticFallback) {
+  const container = document.getElementById('ai-verify-section');
+  if (!container) return;
+  const rawSites = parsed.sites || [];
+
+  if (rawSites.length === 0) {
+    // Gemini answered but didn't confidently verify anything — fall back
+    // to the static list rather than leaving this section empty.
+    renderStaticFallbackSites(staticFallback);
+    return;
+  }
+
+  // Dedup: Gemini sometimes returns the same site twice under a slightly
+  // different name or URL variant (e.g. "Tubi" / "tubi.tv", or a trailing-
+  // slash variant of the same domain). We key on both a normalized name and
+  // a normalized hostname, and keep only the FIRST occurrence of each —
+  // Gemini's own ranking already puts the most reliable match first, so
+  // this preserves that AI-first order rather than re-sorting anything.
+  const seenNames = new Set();
+  const seenDomains = new Set();
+  const sites = rawSites.filter(s => {
+    const nameKey = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    let domainKey = '';
+    try { domainKey = new URL(s.url).hostname.replace(/^www\./, '').replace(/^m\./, ''); }
+    catch (e) { domainKey = (s.url || '').toLowerCase(); }
+    if (seenNames.has(nameKey) || (domainKey && seenDomains.has(domainKey))) return false;
+    seenNames.add(nameKey);
+    if (domainKey) seenDomains.add(domainKey);
+    return true;
+  });
+
+  const cards = sites.map((s, i) => {
+    const dirMatch = SITES_DIRECTORY.find(d =>
+      s.name.toLowerCase().includes(d.name.toLowerCase()) || d.name.toLowerCase().includes(s.name.toLowerCase())
+    );
+    const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
+    return `
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" style="animation-delay:${i * 0.07}s">
+      <div class="site-logo-box">${logoInner}</div>
+      <div class="site-info">
+        <div class="site-name">${escapeAttr(s.name)}</div>
+        <div class="site-note">${escapeAttr(s.note || 'AI-verified')}</div>
+        ${s.linkType === 'direct' ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ Direct link (AI-verified)</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
+      </div>
+      <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+      <span class="arrow">→</span>
+    </a>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="section-label" style="margin-top:4px; display:flex; align-items:center; gap:6px;">🔮 AI-Verified <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--green); font-size:.7rem;">(checked just now)</span></div>
+    <div class="sites-grid">${cards}</div>
+    ${parsed.tip ? `<div class="tips-box" style="margin-top:10px;">💡 <strong>Tip:</strong> ${escapeAttr(parsed.tip)}</div>` : ''}
+  `;
 }
 
 // ========== SIMILAR / RELATED ==========
@@ -1457,8 +1885,6 @@ const SITES_DIRECTORY = [
     logoHtml: `<span class="logo-mtn" aria-hidden="true"><svg viewBox="0 0 40 26" width="34" height="22"><path d="M2 24 L14 6 L20 15 L24 9 L38 24 Z" fill="#fff"/><path d="M20 15 L24 9 L38 24 L22 24 Z" fill="#e63946"/><path d="M13 8 L15 6 L17 9" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-word"><span class="lw-white">M</span><span class="lw-accent">A</span></span>` },
   { name: 'DramaCool',  url: 'https://dramacool.com.tw/', domain: 'dramacool.com.tw', categories: ['drama'], icon: '🎬',
     logoHtml: `<span class="logo-clapper" aria-hidden="true"><svg viewBox="0 0 40 30" width="30" height="22"><rect x="4" y="12" width="32" height="16" rx="2" fill="none" stroke="#5b8def" stroke-width="2.4"/><path d="M4 12 L10 4 L16 4 L11 12 Z" fill="#5b8def"/><path d="M15 12 L21 4 L27 4 L22 12 Z" fill="#5b8def"/><path d="M26 12 L32 4 L36 4 L36 12 Z" fill="#5b8def"/></svg></span><span class="logo-word"><span class="lw-outline">D</span><span class="lw-white">C</span></span>` },
-  { name: 'Plex',       url: 'https://watch.plex.tv/', domain: 'plex.tv', categories: ['movie', 'hot'], icon: '▶️',
-    logoHtml: `<span class="logo-word logo-plex"><span class="lw-white">PLE</span><span class="lw-plex-x">X</span></span>` },
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'],
     logoHtml: `<span class="logo-word"><span style="color:#ff4d8f;">Kiss</span><span class="lw-white">KH</span></span>` },
   { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'],
@@ -1703,7 +2129,6 @@ window.addEventListener('load', () => {
 });
 
 // Event listeners
-document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 document.getElementById('search-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     closeSuggestions();
