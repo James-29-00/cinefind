@@ -456,6 +456,11 @@
   }
   .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
 
+  /* Site status dot — filled in after status.json loads (see applyStatusDots()).
+     Hidden by default so cards don't flash an unknown/wrong color before the
+     fetch resolves. */
+  .status-dot-mini { display: none; align-items: center; justify-content: center; }
+
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
   .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; }
   .card-logo svg { width: 38px; height: 26px; display: block; }
@@ -529,18 +534,15 @@
 <div class="wrapper">
   <header>
     <div class="header-top">
-      <div class="theme-picker-wrap" style="position:relative;">
-        <button class="theme-toggle" id="theme-picker-btn" title="Toggle glow" aria-label="Toggle glow" onclick="toggleMoonGlow()">
+      <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
+        <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
+        <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </div>
     </div>
     <div class="logo">Cine<span>Find</span></div>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
-    <div class="safety-tip">
-      <span class="tip-icon">🛡️</span>
-      <span>Tip: use a browser with built-in ad/tracker blocking (like <strong>Brave Browser <img src="https://www.google.com/s2/favicons?domain=brave.com&sz=64" width="13" height="13" alt="Brave" style="vertical-align:-2px; display:inline-block; border-radius:3px; opacity:.8;"></strong>) before opening any streaming site</span>
-    </div>
   </header>
 
   <div class="search-wrap">
@@ -602,25 +604,32 @@ function initTheme() {
 
 const THEME_KEY = 'cinefind-theme-mode';
 const THEME_CYCLE = ['theme-crimson', 'theme-cyber', 'theme-galaxy'];
+const THEME_LABELS = { 'theme-crimson': 'Crimson', 'theme-cyber': 'Cyber', 'theme-galaxy': 'Galaxy' };
 
-function toggleMoonGlow() {
+function cycleTheme() {
   const current = THEME_CYCLE.find(t => document.body.classList.contains(t)) || 'theme-crimson';
   const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
-  applyTheme(next);
+  applyTheme(next, true);
 }
 
-function applyTheme(themeClass) {
+function applyTheme(themeClass, announce) {
   document.body.classList.remove(...THEME_CYCLE);
   document.body.classList.add(themeClass);
   localStorage.setItem(THEME_KEY, themeClass);
   // No JS-driven color logic needed for the button itself — it reads
   // var(--accent), which the theme-* CSS classes already set, so the
   // icon color/glow follows automatically.
+  const label = THEME_LABELS[themeClass] || themeClass;
+  const labelEl = document.getElementById('theme-name-label');
+  if (labelEl) labelEl.textContent = label;
+  const btn = document.getElementById('theme-picker-btn');
+  if (btn) btn.setAttribute('aria-label', `Change theme — currently ${label}`);
+  if (announce) showToast(`Switched to ${label} theme`);
 }
 
 function loadColorTheme() {
   const saved = localStorage.getItem(THEME_KEY);
-  applyTheme(THEME_CYCLE.includes(saved) ? saved : 'theme-crimson');
+  applyTheme(THEME_CYCLE.includes(saved) ? saved : 'theme-crimson', false);
 }
 
 // ========== TOAST / SHARE / COPY LINK ==========
@@ -1459,10 +1468,10 @@ function renderResult(data, query) {
     );
     const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
     return `
-    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" style="animation-delay:${i*0.07}s">
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i*0.07}s">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
-        <div class="site-name">${s.name}</div>
+        <div class="site-name"><span class="status-dot-mini" data-status-dot style="display:none; width:13px; height:13px; margin-right:6px; vertical-align:middle;"></span>${s.name}</div>
         <div class="site-note">${s.note || 'Free streaming'}</div>
         ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
@@ -1734,6 +1743,7 @@ function renderStaticFallbackSites(staticFallback, failure) {
     <div class="sites-grid">${staticFallback.siteCards}</div>
     ${staticFallback.tip ? `<div class="tips-box">💡 <strong>Tip:</strong> ${staticFallback.tip}</div>` : ''}
   `;
+  applyStatusDots();
 }
 
 function renderAIVerifiedSites(parsed, staticFallback) {
@@ -1773,10 +1783,10 @@ function renderAIVerifiedSites(parsed, staticFallback) {
     );
     const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
     return `
-    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" style="animation-delay:${i * 0.07}s">
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i * 0.07}s">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
-        <div class="site-name">${escapeAttr(s.name)}</div>
+        <div class="site-name"><span class="status-dot-mini" data-status-dot style="display:none; width:13px; height:13px; margin-right:6px; vertical-align:middle;"></span>${escapeAttr(s.name)}</div>
         <div class="site-note">${escapeAttr(s.note || 'AI-verified')}</div>
         ${s.linkType === 'direct' ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ Direct link (AI-verified)</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
@@ -1790,6 +1800,7 @@ function renderAIVerifiedSites(parsed, staticFallback) {
     <div class="sites-grid">${cards}</div>
     ${parsed.tip ? `<div class="tips-box" style="margin-top:10px;">💡 <strong>Tip:</strong> ${escapeAttr(parsed.tip)}</div>` : ''}
   `;
+  applyStatusDots();
 }
 
 // ========== SIMILAR / RELATED ==========
@@ -1880,6 +1891,83 @@ function resetSearch() {
 // ========== FREE WEBSITES DIRECTORY ==========
 // Add more entries here anytime — categories: 'drama', 'anime', 'movie' (a site can have more than one)
 // logoHtml: stylized wordmark shown in the card (falls back to icon+name split if omitted)
+// ========== SITE STATUS DOTS (public-facing, reuses the same status.json ==========
+// the admin panel already generates from the daily GitHub Action checker) ==========
+let siteStatusMap = null; // { normalizedName: 'up' | 'blocked' | 'down' }
+
+async function loadSiteStatus() {
+  try {
+    const res = await fetch('./status.json?t=' + Date.now());
+    if (!res.ok) return;
+    const data = await res.json();
+    const map = {};
+    (data.results || []).forEach(r => { if (r.name) map[r.name.toLowerCase()] = r.status; });
+    siteStatusMap = map;
+    applyStatusDots();
+  } catch (err) {
+    // Silent fail — dots just stay hidden. Not worth bothering the user
+    // with an error over a nice-to-have indicator.
+  }
+}
+
+function getSiteStatus(name) {
+  if (!siteStatusMap) return null;
+  const key = name.toLowerCase();
+  if (siteStatusMap[key] !== undefined) return siteStatusMap[key];
+  const found = Object.keys(siteStatusMap).find(k => key.includes(k) || k.includes(key));
+  return found ? siteStatusMap[found] : null;
+}
+
+function statusDotColor(status) {
+  return status === 'up' ? '#06d6a0' : status === 'blocked' ? '#f0b428' : status === 'down' ? '#ef4444' : null;
+}
+
+function statusDotLabel(status) {
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'May issue — verify before use' : status === 'down' ? 'Might be down' : '';
+}
+
+// Distinct SHAPE per status (not just color) so the indicator still reads
+// correctly for colorblind users — a checkmark, a warning triangle, and an
+// X read as different symbols even if the colors look similar to someone.
+function statusDotIcon(status, color) {
+  if (status === 'up') {
+    return `<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="${color}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>`;
+  }
+  if (status === 'blocked') {
+    return `<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 L2 20 Z"/><line x1="12" y1="9.5" x2="12" y2="14.5"/><circle cx="12" cy="17.3" r="0.5" fill="${color}" stroke="none"/></svg>`;
+  }
+  if (status === 'down') {
+    return `<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="${color}" stroke-width="3.2" stroke-linecap="round"><path d="M5 5 L19 19 M19 5 L5 19"/></svg>`;
+  }
+  return '';
+}
+
+// Re-applies status dots to whatever site cards are currently on screen
+// (homepage directory or a movie's site list) once status.json has loaded.
+// Cards render before this data is ready, so dots get filled in afterward
+// rather than delaying the initial paint.
+function applyStatusDots() {
+  if (!siteStatusMap) return;
+  document.querySelectorAll('[data-site-name]').forEach(el => {
+    const dot = el.querySelector('[data-status-dot]');
+    if (!dot) return;
+    const status = getSiteStatus(el.dataset.siteName);
+    const color = statusDotColor(status);
+    if (color) {
+      const label = statusDotLabel(status);
+      dot.innerHTML = statusDotIcon(status, color);
+      dot.style.display = 'inline-flex';
+      dot.title = label;
+      dot.setAttribute('role', 'img');
+      dot.setAttribute('aria-label', label);
+    } else {
+      dot.style.display = 'none';
+      dot.innerHTML = '';
+      dot.removeAttribute('aria-label');
+    }
+  });
+}
+
 const SITES_DIRECTORY = [
   { name: 'MyAsianTV', url: 'https://myasiantv.com.lv/', domain: 'myasiantv.com.lv', categories: ['drama'], icon: '🏔️',
     logoHtml: `<span class="logo-mtn" aria-hidden="true"><svg viewBox="0 0 40 26" width="34" height="22"><path d="M2 24 L14 6 L20 15 L24 9 L38 24 Z" fill="#fff"/><path d="M20 15 L24 9 L38 24 L22 24 Z" fill="#e63946"/><path d="M13 8 L15 6 L17 9" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-word"><span class="lw-white">M</span><span class="lw-accent">A</span></span>` },
@@ -1963,6 +2051,9 @@ function renderSitesDirectory() {
     filtered = SITES_DIRECTORY.filter(s => s.categories.some(c => activeDirFilters.includes(c)));
   }
 
+  const countEl = document.getElementById('dir-results-count');
+  if (countEl) countEl.textContent = `${filtered.length} site${filtered.length === 1 ? '' : 's'}`;
+
   if (filtered.length === 0) {
     const emptyMsg = activeDirFilters.includes('pinned')
       ? 'No pinned sites yet — tap the 📌 on any site to save it here.'
@@ -1971,19 +2062,42 @@ function renderSitesDirectory() {
     return;
   }
 
-  wrap.innerHTML = filtered.map((s, i) => {
+  const buildCard = (s, i) => {
     const isFav = favs.includes(s.name);
     const pinIcon = isFav
       ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>`
       : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>`;
     return `
-    <div class="gradient-card-wrapper" style="animation-delay:${(i % 6) * 0.04}s;">
+    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
       <a href="${s.url}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+        <span class="status-dot-mini" data-status-dot style="position:absolute; top:7px; left:9px; width:15px; height:15px; z-index:2; filter:drop-shadow(0 0 2px rgba(0,0,0,.6));"></span>
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Unpin site' : 'Pin site'}">${pinIcon}</button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
-  }).join('');
+  };
+
+  // Homepage directory can grow long as more sites get added — same
+  // "show more" pattern already used for per-movie search results, so the
+  // homepage doesn't dump the entire list on first load.
+  const DIR_VISIBLE_INITIAL = 6;
+  const visible = filtered.slice(0, DIR_VISIBLE_INITIAL);
+  const hidden = filtered.slice(DIR_VISIBLE_INITIAL);
+
+  wrap.innerHTML = visible.map(buildCard).join('') + (
+    hidden.length > 0
+      ? `<div id="hidden-dir-sites" style="display:none;">${hidden.map((s, i) => buildCard(s, i + DIR_VISIBLE_INITIAL)).join('')}</div>
+         <button class="pop-chip" id="show-more-dir-sites-btn" onclick="showMoreDirSites()" style="width:100%; margin-top:4px; grid-column:1/-1;">Show ${hidden.length} more sites ↓</button>`
+      : ''
+  );
+  applyStatusDots();
+}
+
+function showMoreDirSites() {
+  const hidden = document.getElementById('hidden-dir-sites');
+  const btn = document.getElementById('show-more-dir-sites-btn');
+  if (hidden) hidden.style.display = 'contents';
+  if (btn) btn.remove();
 }
 
 // Fallback logo for any directory entry that doesn't have a custom logoHtml wordmark.
@@ -2036,9 +2150,17 @@ function renderHomepage() {
       <button class="genre-pill dual-gradient-pill" data-cat="hot" onclick="toggleDirFilter('hot', this)">Hot</button>
       <button class="genre-pill dual-gradient-pill" data-cat="pinned" onclick="toggleDirFilter('pinned', this)">📌 Pinned</button>
     </div>
-    <div class="safety-tip" style="max-width:none; margin:0 0 14px; justify-content:flex-start;">
+    <div class="safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
       <span class="tip-icon">🛡️</span>
-      <span>Tip: these are third-party sites we don't control — keep your ad/tracker blocker on and avoid clicking pop-ups or "download" prompts</span>
+      <span>Tip: these are third-party sites we don't control — use a browser with built-in ad/tracker blocking (like <strong>Brave Browser <img src="https://www.google.com/s2/favicons?domain=brave.com&sz=64" width="13" height="13" alt="Brave" style="vertical-align:-2px; display:inline-block; border-radius:3px; opacity:.8;"></strong>) and avoid clicking pop-ups or "download" prompts</span>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
+      <div id="dir-results-count" style="font-size:.78rem; color:var(--muted);"></div>
+      <div style="font-size:.7rem; color:var(--muted); display:flex; align-items:center; gap:8px;">
+        <span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#06d6a0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg> Online</span>
+        <span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f0b428" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 L2 20 Z"/><line x1="12" y1="9.5" x2="12" y2="14.5"/><circle cx="12" cy="17.3" r="0.5" fill="#f0b428" stroke="none"/></svg> Issues</span>
+        <span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3.5" stroke-linecap="round"><path d="M5 5 L19 19 M19 5 L5 19"/></svg> Down</span>
+      </div>
     </div>
     <div class="dir-grid" id="sites-directory-grid"></div>
 
@@ -2111,6 +2233,7 @@ window.addEventListener('load', () => {
   initTheme();
   updateFavCount();
   renderHomepage();
+  loadSiteStatus();
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
