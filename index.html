@@ -2593,7 +2593,9 @@ function renderAdminPanel(data) {
       <div class="admin-stat"><div class="num" style="color:#e63946;">${data.downCount}</div><div class="lbl">Down</div></div>
       <div class="admin-stat"><div class="num">${data.totalSites}</div><div class="lbl">Total</div></div>
     </div>
+    <div id="admin-site-rows">
     ${rowsHtml}
+    </div>
     <p class="refresh-note">Checked automatically every day. Replacement notes are saved only on this device — update SITES_DIRECTORY in the code when ready.</p>
   `;
 }
@@ -2702,6 +2704,13 @@ async function updateLiveLink(siteName, btn) {
     statusEl.textContent = '✅ Live! Takes ~1 min to appear on the site (GitHub Pages redeploy).';
     statusEl.style.color = '#06d6a0';
     input.value = '';
+
+    // Don't make the admin wait for tomorrow's automated check to see a
+    // green dot — a link they just pasted in is presumably working, so
+    // reflect that immediately in this session's status map.
+    if (!siteStatusMap) siteStatusMap = {};
+    siteStatusMap[normalizeSiteName(siteName)] = 'up';
+    applyStatusDots();
   } catch (err) {
     statusEl.textContent = `❌ Failed: ${err.message}`;
     statusEl.style.color = '#e63946';
@@ -2788,6 +2797,27 @@ async function addNewWebsite(btn) {
     document.getElementById('new-site-name').value = '';
     document.getElementById('new-site-url').value = '';
     document.getElementById('new-site-icon').value = '';
+
+    // The admin list below is rendered from status.json, which only refreshes
+    // once a day via the GitHub Action — so a freshly-added site wouldn't show
+    // up here until tomorrow's check. Insert a placeholder row now so it's
+    // visible (and deletable) right away.
+    const rowsContainer = document.getElementById('admin-site-rows');
+    if (rowsContainer) {
+      const safeName = escapeForAttr(name);
+      const row = document.createElement('div');
+      row.className = 'site-row';
+      row.innerHTML = `
+        <div class="status-dot"></div>
+        <div style="flex:1;">
+          <div class="site-name">${name} 🆕</div>
+          <div class="site-meta">${url} — Not checked yet (next automatic check within 24h)</div>
+          <button class="delete-site-btn" onclick="confirmDeleteWebsite('${safeName}', this)">🗑️ Delete Website</button>
+          <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
+        </div>
+      `;
+      rowsContainer.prepend(row);
+    }
   } catch (err) {
     statusEl.textContent = `❌ Failed: ${err.message}`;
     statusEl.style.color = '#e63946';
@@ -2803,6 +2833,35 @@ async function addNewWebsite(btn) {
 // (so its homepage card disappears). Built-in sites that live in
 // SITES_DIRECTORY (hardcoded in this file) still need their code line
 // removed manually — that part can't be safely automated via the API.
+// Cuts a matching { name: '...', ... } entry out of the SITES_DIRECTORY
+// array inside raw index.html source text. Safe because every entry in that
+// array is a single flat object with no nested {}. Returns the updated
+// source, or null if the array or the named entry wasn't found.
+function removeFromSitesDirectorySource(sourceText, siteName) {
+  const target = normalizeSiteName(siteName);
+  const dirStart = sourceText.indexOf('const SITES_DIRECTORY = [');
+  if (dirStart === -1) return null;
+  const dirEnd = sourceText.indexOf('\n];', dirStart);
+  if (dirEnd === -1) return null;
+
+  const before = sourceText.slice(0, dirStart);
+  const arrayBlock = sourceText.slice(dirStart, dirEnd + 3);
+  const after = sourceText.slice(dirEnd + 3);
+
+  let found = false;
+  const newArrayBlock = arrayBlock.replace(/\n?\s*\{[^{}]*\},?/g, (entryText) => {
+    const nameMatch = entryText.match(/name:\s*['"]([^'"]*)['"]/);
+    if (nameMatch && normalizeSiteName(nameMatch[1]) === target) {
+      found = true;
+      return '';
+    }
+    return entryText;
+  });
+
+  if (!found) return null;
+  return before + newArrayBlock + after;
+}
+
 function confirmDeleteWebsite(siteName, btn) {
   const ok = confirm(`Sigurado ka bang gusto mong i-delete ang "${siteName}"?\n\nHindi na ito mababawi.`);
   if (!ok) return;
@@ -2882,11 +2941,55 @@ async function deleteWebsite(siteName, btn) {
       }
     }
 
-    statusEl.textContent = removedFromCustom
+    // 3) If it's a built-in site (lives in SITES_DIRECTORY, hardcoded in this
+    // very file), remove its entry from the source too so the homepage card
+    // disappears — every SITES_DIRECTORY entry is a flat { ... } object with
+    // no nested braces, so a brace-matched regex can safely cut it out.
+    let removedFromDirectory = false;
+    if (SITES_DIRECTORY.some(s => normalizeSiteName(s.name) === normalizeSiteName(siteName))) {
+      const idxUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/index.html`;
+      const idxGetRes = await fetch(idxUrl, { headers });
+      if (!idxGetRes.ok) throw new Error(`Could not read index.html (HTTP ${idxGetRes.status})`);
+      const idxFileData = await idxGetRes.json();
+      const idxSource = b64DecodeUtf8(idxFileData.content);
+      const updatedSource = removeFromSitesDirectorySource(idxSource, siteName);
+      if (!updatedSource) throw new Error(`Could not find "${siteName}" inside SITES_DIRECTORY in index.html.`);
+      const idxPutRes = await fetch(idxUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Remove built-in site from SITES_DIRECTORY: ${siteName}`,
+          content: b64EncodeUtf8(updatedSource),
+          sha: idxFileData.sha,
+        }),
+      });
+      if (!idxPutRes.ok) {
+        const errData = await idxPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `Removed from sites.json but failed removing from SITES_DIRECTORY (HTTP ${idxPutRes.status})`);
+      }
+      removedFromDirectory = true;
+    }
+
+    statusEl.textContent = removedFromDirectory
+      ? `✅ Deleted "${siteName}" from sites.json and its SITES_DIRECTORY entry in index.html. Takes ~1 min to appear on both admin and user sides.`
+      : removedFromCustom
       ? `✅ Deleted "${siteName}" from sites.json and custom-sites.json. Takes ~1 min to appear.`
-      : `✅ Deleted "${siteName}" from sites.json. If it's a built-in site, also remove its entry from SITES_DIRECTORY in the code so the homepage card disappears too.`;
+      : `✅ Deleted "${siteName}" from sites.json.`;
     statusEl.style.color = '#06d6a0';
     btn.textContent = 'Deleted ✓';
+
+    // The admin list is rendered from status.json, which only refreshes once
+    // a day via the GitHub Action — so without this, a successfully deleted
+    // site would keep showing here until tomorrow. Remove the row now so the
+    // panel reflects reality immediately.
+    const row = btn.closest('.site-row');
+    if (row) {
+      setTimeout(() => {
+        row.style.transition = 'opacity .4s ease';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 400);
+      }, 900);
+    }
   } catch (err) {
     statusEl.textContent = `❌ Failed: ${err.message}`;
     statusEl.style.color = '#e63946';
