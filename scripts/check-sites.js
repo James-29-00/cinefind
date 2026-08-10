@@ -13,6 +13,8 @@ const fs = require('fs');
 const path = require('path');
 
 const SITES_PATH = path.join(__dirname, '..', 'sites.json');
+const CUSTOM_SITES_PATH = path.join(__dirname, '..', 'custom-sites.json');
+const OVERRIDES_PATH = path.join(__dirname, '..', 'overrides.json');
 const OUTPUT_PATH = path.join(__dirname, '..', 'status.json');
 const TIMEOUT_MS = 10000;
 
@@ -120,11 +122,54 @@ function classifyResult(site, result) {
 
 async function main() {
   const sites = JSON.parse(fs.readFileSync(SITES_PATH, 'utf-8'));
-  console.log(`Checking ${sites.length} sites...`);
+
+  // Same site name → key rule used by the front-end (index.html), so
+  // "1Shows" / "1-Shows" / "1 Shows" all match the same override/status entry.
+  const normalize = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  // custom-sites.json — sites added later via the admin panel's "Add New
+  // Website" form. Optional file; if it doesn't exist yet, just means no
+  // one has added anything through the admin panel yet.
+  let customSites = [];
+  if (fs.existsSync(CUSTOM_SITES_PATH)) {
+    try {
+      customSites = JSON.parse(fs.readFileSync(CUSTOM_SITES_PATH, 'utf-8'));
+    } catch (err) {
+      console.warn('Could not parse custom-sites.json, skipping:', err.message);
+    }
+  }
+
+  // overrides.json — live URL replacements made via the admin panel's
+  // "Update Live Link" button. If a site has an override, we should check
+  // THAT url (what visitors actually get sent to), not the old one in
+  // sites.json — otherwise a fixed link would keep showing as "down" forever.
+  let overrides = {};
+  if (fs.existsSync(OVERRIDES_PATH)) {
+    try {
+      overrides = JSON.parse(fs.readFileSync(OVERRIDES_PATH, 'utf-8'));
+    } catch (err) {
+      console.warn('Could not parse overrides.json, skipping:', err.message);
+    }
+  }
+
+  // Merge sites.json + custom-sites.json, de-duping by normalized name
+  // (sites.json wins if somehow both define the same site), then apply any
+  // live URL override on top.
+  const merged = new Map();
+  for (const s of [...sites, ...customSites]) {
+    if (!s.name || !s.url) continue;
+    const key = normalize(s.name);
+    if (merged.has(key)) continue;
+    const liveUrl = overrides[key] || s.url;
+    merged.set(key, { name: s.name, url: liveUrl });
+  }
+  const allSites = Array.from(merged.values());
+
+  console.log(`Checking ${allSites.length} sites (${sites.length} from sites.json, ${customSites.length} from custom-sites.json, ${Object.keys(overrides).length} with live overrides)...`);
 
   const results = [];
   // Check sequentially with small delay to avoid rate-limiting / looking like a bot flood
-  for (const site of sites) {
+  for (const site of allSites) {
     const result = await checkSite(site);
     const icon = result.status === 'up' ? '✅' : result.status === 'blocked' ? '🟡' : '❌';
     console.log(`${icon} ${result.name} (${result.httpStatus || result.error})`);
