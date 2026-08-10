@@ -2711,6 +2711,26 @@ async function updateLiveLink(siteName, btn) {
     if (!siteStatusMap) siteStatusMap = {};
     siteStatusMap[normalizeSiteName(siteName)] = 'up';
     applyStatusDots();
+
+    // The admin panel's own site-row (dot/icon/meta/warning) is built once
+    // from status.json and doesn't read siteStatusMap, so update it directly.
+    const row = btn.closest('.site-row');
+    if (row) {
+      row.classList.remove('down', 'blocked');
+      row.classList.add('up');
+      const dot = row.querySelector('.status-dot');
+      if (dot) { dot.classList.remove('down', 'blocked'); dot.classList.add('up'); }
+      const nameEl = row.querySelector('.site-name');
+      if (nameEl) nameEl.textContent = nameEl.textContent.replace(/[🟢🟡🔴]/g, '').trim() + ' 🟢';
+      const metaEl = row.querySelector('.site-meta');
+      if (metaEl) metaEl.textContent = `${newUrl} — Updated just now`;
+      row.querySelectorAll('.site-meta').forEach(el => {
+        if (el !== metaEl && el.textContent.includes('blocking this server')) el.remove();
+      });
+      row.querySelectorAll('.quick-test-btn').forEach(b => {
+        if (b.textContent.includes('Test This Link')) b.remove();
+      });
+    }
   } catch (err) {
     statusEl.textContent = `❌ Failed: ${err.message}`;
     statusEl.style.color = '#e63946';
