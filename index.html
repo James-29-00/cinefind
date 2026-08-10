@@ -1927,6 +1927,48 @@ async function loadSiteStatus() {
   }
 }
 
+// ========== LIVE URL OVERRIDES ==========
+// overrides.json is written by the admin panel (via the GitHub API — see
+// updateLiveLink()) whenever a "down"/"blocked" site's link is replaced.
+// It's a simple { normalizedSiteName: newUrl } map. If it doesn't exist yet
+// (first-time setup, no overrides saved) that's normal — sites just use
+// their default URL from SITES_DIRECTORY.
+let siteUrlOverrides = null;
+
+async function loadUrlOverrides() {
+  try {
+    const res = await fetch('./overrides.json?t=' + Date.now());
+    siteUrlOverrides = res.ok ? await res.json() : {};
+  } catch (err) {
+    siteUrlOverrides = {};
+  }
+  renderSitesDirectory(); // re-render so any overridden links take effect immediately
+}
+
+function getOverriddenUrl(name, fallbackUrl) {
+  if (!siteUrlOverrides) return fallbackUrl;
+  return siteUrlOverrides[normalizeSiteName(name)] || fallbackUrl;
+}
+
+// ========== CUSTOM (ADMIN-ADDED) SITES ==========
+// custom-sites.json is written by the admin panel's "Add New Website" form
+// (see addNewWebsite()) — same GitHub-commit approach as overrides.json.
+// It's an array of site objects in the same shape as SITES_DIRECTORY entries,
+// so they render with the exact same card component/design. If the file
+// doesn't exist yet, that just means no one has added a site through the
+// admin panel yet.
+let customSites = [];
+
+async function loadCustomSites() {
+  try {
+    const res = await fetch('./custom-sites.json?t=' + Date.now());
+    customSites = res.ok ? await res.json() : [];
+  } catch (err) {
+    customSites = [];
+  }
+  renderSitesDirectory();
+}
+
 function getSiteStatus(name) {
   if (!siteStatusMap) return null;
   const key = normalizeSiteName(name);
@@ -2043,8 +2085,6 @@ const SITES_DIRECTORY = [
   // working long-term instead of rotting in a few months.
   { name: 'iWantTFC',      url: 'https://www.iwanttfc.com/',    domain: 'iwanttfc.com',         categories: ['pinoy'],
     logoHtml: `<span class="logo-word"><span class="lw-white">iWant</span><span style="color:var(--accent);">TFC</span></span>` },
-  { name: 'Tubi TV',       url: 'https://tubitv.com/',          domain: 'tubitv.com',           categories: ['pinoy'],
-    logoHtml: `<span class="logo-word"><span style="color:#fd4534;">Tubi</span></span>` },
   { name: 'Star Cinema',   url: 'https://www.youtube.com/@ABSstarcinema', domain: 'youtube.com', categories: ['pinoy'],
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:#fff;text-transform:uppercase;">Cinema</span></div>` },
   { name: 'Viva Films',    url: 'https://www.youtube.com/@VIVAFilms/videos', domain: 'youtube.com', categories: ['pinoy'],
@@ -2079,16 +2119,17 @@ function renderSitesDirectory() {
   if (!wrap) return; // user may have navigated away already
 
   const favs = getDirFavs();
+  const allSites = [...SITES_DIRECTORY, ...customSites]; // built-in + admin-added, rendered identically
 
   // "pinned" isn't a real category on the site data — it's derived from favs —
   // so it's filtered separately here instead of via s.categories like the rest.
   let filtered;
   if (activeDirFilters.includes('pinned')) {
-    filtered = SITES_DIRECTORY.filter(s => favs.includes(s.name));
+    filtered = allSites.filter(s => favs.includes(s.name));
   } else if (activeDirFilters.length === 0) {
-    filtered = SITES_DIRECTORY;
+    filtered = allSites;
   } else {
-    filtered = SITES_DIRECTORY.filter(s => s.categories.some(c => activeDirFilters.includes(c)));
+    filtered = allSites.filter(s => s.categories.some(c => activeDirFilters.includes(c)));
   }
 
   const countEl = document.getElementById('dir-results-count');
@@ -2104,12 +2145,13 @@ function renderSitesDirectory() {
 
   const buildCard = (s, i) => {
     const isFav = favs.includes(s.name);
+    const liveUrl = getOverriddenUrl(s.name, s.url);
     const pinIcon = isFav
       ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>`
       : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>`;
     return `
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
-      <a href="${s.url}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
         <span class="status-dot-mini" data-status-dot style="position:absolute; top:7px; left:9px; width:15px; height:15px; z-index:2; filter:drop-shadow(0 0 2px rgba(0,0,0,.6));"></span>
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Unpin site' : 'Pin site'}">${pinIcon}</button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
@@ -2275,6 +2317,9 @@ window.addEventListener('load', () => {
   updateFavCount();
   renderHomepage();
   loadSiteStatus();
+  loadUrlOverrides();
+  loadCustomSites();
+  checkAdminAccess();
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
@@ -2389,11 +2434,22 @@ async function loadAdminPanel() {
 
   const overlay = document.createElement('div');
   overlay.id = 'admin-overlay';
+  const gh = getGithubConfig();
   overlay.innerHTML = `
     <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
     <div class="admin-header">
       <h1>🔒 Site Status Admin</h1>
       <p>Loading status.json...</p>
+    </div>
+    <div class="test-link-box" id="gh-config-box">
+      <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="gh-owner" class="test-link-input" placeholder="GitHub username (repo owner)" value="${escapeForAttr(gh.owner || '')}">
+        <input type="text" id="gh-repo" class="test-link-input" placeholder="Repository name" value="${escapeForAttr(gh.repo || '')}">
+        <input type="password" id="gh-token" class="test-link-input" placeholder="Personal Access Token" value="${escapeForAttr(gh.token || '')}">
+        <button class="test-link-btn" style="width:100%;" onclick="saveGithubConfig()">Save Connection</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${gh.token ? '✅ Connection saved on this device.' : 'Not connected yet — set this up once.'}</div>
+      </div>
     </div>
     <div class="test-link-box">
       <div class="test-link-title">🔗 Test a Link</div>
@@ -2403,16 +2459,34 @@ async function loadAdminPanel() {
       </div>
       <div id="test-link-result" class="test-link-result"></div>
     </div>
+    <div class="test-link-box" id="add-site-box">
+      <div class="test-link-title">➕ Add New Website</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://...">
+        <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-drama"> K-Drama</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-anime"> Anime</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> 🇵🇭 Pinoy</label>
+        </div>
+        <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
+        <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
+      </div>
+    </div>
   `;
   document.body.appendChild(overlay);
 
   try {
     const res = await fetch('./status.json?t=' + Date.now()); // cache-bust
+    if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
     const data = await res.json();
     renderAdminPanel(data);
   } catch (err) {
+    console.error('Admin panel load error:', err);
     overlay.querySelector('.admin-header p').textContent =
-      'Could not load status.json yet — the daily checker may not have run for the first time. Trigger it manually from the Actions tab on GitHub.';
+      '⚠️ Error: ' + err.message + ' (check browser console for details)';
   }
 }
 
@@ -2441,16 +2515,36 @@ function renderAdminPanel(data) {
                  onchange="saveReplacementNote('${site.name.replace(/'/g, "\\'")}', this.value)"
                  value="${getReplacementNote(site.name)}">
         ` : ''}
+        ${(site.status === 'down' || site.status === 'blocked') ? `
+          <div class="live-update-wrap" style="margin-top:8px;">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input class="replace-input live-update-input" style="margin-top:0; flex:1;" placeholder="Paste new working URL to go LIVE...">
+              <button class="quick-test-btn" style="margin-top:0; white-space:nowrap;" onclick="updateLiveLink('${site.name.replace(/'/g, "\\'")}', this)">Update Live Link</button>
+            </div>
+            <div class="live-update-status site-meta" style="margin-top:4px;"></div>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
   }).join('');
 
+  const gh = getGithubConfig();
   overlay.innerHTML = `
     <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
     <div class="admin-header">
       <h1>🔒 Site Status Admin</h1>
       <p>Last checked: ${lastRun}</p>
+    </div>
+    <div class="test-link-box" id="gh-config-box">
+      <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="gh-owner" class="test-link-input" placeholder="GitHub username (repo owner)" value="${escapeForAttr(gh.owner || '')}">
+        <input type="text" id="gh-repo" class="test-link-input" placeholder="Repository name" value="${escapeForAttr(gh.repo || '')}">
+        <input type="password" id="gh-token" class="test-link-input" placeholder="Personal Access Token" value="${escapeForAttr(gh.token || '')}">
+        <button class="test-link-btn" style="width:100%;" onclick="saveGithubConfig()">Save Connection</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${gh.token ? '✅ Connection saved on this device.' : 'Not connected yet — set this up once.'}</div>
+      </div>
     </div>
     <div class="test-link-box">
       <div class="test-link-title">🔗 Test a Link</div>
@@ -2459,6 +2553,22 @@ function renderAdminPanel(data) {
         <button class="test-link-btn" onclick="testLink()">Test</button>
       </div>
       <div id="test-link-result" class="test-link-result"></div>
+    </div>
+    <div class="test-link-box" id="add-site-box">
+      <div class="test-link-title">➕ Add New Website</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://...">
+        <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-drama"> K-Drama</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-anime"> Anime</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> 🇵🇭 Pinoy</label>
+        </div>
+        <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
+        <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
+      </div>
     </div>
     <div class="admin-summary">
       <div class="admin-stat"><div class="num" style="color:#06d6a0;">${data.upCount}</div><div class="lbl">Up</div></div>
@@ -2486,6 +2596,188 @@ function saveReplacementNote(siteName, value) {
     notes[siteName] = value;
     localStorage.setItem('cinefind-admin-notes', JSON.stringify(notes));
   } catch (e) { /* ignore */ }
+}
+
+// ========== LIVE LINK UPDATES (via GitHub API) ==========
+// GitHub Pages is static — there's no server to write files to on demand.
+// So "publishing" a link update means committing a change to overrides.json
+// straight to the repo via GitHub's REST API, using a Personal Access Token
+// the admin enters once (stored only in this browser's localStorage, never
+// sent anywhere except directly to api.github.com).
+function getGithubConfig() {
+  try { return JSON.parse(localStorage.getItem('cinefind-gh-config') || '{}'); }
+  catch (e) { return {}; }
+}
+
+function saveGithubConfig() {
+  const owner = document.getElementById('gh-owner').value.trim();
+  const repo = document.getElementById('gh-repo').value.trim();
+  const token = document.getElementById('gh-token').value.trim();
+  const statusEl = document.getElementById('gh-config-status');
+  if (!owner || !repo || !token) {
+    statusEl.textContent = 'Fill in all 3 fields first.';
+    statusEl.style.color = '#e63946';
+    return;
+  }
+  localStorage.setItem('cinefind-gh-config', JSON.stringify({ owner, repo, token }));
+  statusEl.textContent = '✅ Saved on this device.';
+  statusEl.style.color = '#06d6a0';
+}
+
+// UTF-8 safe base64 helpers — plain btoa()/atob() break on non-ASCII chars.
+function b64EncodeUtf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64DecodeUtf8(str) { return decodeURIComponent(escape(atob(str.replace(/\n/g, '')))); }
+
+async function updateLiveLink(siteName, btn) {
+  const wrap = btn.closest('.live-update-wrap');
+  const input = wrap.querySelector('.live-update-input');
+  const statusEl = wrap.querySelector('.live-update-status');
+  const newUrl = input.value.trim();
+  const config = getGithubConfig();
+
+  if (!config.owner || !config.repo || !config.token) {
+    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  if (!newUrl) {
+    statusEl.textContent = 'Paste a URL first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  statusEl.textContent = '';
+
+  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/overrides.json`;
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    let sha, current = {};
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read overrides.json (HTTP ${getRes.status})`);
+    } // 404 is fine — file doesn't exist yet, we'll create it
+
+    current[normalizeSiteName(siteName)] = newUrl;
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Update live link for ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    statusEl.textContent = '✅ Live! Takes ~1 min to appear on the site (GitHub Pages redeploy).';
+    statusEl.style.color = '#06d6a0';
+    input.value = '';
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// Adds a brand-new site card to the homepage directory — writes to
+// custom-sites.json the same way updateLiveLink() writes to overrides.json.
+// No custom logo needed: cards without a hand-crafted logoHtml automatically
+// fall back to defaultLogoHtml() (icon + site name, same font/spacing as
+// every other card) so new sites match the existing design immediately.
+async function addNewWebsite(btn) {
+  const name = document.getElementById('new-site-name').value.trim();
+  const url = document.getElementById('new-site-url').value.trim();
+  const icon = document.getElementById('new-site-icon').value.trim();
+  const cats = [];
+  if (document.getElementById('new-site-cat-movie').checked) cats.push('movie');
+  if (document.getElementById('new-site-cat-drama').checked) cats.push('drama');
+  if (document.getElementById('new-site-cat-anime').checked) cats.push('anime');
+  if (document.getElementById('new-site-cat-pinoy').checked) cats.push('pinoy');
+  const statusEl = document.getElementById('add-site-status');
+  const config = getGithubConfig();
+
+  if (!config.owner || !config.repo || !config.token) {
+    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  if (!name || !url) {
+    statusEl.textContent = 'Fill in at least the name and URL.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  let domain;
+  try { domain = new URL(url).hostname.replace(/^www\./, ''); }
+  catch (e) { statusEl.textContent = "That URL doesn't look valid — include https://"; statusEl.style.color = '#e63946'; return; }
+  if (cats.length === 0) cats.push('movie');
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+  statusEl.textContent = '';
+
+  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    let sha, current = [];
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read custom-sites.json (HTTP ${getRes.status})`);
+    }
+
+    if (current.some(s => normalizeSiteName(s.name) === normalizeSiteName(name))) {
+      throw new Error(`"${name}" is already in the list.`);
+    }
+
+    current.push({ name, url, domain, categories: cats, icon: icon || undefined });
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Add new site: ${name}`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    statusEl.textContent = `✅ "${name}" added! Takes ~1 min to appear on the site.`;
+    statusEl.style.color = '#06d6a0';
+    document.getElementById('new-site-name').value = '';
+    document.getElementById('new-site-url').value = '';
+    document.getElementById('new-site-icon').value = '';
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
 }
 
 // ========== TEST LINK (admin panel) ==========
@@ -2545,7 +2837,10 @@ async function testLink() {
   }
 }
 
-window.addEventListener('load', checkAdminAccess);
+// (checkAdminAccess is already called once in the main window 'load' handler above —
+// having a second listener here used to create a duplicate #admin-overlay, which
+// silently broke the panel: the data would load into the hidden first copy while
+// the visible one stayed stuck on "Loading status.json...")
 </script>
 </body>
 </html>
