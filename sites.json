@@ -1,32 +1,118 @@
 [
-  { "name": "Plex", "url": "https://watch.plex.tv/" },
-  { "name": "MyAsianTV", "url": "https://myasiantv.com.lv/" },
-  { "name": "DramaCool", "url": "https://dramacool.com.tw/" },
-  { "name": "KissKH", "url": "https://kisskh.co/" },
-  { "name": "AsianCrush", "url": "https://www.asiancrush.com/" },
-  { "name": "Viki", "url": "https://www.viki.com/" },
-  { "name": "Viu", "url": "https://www.viu.com/" },
-  { "name": "Kocowa", "url": "https://www.kocowa.com/" },
-  { "name": "OnDemandKorea", "url": "https://www.ondemandkorea.com/" },
-  { "name": "WeTV", "url": "https://wetv.vip/" },
-  { "name": "iQIYI", "url": "https://www.iq.com/" },
-  { "name": "Amasian TV", "url": "https://amasiantv.com/" },
-  { "name": "1Shows", "url": "https://1shows.org/" },
-  { "name": "FlickyStream", "url": "https://flickystream.dad/" },
-  { "name": "MovieBox", "url": "https://movie-box.co/" },
-  { "name": "1Flex", "url": "https://1flex.org/" },
-  { "name": "1Tube", "url": "https://1tube.org/" },
-  { "name": "Cineby", "url": "https://cineby.at/" },
-  { "name": "FMovies", "url": "https://fmovies-hd.to/" },
-  { "name": "ReAnime", "url": "https://reanime.to/" },
-  { "name": "Animepahe", "url": "https://animepahe.pw/" },
-  { "name": "Miruro", "url": "https://miruro.to/" },
-  { "name": "Anikoto", "url": "https://anikototv.to/" },
-  { "name": "Enma", "url": "https://enma.lol/" },
-  { "name": "iWantTFC", "url": "https://www.iwanttfc.com/" },
-  { "name": "Star Cinema", "url": "https://www.youtube.com/@ABSstarcinema" },
-  { "name": "Viva Films", "url": "https://www.youtube.com/@VIVAFilms/videos" },
-  { "name": "Regal Entertainment", "url": "https://www.youtube.com/@RegalEntertainmentInc/" },
-  { "name": "Cinema One", "url": "https://www.youtube.com/@CinemaOnePH/" },
-  { "name": "TBA Studios", "url": "https://www.youtube.com/@TBAStudios/" }
+  {
+    "name": "Plex",
+    "url": "https://watch.plex.tv/"
+  },
+  {
+    "name": "MyAsianTV",
+    "url": "https://myasiantv.com.lv/"
+  },
+  {
+    "name": "DramaCool",
+    "url": "https://dramacool.com.tw/"
+  },
+  {
+    "name": "KissKH",
+    "url": "https://kisskh.co/"
+  },
+  {
+    "name": "AsianCrush",
+    "url": "https://www.asiancrush.com/"
+  },
+  {
+    "name": "Viki",
+    "url": "https://www.viki.com/"
+  },
+  {
+    "name": "Viu",
+    "url": "https://www.viu.com/"
+  },
+  {
+    "name": "Kocowa",
+    "url": "https://www.kocowa.com/"
+  },
+  {
+    "name": "OnDemandKorea",
+    "url": "https://www.ondemandkorea.com/"
+  },
+  {
+    "name": "WeTV",
+    "url": "https://wetv.vip/"
+  },
+  {
+    "name": "Amasian TV",
+    "url": "https://amasiantv.com/"
+  },
+  {
+    "name": "1Shows",
+    "url": "https://1shows.org/"
+  },
+  {
+    "name": "FlickyStream",
+    "url": "https://flickystream.dad/"
+  },
+  {
+    "name": "MovieBox",
+    "url": "https://movie-box.co/"
+  },
+  {
+    "name": "1Flex",
+    "url": "https://1flex.org/"
+  },
+  {
+    "name": "1Tube",
+    "url": "https://1tube.org/"
+  },
+  {
+    "name": "Cineby",
+    "url": "https://cineby.at/"
+  },
+  {
+    "name": "FMovies",
+    "url": "https://fmovies-hd.to/"
+  },
+  {
+    "name": "ReAnime",
+    "url": "https://reanime.to/"
+  },
+  {
+    "name": "Animepahe",
+    "url": "https://animepahe.pw/"
+  },
+  {
+    "name": "Miruro",
+    "url": "https://miruro.to/"
+  },
+  {
+    "name": "Anikoto",
+    "url": "https://anikototv.to/"
+  },
+  {
+    "name": "Enma",
+    "url": "https://enma.lol/"
+  },
+  {
+    "name": "iWantTFC",
+    "url": "https://www.iwanttfc.com/"
+  },
+  {
+    "name": "Star Cinema",
+    "url": "https://www.youtube.com/@ABSstarcinema"
+  },
+  {
+    "name": "Viva Films",
+    "url": "https://www.youtube.com/@VIVAFilms/videos"
+  },
+  {
+    "name": "Regal Entertainment",
+    "url": "https://www.youtube.com/@RegalEntertainmentInc/"
+  },
+  {
+    "name": "Cinema One",
+    "url": "https://www.youtube.com/@CinemaOnePH/"
+  },
+  {
+    "name": "TBA Studios",
+    "url": "https://www.youtube.com/@TBAStudios/"
+  }
 ]
