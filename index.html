@@ -2492,6 +2492,12 @@ async function loadAdminPanel() {
     if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
     const data = await res.json();
     renderAdminPanel(data);
+    
+    // Sync front-end status dots with the latest admin data
+    const map = {};
+    (data.results || []).forEach(r => { if (r.name) map[normalizeSiteName(r.name)] = r.status; });
+    siteStatusMap = map;
+    applyStatusDots();
   } catch (err) {
     console.error('Admin panel load error:', err);
     overlay.querySelector('.admin-header p').textContent =
