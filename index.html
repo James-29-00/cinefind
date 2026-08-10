@@ -2077,6 +2077,10 @@ const SITES_DIRECTORY = [
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;line-height:1.05;color:#fff;">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'],
     logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:#ff8a3d;">ma</span></span>` },
+  { name: 'Plex',          url: 'https://watch.plex.tv/',       domain: 'plex.tv',               categories: ['movie'],
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#e5a00d;">Plex</span></span>` },
+  { name: 'iQIYI',         url: 'https://www.iq.com/',          domain: 'iq.com',                categories: ['drama'],
+    logoHtml: `<span class="logo-word" style="font-size:1.3rem;"><span class="lw-white">i</span><span style="color:#00be06;">QIYI</span></span>` },
 
   // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
   // No aggregator/mirror sites here on purpose — those are usually unlicensed
@@ -2395,6 +2399,11 @@ async function loadAdminPanel() {
       background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
       border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px;
     }
+    #admin-overlay .delete-site-btn {
+      background: #2a1216; border: 1px solid #e6394666; color: #ff6b74;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px; margin-left: 6px;
+    }
+    #admin-overlay .delete-site-btn:disabled { opacity: .5; cursor: default; }
     #admin-overlay .site-name { font-weight: 600; color: #f0f0f5; flex: 1; }
     #admin-overlay .site-meta { font-size: .72rem; color: #9494b5; }
     #admin-overlay .replace-input {
@@ -2524,6 +2533,8 @@ function renderAdminPanel(data) {
             <div class="live-update-status site-meta" style="margin-top:4px;"></div>
           </div>
         ` : ''}
+        <button class="delete-site-btn" onclick="confirmDeleteWebsite('${site.name.replace(/'/g, "\\'")}', this)">🗑️ Delete Website</button>
+        <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
       </div>
     </div>
   `;
@@ -2775,6 +2786,104 @@ async function addNewWebsite(btn) {
     statusEl.textContent = `❌ Failed: ${err.message}`;
     statusEl.style.color = '#e63946';
   } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== DELETE WEBSITE (admin panel) ==========
+// Removes a site from sites.json (so it stops being checked by the daily
+// GitHub Action) and, if it was admin-added, from custom-sites.json too
+// (so its homepage card disappears). Built-in sites that live in
+// SITES_DIRECTORY (hardcoded in this file) still need their code line
+// removed manually — that part can't be safely automated via the API.
+function confirmDeleteWebsite(siteName, btn) {
+  const ok = confirm(`Sigurado ka bang gusto mong i-delete ang "${siteName}"?\n\nHindi na ito mababawi.`);
+  if (!ok) return;
+  deleteWebsite(siteName, btn);
+}
+
+async function deleteWebsite(siteName, btn) {
+  const statusEl = btn.closest('.site-row').querySelector('.delete-site-status');
+  const config = getGithubConfig();
+
+  if (!config.owner || !config.repo || !config.token) {
+    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+  statusEl.textContent = '';
+
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    // 1) Remove from sites.json (the checker list).
+    const sitesUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/sites.json`;
+    const sitesGetRes = await fetch(sitesUrl, { headers });
+    if (!sitesGetRes.ok) throw new Error(`Could not read sites.json (HTTP ${sitesGetRes.status})`);
+    const sitesFileData = await sitesGetRes.json();
+    let sitesCurrent = JSON.parse(b64DecodeUtf8(sitesFileData.content));
+    const beforeCount = sitesCurrent.length;
+    sitesCurrent = sitesCurrent.filter(s => normalizeSiteName(s.name) !== normalizeSiteName(siteName));
+
+    if (sitesCurrent.length === beforeCount) {
+      throw new Error(`"${siteName}" was not found in sites.json.`);
+    }
+
+    const sitesPutRes = await fetch(sitesUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Remove site: ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(sitesCurrent, null, 2)),
+        sha: sitesFileData.sha,
+      }),
+    });
+    if (!sitesPutRes.ok) {
+      const errData = await sitesPutRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the sites.json update (HTTP ${sitesPutRes.status})`);
+    }
+
+    // 2) If it was an admin-added site, also remove it from custom-sites.json
+    // so its homepage card disappears. Built-in SITES_DIRECTORY sites don't
+    // live here, so a 404/miss here is expected and not an error.
+    let removedFromCustom = false;
+    const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+    const customGetRes = await fetch(customUrl, { headers });
+    if (customGetRes.status === 200) {
+      const customFileData = await customGetRes.json();
+      const customCurrent = JSON.parse(b64DecodeUtf8(customFileData.content));
+      const filteredCustom = customCurrent.filter(s => normalizeSiteName(s.name) !== normalizeSiteName(siteName));
+      if (filteredCustom.length !== customCurrent.length) {
+        const customPutRes = await fetch(customUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Remove site: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(filteredCustom, null, 2)),
+            sha: customFileData.sha,
+          }),
+        });
+        if (!customPutRes.ok) {
+          const errData = await customPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Removed from sites.json but failed on custom-sites.json (HTTP ${customPutRes.status})`);
+        }
+        removedFromCustom = true;
+      }
+    }
+
+    statusEl.textContent = removedFromCustom
+      ? `✅ Deleted "${siteName}" from sites.json and custom-sites.json. Takes ~1 min to appear.`
+      : `✅ Deleted "${siteName}" from sites.json. If it's a built-in site, also remove its entry from SITES_DIRECTORY in the code so the homepage card disappears too.`;
+    statusEl.style.color = '#06d6a0';
+    btn.textContent = 'Deleted ✓';
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
     btn.disabled = false;
     btn.textContent = originalLabel;
   }

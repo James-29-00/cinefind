@@ -25,5 +25,8 @@
   { "name": "Enma", "url": "https://enma.lol/" },
   { "name": "iWantTFC", "url": "https://www.iwanttfc.com/" },
   { "name": "Star Cinema", "url": "https://www.youtube.com/@ABSstarcinema" },
-  { "name": "Viva Films", "url": "https://www.youtube.com/@VIVAFilms/videos" }
+  { "name": "Viva Films", "url": "https://www.youtube.com/@VIVAFilms/videos" },
+  { "name": "Regal Entertainment", "url": "https://www.youtube.com/@RegalEntertainmentInc/" },
+  { "name": "Cinema One", "url": "https://www.youtube.com/@CinemaOnePH/" },
+  { "name": "TBA Studios", "url": "https://www.youtube.com/@TBAStudios/" }
 ]
