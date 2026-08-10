@@ -1,28 +1,28 @@
 {
-  "lastRun": "2026-08-10T01:17:31.175Z",
-  "totalSites": 24,
-  "upCount": 21,
+  "lastRun": "2026-08-10T09:29:49.489Z",
+  "totalSites": 27,
+  "upCount": 24,
   "blockedCount": 2,
   "downCount": 1,
   "results": [
     {
       "name": "Plex",
       "url": "https://watch.plex.tv/",
-      "checkedAt": "2026-08-10T01:16:42.881Z",
+      "checkedAt": "2026-08-10T09:29:00.621Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "MyAsianTV",
       "url": "https://myasiantv.com.lv/",
-      "checkedAt": "2026-08-10T01:16:44.159Z",
+      "checkedAt": "2026-08-10T09:29:01.408Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "DramaCool",
       "url": "https://dramacool.com.tw/",
-      "checkedAt": "2026-08-10T01:16:53.931Z",
+      "checkedAt": "2026-08-10T09:29:11.087Z",
       "status": "down",
       "httpStatus": null,
       "error": "fetch failed"
@@ -30,147 +30,168 @@
     {
       "name": "KissKH",
       "url": "https://kisskh.co/",
-      "checkedAt": "2026-08-10T01:16:54.460Z",
+      "checkedAt": "2026-08-10T09:29:11.644Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "AsianCrush",
       "url": "https://www.asiancrush.com/",
-      "checkedAt": "2026-08-10T01:16:55.275Z",
+      "checkedAt": "2026-08-10T09:29:12.459Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "Viki",
       "url": "https://www.viki.com/",
-      "checkedAt": "2026-08-10T01:16:55.932Z",
+      "checkedAt": "2026-08-10T09:29:13.208Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "Viu",
       "url": "https://www.viu.com/",
-      "checkedAt": "2026-08-10T01:16:56.691Z",
+      "checkedAt": "2026-08-10T09:29:14.066Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "Kocowa",
       "url": "https://www.kocowa.com/",
-      "checkedAt": "2026-08-10T01:16:57.314Z",
+      "checkedAt": "2026-08-10T09:29:14.670Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "OnDemandKorea",
       "url": "https://www.ondemandkorea.com/",
-      "checkedAt": "2026-08-10T01:16:57.864Z",
+      "checkedAt": "2026-08-10T09:29:15.294Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "WeTV",
       "url": "https://wetv.vip/",
-      "checkedAt": "2026-08-10T01:16:58.807Z",
+      "checkedAt": "2026-08-10T09:29:16.570Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "iQIYI",
       "url": "https://www.iq.com/",
-      "checkedAt": "2026-08-10T01:16:59.773Z",
+      "checkedAt": "2026-08-10T09:29:17.649Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "Amasian TV",
       "url": "https://amasiantv.com/",
-      "checkedAt": "2026-08-10T01:17:00.793Z",
+      "checkedAt": "2026-08-10T09:29:18.567Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "1Shows",
       "url": "https://1shows.org/",
-      "checkedAt": "2026-08-10T01:17:01.902Z",
+      "checkedAt": "2026-08-10T09:29:19.566Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "FlickyStream",
       "url": "https://flickystream.dad/",
-      "checkedAt": "2026-08-10T01:17:03.131Z",
+      "checkedAt": "2026-08-10T09:29:20.430Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "MovieBox",
       "url": "https://movie-box.co/",
-      "checkedAt": "2026-08-10T01:17:03.671Z",
+      "checkedAt": "2026-08-10T09:29:20.996Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "1Flex",
       "url": "https://1flex.org/",
-      "checkedAt": "2026-08-10T01:17:04.817Z",
+      "checkedAt": "2026-08-10T09:29:22.033Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "1Tube",
       "url": "https://1tube.org/",
-      "checkedAt": "2026-08-10T01:17:05.834Z",
+      "checkedAt": "2026-08-10T09:29:22.742Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "Cineby",
       "url": "https://cineby.at/",
-      "checkedAt": "2026-08-10T01:17:08.308Z",
+      "checkedAt": "2026-08-10T09:29:24.686Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "FMovies",
       "url": "https://fmovies-hd.to/",
-      "checkedAt": "2026-08-10T01:17:09.449Z",
+      "checkedAt": "2026-08-10T09:29:25.509Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "ReAnime",
       "url": "https://reanime.to/",
-      "checkedAt": "2026-08-10T01:17:10.137Z",
+      "checkedAt": "2026-08-10T09:29:26.205Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "Animepahe",
       "url": "https://animepahe.pw/",
-      "checkedAt": "2026-08-10T01:17:19.693Z",
+      "checkedAt": "2026-08-10T09:29:35.829Z",
       "status": "blocked",
       "httpStatus": 403
     },
     {
       "name": "Miruro",
       "url": "https://miruro.to/",
-      "checkedAt": "2026-08-10T01:17:29.254Z",
+      "checkedAt": "2026-08-10T09:29:45.473Z",
       "status": "blocked",
       "httpStatus": 403
     },
     {
       "name": "Anikoto",
       "url": "https://anikototv.to/",
-      "checkedAt": "2026-08-10T01:17:29.801Z",
+      "checkedAt": "2026-08-10T09:29:46.068Z",
       "status": "up",
       "httpStatus": 200
     },
     {
       "name": "Enma",
       "url": "https://enma.lol/",
-      "checkedAt": "2026-08-10T01:17:30.675Z",
+      "checkedAt": "2026-08-10T09:29:47.009Z",
+      "status": "up",
+      "httpStatus": 200
+    },
+    {
+      "name": "iWantTFC",
+      "url": "https://www.iwanttfc.com/",
+      "checkedAt": "2026-08-10T09:29:47.651Z",
+      "status": "up",
+      "httpStatus": 200
+    },
+    {
+      "name": "Star Cinema",
+      "url": "https://www.youtube.com/@ABSstarcinema",
+      "checkedAt": "2026-08-10T09:29:48.268Z",
+      "status": "up",
+      "httpStatus": 200
+    },
+    {
+      "name": "Viva Films",
+      "url": "https://www.youtube.com/@VIVAFilms/videos",
+      "checkedAt": "2026-08-10T09:29:48.989Z",
       "status": "up",
       "httpStatus": 200
     }
