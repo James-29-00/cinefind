@@ -1164,6 +1164,11 @@ function showSearchHistory() {
 // ⚠️ Replace this with YOUR deployed Cloudflare Worker URL (Step 3 of the guide)
 const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
 const AI_VERIFY_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev';
+// ⚠️ You need to deploy a NEW, separate Worker for this (see the code +
+// setup steps provided alongside this file) — it holds a GitHub token
+// server-side so regular visitors can submit reports without ever seeing
+// or needing that token themselves. Replace this URL once deployed.
+const REPORT_WORKER_URL = 'https://REPLACE-WITH-YOUR-REPORT-WORKER.workers.dev';
 
 // DEBUG ONLY — set to true to temporarily hide the static site list so you
 // can test the AI-verified sites feature in isolation. Static list code is
@@ -1531,6 +1536,7 @@ function renderResult(data, query) {
         <div class="site-note">${s.note || 'Free streaming'}</div>
         ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
+      <button class="copy-link-btn" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken" style="font-size:.85rem;">🚩</button>
       <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
       <span class="arrow">→</span>
     </a>`;
@@ -1872,6 +1878,7 @@ function renderAIVerifiedSites(parsed, staticFallback) {
         <div class="site-note">${escapeAttr(s.note || 'AI-verified')}</div>
         ${s.linkType === 'direct' ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ Direct link (AI-verified)</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
+      <button class="copy-link-btn" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken" style="font-size:.85rem;">🚩</button>
       <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
       <span class="arrow">→</span>
     </a>`;
@@ -1983,6 +1990,71 @@ let siteStatusMap = null; // { normalizedName: 'up' | 'blocked' | 'down' }
 // the same status.json entry instead of silently missing each other.
 function normalizeSiteName(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// ========== REPORT BROKEN SITE (user-facing) ==========
+// Small inline modal any visitor can use to flag a site card as broken —
+// no login needed. Submits to REPORT_WORKER_URL (a separate Worker that
+// holds a GitHub token server-side) which appends to reports.json. The
+// admin panel's "🚩 User Reports" section reads that same file.
+function openReportModal(siteName, url) {
+  const existing = document.getElementById('report-modal-overlay');
+  if (existing) existing.remove();
+
+  const movieTitle = window.currentMovie?.title || '';
+  const overlay = document.createElement('div');
+  overlay.id = 'report-modal-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
+  overlay.innerHTML = `
+    <div style="background:#1a1a2e; border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:20px; max-width:340px; width:100%;">
+      <div style="font-weight:700; color:#f0f0f5; margin-bottom:4px;">🚩 Report "${escapeAttr(siteName)}"</div>
+      <div style="font-size:.75rem; color:#9494b5; margin-bottom:14px;">What's wrong with this site?</div>
+      <div id="report-reason-buttons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+        ${['Broken / dead link', 'Too many ads/popups', 'Wrong movie/title', 'Other'].map(r => `
+          <button class="quick-test-btn" onclick="selectReportReason(this)" data-reason="${escapeAttr(r)}" style="flex:1 1 auto;">${r}</button>
+        `).join('')}
+      </div>
+      <div id="report-modal-status" style="font-size:.72rem; color:#9494b5; margin-bottom:10px; min-height:16px;"></div>
+      <div style="display:flex; gap:8px;">
+        <button class="pop-chip" style="flex:1;" onclick="document.getElementById('report-modal-overlay').remove()">Cancel</button>
+        <button class="pop-chip" id="report-submit-btn" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent);" disabled onclick="submitReport('${escapeAttr(siteName)}', '${escapeAttr(url)}', '${escapeAttr(movieTitle)}')">Submit</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function selectReportReason(btn) {
+  document.querySelectorAll('#report-reason-buttons .quick-test-btn').forEach(b => {
+    b.style.background = ''; b.style.borderColor = ''; b.style.color = '';
+    b.removeAttribute('data-selected');
+  });
+  btn.style.background = 'var(--accent)'; btn.style.borderColor = 'var(--accent)'; btn.style.color = '#fff';
+  btn.setAttribute('data-selected', 'true');
+  const submitBtn = document.getElementById('report-submit-btn');
+  if (submitBtn) submitBtn.disabled = false;
+}
+
+async function submitReport(siteName, url, movieTitle) {
+  const selected = document.querySelector('#report-reason-buttons .quick-test-btn[data-selected="true"]');
+  const reason = selected ? selected.dataset.reason : 'Other';
+  const statusEl = document.getElementById('report-modal-status');
+  const submitBtn = document.getElementById('report-submit-btn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending...'; }
+  if (statusEl) statusEl.textContent = '';
+
+  try {
+    const res = await fetch(REPORT_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteName, url, movieTitle, reason, timestamp: Date.now() }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (statusEl) { statusEl.textContent = '✅ Thanks — report sent!'; statusEl.style.color = 'var(--green)'; }
+    setTimeout(() => { const o = document.getElementById('report-modal-overlay'); if (o) o.remove(); }, 1200);
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = `❌ Couldn't send report — try again later.`; statusEl.style.color = 'var(--accent2)'; }
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit'; }
+  }
 }
 
 async function loadSiteStatus() {
@@ -2290,6 +2362,7 @@ function renderSitesDirectory() {
         <span class="status-label-mini" data-status-label></span>
         ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
+        <button class="pin-icon" style="position:absolute; bottom:6px; right:8px; z-index:2; font-size:.85rem;" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken">🚩</button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -2371,7 +2444,7 @@ function renderHomepage() {
     </div>
     <div class="safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
       <span class="tip-icon">🛡️</span>
-      <span>Tip: these are third-party sites we don't control — use a browser with built-in ad/tracker blocking (like <strong>Brave Browser <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Brave_lion_icon.svg" width="15" height="15" alt="Brave lion logo" style="vertical-align:-3px; display:inline-block;"></strong>) and avoid clicking pop-ups or "download" prompts</span>
+      <span>Tip: these are third-party sites we don't control — use a browser with built-in ad/tracker blocking (like <strong>Brave Browser <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Brave_lion_icon.svg" width="15" height="15" alt="Brave lion logo" style="vertical-align:-3px; display:inline-block;"></strong>) and avoid clicking pop-ups or "download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:underline;">Download Brave here →</a></span>
     </div>
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
       <div id="dir-results-count" style="font-size:.78rem; color:var(--muted);"></div>
@@ -2758,11 +2831,16 @@ function renderAdminPanel(data) {
       <div class="admin-stat"><div class="num" style="color:#e63946;">${data.downCount}</div><div class="lbl">Down</div></div>
       <div class="admin-stat"><div class="num">${data.totalSites}</div><div class="lbl">Total</div></div>
     </div>
+    <div class="test-link-box" style="margin-bottom:16px;">
+      <div class="test-link-title">🚩 User Reports <span id="reports-count-badge" style="font-size:.7rem; color:#9494b5;"></span></div>
+      <div id="admin-reports-list"><p style="font-size:.75rem; color:#9494b5;">Loading reports...</p></div>
+    </div>
     <div id="admin-site-rows">
     ${rowsHtml}
     </div>
     <p class="refresh-note">Checked automatically every day. Replacement notes are saved only on this device — update SITES_DIRECTORY in the code when ready.</p>
   `;
+  loadReportsIntoAdmin();
 }
 
 // Replacement notes are stored locally so only you (on your device) see them —
@@ -2780,6 +2858,78 @@ function saveReplacementNote(siteName, value) {
     notes[siteName] = value;
     localStorage.setItem('cinefind-admin-notes', JSON.stringify(notes));
   } catch (e) { /* ignore */ }
+}
+
+// ========== USER REPORTS (submitted via the report-broken-site Worker, ==========
+// stored in reports.json in the repo — read here with a plain fetch since
+// it's a public file; dismissing uses the admin's own GitHub token, same
+// commit pattern as toggleHotSite(), so no extra Worker endpoint is needed
+// for that half.
+async function loadReportsIntoAdmin() {
+  const list = document.getElementById('admin-reports-list');
+  const badge = document.getElementById('reports-count-badge');
+  if (!list) return;
+  try {
+    const res = await fetch('./reports.json?t=' + Date.now());
+    const reports = res.ok ? await res.json() : [];
+    if (badge) badge.textContent = reports.length ? `(${reports.length})` : '';
+    if (reports.length === 0) {
+      list.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">No reports right now. 🎉</p>`;
+      return;
+    }
+    list.innerHTML = reports.map((r, i) => `
+      <div class="site-row" style="flex-direction:column; align-items:flex-start; gap:4px;">
+        <div style="display:flex; justify-content:space-between; width:100%; gap:8px;">
+          <strong style="color:#f0f0f5;">${escapeAttr(r.siteName || 'Unknown site')}</strong>
+          <button class="quick-test-btn" onclick="dismissReport(${i}, this)">✕ Dismiss</button>
+        </div>
+        <div class="site-meta">${escapeAttr(r.reason || 'No reason given')}${r.movieTitle ? ' — while watching "' + escapeAttr(r.movieTitle) + '"' : ''}</div>
+        <div class="site-meta" style="opacity:.7;">${r.url ? escapeAttr(r.url) : ''} ${r.timestamp ? '· ' + new Date(r.timestamp).toLocaleString() : ''}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load reports: ${err.message}</p>`;
+  }
+}
+
+async function dismissReport(index, btn) {
+  const config = getGithubConfig();
+  if (!config.owner || !config.repo || !config.token) {
+    alert('⚠️ Set up GitHub Connection above first.');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/reports.json`;
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    const getRes = await fetch(apiUrl, { headers });
+    if (!getRes.ok) throw new Error(`Could not read reports.json (HTTP ${getRes.status})`);
+    const fileData = await getRes.json();
+    const current = JSON.parse(b64DecodeUtf8(fileData.content));
+    current.splice(index, 1);
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Dismiss a site report',
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        sha: fileData.sha,
+      }),
+    });
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+    loadReportsIntoAdmin();
+  } catch (err) {
+    alert(`❌ Failed to dismiss report: ${err.message}`);
+    btn.disabled = false;
+    btn.textContent = '✕ Dismiss';
+  }
 }
 
 // ========== LIVE LINK UPDATES (via GitHub API) ==========
