@@ -1958,6 +1958,7 @@ function getOverriddenUrl(name, fallbackUrl) {
 // doesn't exist yet, that just means no one has added a site through the
 // admin panel yet.
 let customSites = [];
+let removedSiteNames = []; // normalized names deleted via admin — see deleteWebsite()
 
 async function loadCustomSites() {
   try {
@@ -1965,6 +1966,12 @@ async function loadCustomSites() {
     customSites = res.ok ? await res.json() : [];
   } catch (err) {
     customSites = [];
+  }
+  try {
+    const res2 = await fetch('./removed-sites.json?t=' + Date.now());
+    removedSiteNames = res2.ok ? await res2.json() : [];
+  } catch (err) {
+    removedSiteNames = [];
   }
   renderSitesDirectory();
 }
@@ -2077,9 +2084,6 @@ const SITES_DIRECTORY = [
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;line-height:1.05;color:#fff;">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'],
     logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:#ff8a3d;">ma</span></span>` },
-  { name: 'iQIYI',         url: 'https://www.iq.com/',          domain: 'iq.com',                categories: ['drama'],
-    logoHtml: `<span class="logo-word" style="font-size:1.3rem;"><span class="lw-white">i</span><span style="color:#00be06;">QIYI</span></span>` },
-
   // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
   // No aggregator/mirror sites here on purpose — those are usually unlicensed
   // and get taken down constantly. These are the actual rights-holders
@@ -2121,7 +2125,8 @@ function renderSitesDirectory() {
   if (!wrap) return; // user may have navigated away already
 
   const favs = getDirFavs();
-  const allSites = [...SITES_DIRECTORY, ...customSites]; // built-in + admin-added, rendered identically
+  const allSites = [...SITES_DIRECTORY, ...customSites] // built-in + admin-added, rendered identically
+    .filter(s => !removedSiteNames.includes(normalizeSiteName(s.name)));
 
   // "pinned" isn't a real category on the site data — it's derived from favs —
   // so it's filtered separately here instead of via s.categories like the rest.
@@ -2959,10 +2964,47 @@ async function deleteWebsite(siteName, btn) {
       }
     }
 
-    // 3) If it's a built-in site (lives in SITES_DIRECTORY, hardcoded in this
+    // 3) Add to removed-sites.json regardless of site type — this is a small,
+    // cache-busted file the front-end filters against on every load, so the
+    // card disappears immediately even before index.html's own edit (below,
+    // for built-ins) or GitHub Pages' cache has caught up.
+    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedGetRes = await fetch(removedUrl, { headers });
+    let removedList = [];
+    let removedSha = null;
+    if (removedGetRes.status === 200) {
+      const removedFileData = await removedGetRes.json();
+      removedList = JSON.parse(b64DecodeUtf8(removedFileData.content));
+      removedSha = removedFileData.sha;
+    } else if (removedGetRes.status !== 404) {
+      throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
+    }
+    const normalizedTarget = normalizeSiteName(siteName);
+    if (!removedList.some(n => normalizeSiteName(n) === normalizedTarget)) {
+      removedList.push(siteName);
+      const removedBody = {
+        message: `Mark site as removed: ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(removedList, null, 2)),
+      };
+      if (removedSha) removedBody.sha = removedSha;
+      const removedPutRes = await fetch(removedUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(removedBody),
+      });
+      if (!removedPutRes.ok) {
+        const errData = await removedPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `Removed from sites.json but failed on removed-sites.json (HTTP ${removedPutRes.status})`);
+      }
+    }
+    removedSiteNames.push(normalizedTarget); // reflect in this session's own view too
+
+    // 4) If it's a built-in site (lives in SITES_DIRECTORY, hardcoded in this
     // very file), remove its entry from the source too so the homepage card
     // disappears — every SITES_DIRECTORY entry is a flat { ... } object with
     // no nested braces, so a brace-matched regex can safely cut it out.
+    // (removed-sites.json above already hides it either way — this just
+    // keeps index.html's own source clean long-term.)
     let removedFromDirectory = false;
     if (SITES_DIRECTORY.some(s => normalizeSiteName(s.name) === normalizeSiteName(siteName))) {
       const idxUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/index.html`;
