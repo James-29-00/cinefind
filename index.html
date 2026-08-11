@@ -1833,6 +1833,25 @@ function renderAIVerifiedSites(parsed, staticFallback) {
     return true;
   });
 
+  // Bubble admin-marked "Hot" sites to the front, same as the homepage
+  // directory grid (see hotDiff in renderSitesDirectory). Stable sort keeps
+  // Gemini's own relative ranking intact within each group (hot vs not-hot).
+  // Priority order: 🔥 Hot first, then by status — green (up) → yellow
+  // (blocked/may-issue) → unknown (no status data) → red (down) last.
+  // Gemini's own relative ranking is preserved within each tier (stable sort).
+  const statusRank = (name) => {
+    const status = getSiteStatus(name);
+    if (status === 'up') return 0;
+    if (status === 'blocked') return 1;
+    if (status === 'down') return 3;
+    return 2; // unknown / not yet checked
+  };
+  sites.sort((a, b) => {
+    const hotDiff = (isHotSite(b.name) ? 1 : 0) - (isHotSite(a.name) ? 1 : 0);
+    if (hotDiff !== 0) return hotDiff;
+    return statusRank(a.name) - statusRank(b.name);
+  });
+
   const cards = sites.map((s, i) => {
     const dirMatch = SITES_DIRECTORY.find(d =>
       normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
