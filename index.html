@@ -471,6 +471,23 @@
   }
   .status-dot-mini svg { width: 58%; height: 58%; display: block; }
 
+  /* Explicit text status strip at the bottom of each directory card, so users
+     don't have to interpret a colored dot — the word is right there. Sits on
+     top of the card, doesn't push card height (card has fixed height). */
+  .status-label-mini {
+    display: none; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    text-align: center; font-size: .58rem; font-weight: 700; letter-spacing: .03em;
+    text-transform: uppercase; padding: 3px 4px 4px;
+    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
+  /* Small "HOT" text badge, top-right area next to the pin icon. */
+  .hot-label-mini {
+    position: absolute; top: 7px; right: 32px; z-index: 2;
+    font-size: .58rem; font-weight: 800; letter-spacing: .03em;
+    color: #1a1a2e; background: #f0b428; border-radius: 6px; padding: 2px 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
   .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; }
   .card-logo svg { width: 38px; height: 26px; display: block; }
@@ -736,22 +753,63 @@ function removeFavorite(title) {
 }
 
 function updateFavCount() {
-  document.getElementById('fav-count').textContent = getFavorites().length;
+  document.getElementById('fav-count').textContent = getFavorites().length + getDirFavs().length;
+}
+
+// Small card for a favorited website, reused inside the "My Favorites" page.
+// Mirrors the homepage directory card's look (logo, status dot/label) but
+// standalone since renderSitesDirectory()'s buildCard is scoped locally.
+function buildFavSiteCard(s) {
+  const liveUrl = getOverriddenUrl(s.name, s.url);
+  return `
+    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
+      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+        <span class="status-dot-mini" data-status-dot style="position:absolute; top:7px; left:9px; width:15px; height:15px; z-index:2; filter:drop-shadow(0 0 2px rgba(0,0,0,.6));"></span>
+        <span class="status-label-mini" data-status-label></span>
+        <button class="pin-icon faved" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
+        </button>
+        <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
+      </a>
+    </div>`;
 }
 
 function showFavorites(sortBy) {
   hideFiltersBar();
   sortBy = sortBy || 'date-desc';
   const favs = getFavorites();
-  if (favs.length === 0) {
+  const dirFavNames = getDirFavs();
+  const favSites = [...SITES_DIRECTORY, ...customSites].filter(s => dirFavNames.includes(s.name));
+
+  if (favs.length === 0 && favSites.length === 0) {
     document.getElementById('result-area').innerHTML = `
       <div class="empty">
         <div class="big">⭐</div>
-        <p>No favorites yet. Search and star movies to add them here!</p>
+        <p>No favorites yet. Search and star movies, or star a website below, to add them here!</p>
         <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
       </div>`;
     return;
   }
+
+  let html = `
+    <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <button class="pop-chip" onclick="resetSearch()">← Back to search</button>
+      ${favs.length > 0 ? `
+      <select class="filter-select" onchange="showFavorites(this.value)" style="width:auto;">
+        <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>Newest added</option>
+        <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>Oldest added</option>
+        <option value="rating-desc" ${sortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
+        <option value="az" ${sortBy === 'az' ? 'selected' : ''}>Title A–Z</option>
+        <option value="za" ${sortBy === 'za' ? 'selected' : ''}>Title Z–A</option>
+      </select>` : ''}
+    </div>`;
+
+  html += `<h3 style="font-size:1rem; margin:0 0 12px;">🌐 Favorite Websites</h3>`;
+  html += favSites.length > 0
+    ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map(buildFavSiteCard).join('')}</div>`
+    : `<p style="color:var(--muted); font-size:.85rem; margin-bottom:28px;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>`;
+
+  if (favs.length > 0) html += `<h3 style="font-size:1rem; margin:0 0 12px;">🎬 Favorite Movies &amp; Shows</h3>`;
 
   const sorted = [...favs].sort((a, b) => {
     switch (sortBy) {
@@ -763,18 +821,6 @@ function showFavorites(sortBy) {
       default: return (b.dateAdded || 0) - (a.dateAdded || 0);
     }
   });
-
-  let html = `
-    <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-      <button class="pop-chip" onclick="resetSearch()">← Back to search</button>
-      <select class="filter-select" onchange="showFavorites(this.value)" style="width:auto;">
-        <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>Newest added</option>
-        <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>Oldest added</option>
-        <option value="rating-desc" ${sortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
-        <option value="az" ${sortBy === 'az' ? 'selected' : ''}>Title A–Z</option>
-        <option value="za" ${sortBy === 'za' ? 'selected' : ''}>Title Z–A</option>
-      </select>
-    </div>`;
   sorted.forEach(movie => {
     html += `
       <div class="movie-header" style="margin-bottom:16px;">
@@ -796,6 +842,7 @@ function showFavorites(sortBy) {
       </div>`;
   });
   document.getElementById('result-area').innerHTML = html;
+  if (favSites.length > 0) applyStatusDots();
 }
 
 // ========== FILTERING SYSTEM ==========
@@ -1950,6 +1997,27 @@ function getOverriddenUrl(name, fallbackUrl) {
   return siteUrlOverrides[normalizeSiteName(name)] || fallbackUrl;
 }
 
+// ========== HOT (FEATURED) SITES ==========
+// hot-sites.json is written by the admin panel's 🔥 toggle (see toggleHotSite())
+// — same GitHub-commit approach as overrides.json/custom-sites.json. It's just
+// an array of normalized site names. Hot sites are pinned to the very front of
+// the directory grid, ahead of the up/blocked/down status sort.
+let hotSiteNames = [];
+
+async function loadHotSites() {
+  try {
+    const res = await fetch('./hot-sites.json?t=' + Date.now());
+    hotSiteNames = res.ok ? await res.json() : [];
+  } catch (err) {
+    hotSiteNames = [];
+  }
+  renderSitesDirectory();
+}
+
+function isHotSite(name) {
+  return hotSiteNames.includes(normalizeSiteName(name));
+}
+
 // ========== CUSTOM (ADMIN-ADDED) SITES ==========
 // custom-sites.json is written by the admin panel's "Add New Website" form
 // (see addNewWebsite()) — same GitHub-commit approach as overrides.json.
@@ -1992,6 +2060,13 @@ function statusDotLabel(status) {
   return status === 'up' ? 'Online' : status === 'blocked' ? 'Usually works — flagged by the site\'s bot protection, not necessarily down' : status === 'down' ? 'Might be down' : '';
 }
 
+// Short word shown directly on the card (not just a tooltip) so users don't
+// have to guess what a colored dot means. "Flagged" (not "Offline") for
+// blocked, since that status is often a false alarm — see statusDotLabel above.
+function statusLabelText(status) {
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'Flagged' : status === 'down' ? 'Offline' : '';
+}
+
 // Distinct SHAPE per status (not just color) so the indicator still reads
 // correctly for colorblind users — a checkmark, a warning triangle, and an
 // X read as different symbols even if the colors look similar to someone.
@@ -2021,20 +2096,32 @@ function applyStatusDots() {
     if (!dot) return;
     const status = getSiteStatus(el.dataset.siteName);
     const color = statusDotColor(status);
+    const label = el.querySelector('[data-status-label]');
     if (color) {
-      const label = statusDotLabel(status);
+      const tooltipText = statusDotLabel(status);
       dot.innerHTML = statusDotIcon(status, color);
       dot.style.display = 'inline-flex';
       dot.style.borderColor = color;
       dot.style.filter = `drop-shadow(0 0 4px ${color})`;
-      dot.title = label;
+      dot.title = tooltipText;
       dot.setAttribute('role', 'img');
-      dot.setAttribute('aria-label', label);
+      dot.setAttribute('aria-label', tooltipText);
+      if (label) {
+        label.textContent = statusLabelText(status);
+        label.style.display = 'block';
+        label.style.background = status === 'up'
+          ? 'linear-gradient(0deg, rgba(6,214,160,.85), rgba(6,214,160,.55))'
+          : status === 'blocked'
+          ? 'linear-gradient(0deg, rgba(240,180,40,.85), rgba(240,180,40,.55))'
+          : 'linear-gradient(0deg, rgba(230,57,70,.85), rgba(230,57,70,.55))';
+        label.title = tooltipText;
+      }
     } else {
       dot.style.display = 'none';
       dot.innerHTML = '';
       dot.style.filter = '';
       dot.removeAttribute('aria-label');
+      if (label) { label.style.display = 'none'; label.textContent = ''; }
     }
   });
 }
@@ -2118,6 +2205,7 @@ function toggleDirFav(e, name) {
   else favs.push(name);
   localStorage.setItem('cinefind-dir-favs', JSON.stringify(favs));
   renderSitesDirectory();
+  updateFavCount();
 }
 
 function renderSitesDirectory() {
@@ -2139,6 +2227,18 @@ function renderSitesDirectory() {
     filtered = allSites.filter(s => s.categories.some(c => activeDirFilters.includes(c)));
   }
 
+  // Sort: 🔥 hot sites first, then by live status (up, then blocked, then
+  // unknown/pending, then down last). Sites within the same tier keep their
+  // original relative order (Array.sort is stable in modern browsers).
+  const statusRank = { up: 0, blocked: 1, down: 3 };
+  filtered = [...filtered].sort((a, b) => {
+    const hotDiff = (isHotSite(b.name) ? 1 : 0) - (isHotSite(a.name) ? 1 : 0);
+    if (hotDiff !== 0) return hotDiff;
+    const rankA = statusRank[getSiteStatus(a.name)] ?? 2;
+    const rankB = statusRank[getSiteStatus(b.name)] ?? 2;
+    return rankA - rankB;
+  });
+
   const countEl = document.getElementById('dir-results-count');
   if (countEl) countEl.textContent = `${filtered.length} site${filtered.length === 1 ? '' : 's'}`;
 
@@ -2152,15 +2252,18 @@ function renderSitesDirectory() {
 
   const buildCard = (s, i) => {
     const isFav = favs.includes(s.name);
+    const isHot = isHotSite(s.name);
     const liveUrl = getOverriddenUrl(s.name, s.url);
     const pinIcon = isFav
-      ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>`
-      : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>`;
+      ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
+      : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
     return `
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
         <span class="status-dot-mini" data-status-dot style="position:absolute; top:7px; left:9px; width:15px; height:15px; z-index:2; filter:drop-shadow(0 0 2px rgba(0,0,0,.6));"></span>
-        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Unpin site' : 'Pin site'}">${pinIcon}</button>
+        <span class="status-label-mini" data-status-label></span>
+        ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
+        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -2326,6 +2429,7 @@ window.addEventListener('load', () => {
   loadSiteStatus();
   loadUrlOverrides();
   loadCustomSites();
+  loadHotSites();
   checkAdminAccess();
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
@@ -2547,11 +2651,14 @@ function renderAdminPanel(data) {
       ? 'Not checked yet — next automatic check within 6h'
       : (site.httpStatus ? 'HTTP ' + site.httpStatus : (site.error || site.status));
     const safeUrl = site.url.replace(/'/g, "\\'");
+    const safeName = site.name.replace(/'/g, "\\'");
+    const isHot = isHotSite(site.name);
     return `
     <div class="site-row ${site.status}">
       <div class="status-dot ${site.status}"></div>
       <div style="flex:1;">
         <div class="site-name">${site.name} ${icon}</div>
+        <button class="quick-test-btn hot-toggle-btn" style="margin-top:4px; padding:2px 9px; font-size:.7rem; ${isHot ? 'background:#f0b428; color:#1a1a2e; border-color:#f0b428;' : ''}" onclick="toggleHotSite('${safeName}', this)">${isHot ? '🔥 Hot — tap to unhot' : '🔥 Mark as Hot'}</button>
         <div class="site-meta">${site.url} — ${metaText}</div>
         ${site.status === 'blocked' ? `
           <div class="site-meta" style="margin-top:2px; color:#f0b428;">Might just be blocking this server's IP — verify from your own browser.</div>
@@ -2795,6 +2902,69 @@ async function updateLiveLink(siteName, btn) {
   } finally {
     btn.disabled = false;
     btn.textContent = originalLabel;
+  }
+}
+
+// ========== HOT (FEATURED) TOGGLE ==========
+// Marks/unmarks a site as "hot" — pinned to the front of the directory grid.
+// Same GitHub-commit pattern as updateLiveLink(), but writes to hot-sites.json,
+// a simple array of normalized site names.
+async function toggleHotSite(siteName, btn) {
+  const config = getGithubConfig();
+  if (!config.owner || !config.repo || !config.token) {
+    alert('⚠️ Set up GitHub Connection above first.');
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/hot-sites.json`;
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const key = normalizeSiteName(siteName);
+
+  try {
+    let sha, current = [];
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read hot-sites.json (HTTP ${getRes.status})`);
+    } // 404 is fine — file doesn't exist yet, we'll create it
+
+    const nowHot = !current.includes(key);
+    current = nowHot ? [...current, key] : current.filter(k => k !== key);
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `${nowHot ? 'Mark' : 'Unmark'} ${siteName} as hot`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    // Reflect immediately in this session so the admin doesn't have to reload.
+    hotSiteNames = current;
+    renderSitesDirectory();
+    btn.textContent = nowHot ? '🔥 Hot — tap to unhot' : '🔥 Mark as Hot';
+    btn.style.background = nowHot ? '#f0b428' : '';
+    btn.style.color = nowHot ? '#1a1a2e' : '';
+    btn.style.borderColor = nowHot ? '#f0b428' : '';
+  } catch (err) {
+    alert(`❌ Failed to update hot status: ${err.message}`);
+    btn.textContent = originalLabel;
+  } finally {
+    btn.disabled = false;
   }
 }
 
