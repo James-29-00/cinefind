@@ -1989,7 +1989,7 @@ function statusDotColor(status) {
 }
 
 function statusDotLabel(status) {
-  return status === 'up' ? 'Online' : status === 'blocked' ? 'May issue — verify before use' : status === 'down' ? 'Might be down' : '';
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'Usually works — flagged by the site\'s bot protection, not necessarily down' : status === 'down' ? 'Might be down' : '';
 }
 
 // Distinct SHAPE per status (not just color) so the indicator still reads
@@ -2002,7 +2002,7 @@ function statusDotIcon(status, color) {
     return `<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l4.5 4.5L20 6"/></svg>`;
   }
   if (status === 'blocked') {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 L21.5 20 L2.5 20 Z"/><line x1="12" y1="9.5" x2="12" y2="14.3"/><circle cx="12" cy="17.1" r="0.55" fill="${color}" stroke="none"/></svg>`;
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" stroke-dasharray="2.6 2.6"/><path d="M9.6 9.3a2.4 2.4 0 1 1 3.2 2.3c-.7.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.6" r="0.55" fill="${color}" stroke="none"/></svg>`;
   }
   if (status === 'down') {
     return `<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="3.4" stroke-linecap="round"><path d="M5.5 5.5 L18.5 18.5 M18.5 5.5 L5.5 18.5"/></svg>`;
@@ -2454,6 +2454,14 @@ async function loadAdminPanel() {
       <h1>🔒 Site Status Admin</h1>
       <p>Loading status.json...</p>
     </div>
+    <div class="test-link-box" style="font-size:.74rem; color:#9494b5; line-height:1.5;">
+      <div class="test-link-title" style="margin-bottom:6px;">ℹ️ What the dots mean</div>
+      <div><span style="color:#06d6a0;">🟢 Up</span> — site responded normally.</div>
+      <div><span style="color:#f0b428;">🟡 Blocked</span> — GitHub's checker got a 403/429/503 or timed out. This is usually <strong>not</strong> the site being down — Cloudflare/DDoS-Guard etc. often flag GitHub Actions' datacenter IP as a bot, even when the site works fine for real visitors. Use "Test a Link" above or open the URL yourself to confirm before assuming it's broken.</div>
+      <div><span style="color:#e63946;">🔴 Down</span> — confirmed failure (DNS error, connection refused, or a real 4xx/5xx not tied to bot-protection).</div>
+      <div><span style="color:#6c7086;">⚪ Pending</span> — added recently, not checked yet.</div>
+      <div style="margin-top:6px;">Just updated a link and it's still yellow after reload? The re-check likely ran and got bot-blocked on this new URL too — see 🟡 above.</div>
+    </div>
     <div class="test-link-box" id="gh-config-box">
       <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
@@ -2742,11 +2750,17 @@ async function updateLiveLink(siteName, btn) {
           body: JSON.stringify({ ref: 'main' }),
         }
       );
-      statusEl.textContent = dispatchRes.ok
-        ? '✅ Live! Real check running now — reload in ~1–2 min for the confirmed result.'
-        : '✅ Live! (Auto re-check needs a token with "workflow" permission — run it manually from the Actions tab, or just wait up to 6h.)';
+      if (dispatchRes.ok) {
+        statusEl.textContent = '✅ Live! Real check running now — reload in ~1–2 min for the confirmed result.';
+      } else if (dispatchRes.status === 403 || dispatchRes.status === 404) {
+        // 403/404 on this endpoint almost always means the token's scope
+        // doesn't cover Actions — not that the workflow itself is missing.
+        statusEl.textContent = '✅ Live! (⚠️ Your GitHub token is missing "workflow" permission, so the status check couldn\'t auto-run. Go to GitHub → Settings → Developer settings → your token, enable "workflow" (classic) or "Actions: Read and write" (fine-grained), then re-save it in the GitHub Connection section above. For now, run it manually from the Actions tab or wait up to 6h.)';
+      } else {
+        statusEl.textContent = `✅ Live! (Auto re-check failed — HTTP ${dispatchRes.status}. Run it manually from the Actions tab, or just wait up to 6h.)`;
+      }
     } catch (dispatchErr) {
-      statusEl.textContent = '✅ Live! (Could not auto-trigger a re-check — run it manually from the Actions tab, or wait up to 6h.)';
+      statusEl.textContent = '✅ Live! (Could not auto-trigger a re-check — check your internet connection, or run it manually from the Actions tab.)';
     }
 
     // Don't make the admin wait for tomorrow's automated check to see a
