@@ -2,9 +2,8 @@ name: Daily Site Status Check
 
 on:
   schedule:
-    # Runs every day at 00:00 UTC (adjust if you want a specific PH time —
-    # PH is UTC+8, so 00:00 UTC = 8:00 AM Philippine time)
-    - cron: '0 0 * * *'
+    # Runs every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
   workflow_dispatch: {} # lets you manually trigger it from the Actions tab too
 
 permissions:
