@@ -2909,7 +2909,11 @@ async function deleteWebsite(siteName, btn) {
   const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
 
   try {
-    // 1) Remove from sites.json (the checker list).
+    // 1) Remove from sites.json (the checker list) — if the site isn't in
+    // there at all (e.g. a built-in SITES_DIRECTORY entry that was never
+    // added to the checker list), that's fine, just skip this step instead
+    // of aborting the whole deletion.
+    let removedFromSitesJson = false;
     const sitesUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/sites.json`;
     const sitesGetRes = await fetch(sitesUrl, { headers });
     if (!sitesGetRes.ok) throw new Error(`Could not read sites.json (HTTP ${sitesGetRes.status})`);
@@ -2918,22 +2922,21 @@ async function deleteWebsite(siteName, btn) {
     const beforeCount = sitesCurrent.length;
     sitesCurrent = sitesCurrent.filter(s => normalizeSiteName(s.name) !== normalizeSiteName(siteName));
 
-    if (sitesCurrent.length === beforeCount) {
-      throw new Error(`"${siteName}" was not found in sites.json.`);
-    }
-
-    const sitesPutRes = await fetch(sitesUrl, {
-      method: 'PUT',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: `Remove site: ${siteName}`,
-        content: b64EncodeUtf8(JSON.stringify(sitesCurrent, null, 2)),
-        sha: sitesFileData.sha,
-      }),
-    });
-    if (!sitesPutRes.ok) {
-      const errData = await sitesPutRes.json().catch(() => ({}));
-      throw new Error(errData.message || `GitHub rejected the sites.json update (HTTP ${sitesPutRes.status})`);
+    if (sitesCurrent.length !== beforeCount) {
+      const sitesPutRes = await fetch(sitesUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Remove site: ${siteName}`,
+          content: b64EncodeUtf8(JSON.stringify(sitesCurrent, null, 2)),
+          sha: sitesFileData.sha,
+        }),
+      });
+      if (!sitesPutRes.ok) {
+        const errData = await sitesPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `GitHub rejected the sites.json update (HTTP ${sitesPutRes.status})`);
+      }
+      removedFromSitesJson = true;
     }
 
     // 2) If it was an admin-added site, also remove it from custom-sites.json
@@ -3031,10 +3034,12 @@ async function deleteWebsite(siteName, btn) {
     }
 
     statusEl.textContent = removedFromDirectory
-      ? `✅ Deleted "${siteName}" from sites.json and its SITES_DIRECTORY entry in index.html. Takes ~1 min to appear on both admin and user sides.`
+      ? `✅ Deleted "${siteName}" and its SITES_DIRECTORY entry in index.html. Takes ~1 min to appear on both admin and user sides.`
       : removedFromCustom
-      ? `✅ Deleted "${siteName}" from sites.json and custom-sites.json. Takes ~1 min to appear.`
-      : `✅ Deleted "${siteName}" from sites.json.`;
+      ? `✅ Deleted "${siteName}" from custom-sites.json.`
+      : removedFromSitesJson
+      ? `✅ Deleted "${siteName}" from sites.json.`
+      : `✅ Marked "${siteName}" as removed.`;
     statusEl.style.color = '#06d6a0';
     btn.textContent = 'Deleted ✓';
 
