@@ -1833,9 +1833,19 @@ function renderAIVerifiedSites(parsed, staticFallback) {
     return true;
   });
 
-  // Bubble admin-marked "Hot" sites to the front, same as the homepage
-  // directory grid (see hotDiff in renderSitesDirectory). Stable sort keeps
-  // Gemini's own relative ranking intact within each group (hot vs not-hot).
+  // Resolve each Gemini-returned site against SITES_DIRECTORY + customSites
+  // FIRST (built-in + admin-added, same combined list renderSitesDirectory
+  // uses), so hot/status lookups below use the same canonical name the admin
+  // panel's "Hot" tag and status.json entries are keyed on — not whatever
+  // exact phrasing Gemini happened to use for the site name.
+  const allKnownSites = [...SITES_DIRECTORY, ...customSites];
+  const resolved = sites.map(s => {
+    const dirMatch = allKnownSites.find(d =>
+      normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
+    );
+    return { s, dirMatch, canonicalName: dirMatch ? dirMatch.name : s.name };
+  });
+
   // Priority order: 🔥 Hot first, then by status — green (up) → yellow
   // (blocked/may-issue) → unknown (no status data) → red (down) last.
   // Gemini's own relative ranking is preserved within each tier (stable sort).
@@ -1846,19 +1856,16 @@ function renderAIVerifiedSites(parsed, staticFallback) {
     if (status === 'down') return 3;
     return 2; // unknown / not yet checked
   };
-  sites.sort((a, b) => {
-    const hotDiff = (isHotSite(b.name) ? 1 : 0) - (isHotSite(a.name) ? 1 : 0);
+  resolved.sort((a, b) => {
+    const hotDiff = (isHotSite(b.canonicalName) ? 1 : 0) - (isHotSite(a.canonicalName) ? 1 : 0);
     if (hotDiff !== 0) return hotDiff;
-    return statusRank(a.name) - statusRank(b.name);
+    return statusRank(a.canonicalName) - statusRank(b.canonicalName);
   });
 
-  const cards = sites.map((s, i) => {
-    const dirMatch = SITES_DIRECTORY.find(d =>
-      normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
-    );
+  const cards = resolved.map(({ s, dirMatch, canonicalName }, i) => {
     const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
     return `
-    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i * 0.07}s">
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(canonicalName)}" style="animation-delay:${i * 0.07}s">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
         <div class="site-name"><span class="status-dot-mini" data-status-dot style="display:none; width:13px; height:13px; margin-right:6px; vertical-align:middle;"></span>${escapeAttr(s.name)}</div>
