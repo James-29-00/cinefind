@@ -2078,6 +2078,8 @@ const SITES_DIRECTORY = [
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#06d6a0;">Re</span><span class="lw-white">Anime</span></span>` },
   { name: 'Animepahe',     url: 'https://animepahe.pw/',        domain: 'animepahe.pw',         categories: ['anime'],
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">pahe</span></div>` },
+  { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:#a855f7;">ro</span></span>` },
   { name: 'Anikoto',       url: 'https://anikototv.to/',        domain: 'anikototv.to',         categories: ['anime'],
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;line-height:1.05;color:#fff;">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'],
@@ -2396,6 +2398,7 @@ async function loadAdminPanel() {
     #admin-overlay .status-dot.up { background: #06d6a0; }
     #admin-overlay .status-dot.down { background: #e63946; }
     #admin-overlay .status-dot.blocked { background: #f0b428; }
+    #admin-overlay .status-dot.pending { background: #6c7086; }
     #admin-overlay .quick-test-btn {
       background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
       border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px;
@@ -2492,6 +2495,24 @@ async function loadAdminPanel() {
     const res = await fetch('./status.json?t=' + Date.now()); // cache-bust
     if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
     const data = await res.json();
+
+    // Newly-added sites (via "Add New Website" below) live in
+    // custom-sites.json but won't be in status.json's results until the
+    // next scheduled checker run — without this, they'd only show up here
+    // right after adding (in the same session) and vanish again on reopen.
+    try {
+      const customRes = await fetch('./custom-sites.json?t=' + Date.now());
+      const customList = customRes.ok ? await customRes.json() : [];
+      const checkedNames = new Set((data.results || []).map(r => normalizeSiteName(r.name)));
+      customList.forEach(s => {
+        if (!checkedNames.has(normalizeSiteName(s.name))) {
+          data.results.push({ name: s.name, url: s.url, status: 'pending' });
+        }
+      });
+    } catch (customErr) {
+      // Non-fatal — admin list just won't show pending custom sites this time.
+    }
+
     renderAdminPanel(data);
     
     // Sync front-end status dots with the latest admin data
@@ -2511,9 +2532,11 @@ function renderAdminPanel(data) {
   const lastRun = new Date(data.lastRun).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
 
   const rowsHtml = data.results.map(site => {
-    const icon = site.status === 'up' ? '🟢' : site.status === 'blocked' ? '🟡' : '🔴';
+    const icon = site.status === 'up' ? '🟢' : site.status === 'blocked' ? '🟡' : site.status === 'pending' ? '⚪' : '🔴';
     const metaText = site.status === 'up'
       ? 'HTTP ' + site.httpStatus
+      : site.status === 'pending'
+      ? 'Not checked yet — next automatic check within 6h'
       : (site.httpStatus ? 'HTTP ' + site.httpStatus : (site.error || site.status));
     const safeUrl = site.url.replace(/'/g, "\\'");
     return `
@@ -2702,9 +2725,29 @@ async function updateLiveLink(siteName, btn) {
       throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
     }
 
-    statusEl.textContent = '✅ Live! Takes ~1 min to appear on the site (GitHub Pages redeploy).';
+    statusEl.textContent = '✅ Live! Re-checking for real now...';
     statusEl.style.color = '#06d6a0';
     input.value = '';
+
+    // The dot turning green above is just this session's optimistic guess —
+    // status.json (what a reload actually reads) won't agree until the
+    // checker runs again. Trigger it now instead of leaving the admin to
+    // wait up to 6h, so a reload shows the real, confirmed result sooner.
+    try {
+      const dispatchRes = await fetch(
+        `https://api.github.com/repos/${config.owner}/${config.repo}/actions/workflows/check-sites.yml/dispatches`,
+        {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref: 'main' }),
+        }
+      );
+      statusEl.textContent = dispatchRes.ok
+        ? '✅ Live! Real check running now — reload in ~1–2 min for the confirmed result.'
+        : '✅ Live! (Auto re-check needs a token with "workflow" permission — run it manually from the Actions tab, or just wait up to 6h.)';
+    } catch (dispatchErr) {
+      statusEl.textContent = '✅ Live! (Could not auto-trigger a re-check — run it manually from the Actions tab, or wait up to 6h.)';
+    }
 
     // Don't make the admin wait for tomorrow's automated check to see a
     // green dot — a link they just pasted in is presumably working, so
