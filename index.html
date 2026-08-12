@@ -3448,10 +3448,34 @@ async function restoreWebsite(siteName, btn) {
     removedSitesData = removedSitesData.filter(s => normalizeSiteName(s.name) !== normalizedTarget);
     removedSiteNames = removedSiteNames.filter(n => n !== normalizedTarget);
     markPendingRestore(dirMatch ? { name: siteName } : { name: snapshot.name, url: snapshot.url, domain: snapshot.domain, categories: snapshot.categories, icon: snapshot.icon });
+    renderSitesDirectory(); // refresh the homepage grid underneath the admin overlay right away
 
     statusEl.textContent = `✅ Restored "${siteName}". Takes ~1 min to appear on the homepage; next automatic check within 24h.`;
     statusEl.style.color = '#06d6a0';
     btn.textContent = 'Restored ✓';
+
+    // Restoring only removed the row from "Recently Deleted" above — nothing
+    // added it back to the main Website List, so it looked like it vanished
+    // into nowhere. Insert a placeholder row here too (same technique as
+    // addNewWebsite()) so it's visible and manageable right away.
+    const mainRowsContainer = document.getElementById('admin-site-rows');
+    if (mainRowsContainer && !mainRowsContainer.querySelector(`[data-restored-name="${normalizedTarget}"]`)) {
+      const safeName = escapeForAttr(siteName);
+      const restoredUrl = (snapshot && snapshot.url) || (dirMatch && dirMatch.url) || '';
+      const newRow = document.createElement('div');
+      newRow.className = 'site-row';
+      newRow.setAttribute('data-restored-name', normalizedTarget);
+      newRow.innerHTML = `
+        <div class="status-dot"></div>
+        <div style="flex:1;">
+          <div class="site-name">${siteName} ♻️</div>
+          <div class="site-meta">${restoredUrl}${restoredUrl ? ' — ' : ''}Restored — not checked yet (next automatic check within 24h)</div>
+          <button class="delete-site-btn" onclick="confirmDeleteWebsite('${safeName}', this)">🗑️ Delete Website</button>
+          <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
+        </div>
+      `;
+      mainRowsContainer.prepend(newRow);
+    }
 
     const row = btn.closest('.site-row');
     if (row) {
