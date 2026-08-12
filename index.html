@@ -88,7 +88,11 @@
   }
   .starfield {
     display: none;
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    /* Absolute (not fixed) and capped in height so the dots only live
+       behind the hero/header — logo, tagline, search bar — and scroll
+       away with the page instead of showing through every card below. */
+    position: absolute; top: 0; left: 0; right: 0; height: 560px;
+    overflow: hidden; z-index: 0; pointer-events: none;
     background:
       radial-gradient(1.5px 1.5px at 20% 15%, #fff 100%, transparent),
       radial-gradient(1.5px 1.5px at 75% 8%, #fff 100%, transparent),
@@ -187,24 +191,30 @@
     flex: 1;
   }
   .logo span { color: var(--accent); -webkit-text-fill-color: var(--accent); }
+  body.theme-crimson .logo span {
+    filter: drop-shadow(0 0 12px rgba(230,57,70,.6));
+  }
   .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
 
-  /* Online-now live badge, sits beside the logo */
+  /* Online-now live badge — a secondary trust signal, so it lives in the
+     top corner (beside the theme toggle) rather than next to the wordmark.
+     Keeping it out of the .logo row lets the brand mark stand alone as the
+     one thing that grabs attention first. */
   .online-badge {
     display: inline-flex; align-items: center; gap: 6px;
     font-family: system-ui, -apple-system, sans-serif;
-    font-size: .78rem; font-weight: 600; letter-spacing: .02em;
+    font-size: .72rem; font-weight: 600; letter-spacing: .02em;
     color: #b8ffcf;
     background: rgba(34, 197, 94, .12);
     border: 1px solid rgba(34, 197, 94, .35);
-    padding: 5px 12px 5px 10px;
+    padding: 4px 10px 4px 8px;
     border-radius: 999px;
     vertical-align: middle;
-    margin-left: 12px;
+    margin-right: auto;
     -webkit-text-fill-color: #b8ffcf;
   }
   .online-dot {
-    width: 8px; height: 8px; border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
     background: #22c55e;
     box-shadow: 0 0 6px #22c55e;
     animation: online-pulse 1.6s ease-in-out infinite;
@@ -218,9 +228,6 @@
   @media (prefers-reduced-motion: reduce) {
     .online-dot { animation: none; }
   }
-  @media (max-width: 480px) {
-    .online-badge { display: flex; margin: 10px auto 0; width: fit-content; }
-  }
 
   .safety-tip {
     max-width: 420px; margin: 14px auto 0;
@@ -229,6 +236,12 @@
   }
   .safety-tip .tip-icon { font-size: .85rem; opacity: .7; flex-shrink: 0; }
   .safety-tip strong { color: var(--accent2); font-weight: 600; }
+  .safety-tip .tip-close {
+    background: none; border: none; color: var(--muted); opacity: .6;
+    cursor: pointer; font-size: .95rem; line-height: 1; padding: 2px 4px;
+    flex-shrink: 0; margin-left: auto; align-self: flex-start;
+  }
+  .safety-tip .tip-close:hover { opacity: 1; color: var(--text); }
 
   /* Moon Button — icon color/glow matches the active theme's accent:
      crimson red on the default theme, cyan on Cyber Neon. Uses `color` so
@@ -620,6 +633,9 @@
 <div class="wrapper">
   <header>
     <div class="header-top">
+      <span id="online-badge" class="online-badge" style="display:none;">
+        <span class="online-dot"></span><span id="online-count-text"></span>
+      </span>
       <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
         <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
         <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
@@ -628,9 +644,6 @@
       </div>
     </div>
     <div class="logo">Cine<span>Find</span>
-      <span id="online-badge" class="online-badge" style="display:none;">
-        <span class="online-dot"></span><span id="online-count-text"></span>
-      </span>
     </div>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
   </header>
@@ -1624,7 +1637,7 @@ function renderResult(data, query) {
     <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i*0.07}s">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
-        <div class="site-name"><span class="status-dot-mini" data-status-dot style="display:none; width:13px; height:13px; margin-right:6px; vertical-align:middle;"></span>${s.name}</div>
+        <div class="site-name">${s.name}</div>
         <div class="site-note">${s.note || 'Free streaming'}</div>
         ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
@@ -2304,6 +2317,12 @@ function syncDirFilterChipsUI() {
   });
 }
 
+function dismissDirTip() {
+  localStorage.setItem('cinefind-dir-tip-dismissed', '1');
+  const el = document.getElementById('dir-safety-tip');
+  if (el) el.remove();
+}
+
 function renderHomepage() {
   hideFiltersBar();
   document.getElementById('result-area').innerHTML = `
@@ -2317,10 +2336,13 @@ function renderHomepage() {
       <button class="genre-pill dual-gradient-pill" data-cat="hot" onclick="toggleDirFilter('hot', this)">Hot</button>
       <button class="genre-pill dual-gradient-pill" data-cat="pinned" onclick="toggleDirFilter('pinned', this)">📌 Pinned</button>
     </div>
-    <div class="safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
+    ${localStorage.getItem('cinefind-dir-tip-dismissed') ? '' : `
+    <div class="safety-tip" id="dir-safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
       <span class="tip-icon">🛡️</span>
-      <span>Tip: these are third-party sites we don't control — use a browser with built-in ad/tracker blocking (like <strong>Brave Browser <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Brave_lion_icon.svg" width="15" height="15" alt="Brave lion logo" style="vertical-align:-3px; display:inline-block;"></strong>) and avoid clicking pop-ups or "download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:underline;">Download Brave here →</a></span>
+      <span>Use an ad-blocking browser like <strong>Brave</strong> and avoid pop-ups/"download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:underline;">Get Brave →</a></span>
+      <button class="tip-close" onclick="dismissDirTip()" aria-label="Dismiss tip">✕</button>
     </div>
+    `}
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
       <div id="dir-results-count" style="font-size:.78rem; color:var(--muted);"></div>
       <div style="font-size:.7rem; color:var(--muted); display:flex; align-items:center; gap:6px;">
