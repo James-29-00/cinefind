@@ -454,6 +454,18 @@
     display: flex; align-items: center; justify-content: center;
   }
   .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
+  /* Report-broken flag — labeled (not icon-only) since a bare flag icon reads
+     ambiguously (bookmark? pin?) especially with no hover tooltip on mobile.
+     Small pill so it still fits the tight card corner without crowding the
+     favorite star or logo. Hovers to the theme accent, not gold, so it
+     reads as "flag a problem" rather than "favorite". */
+  .report-icon {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: .58rem; font-weight: 600; letter-spacing: .01em;
+    color: rgba(255,255,255,.5); background: rgba(0,0,0,.25);
+    border-radius: 20px; padding: 3px 7px 3px 6px; width: auto; white-space: nowrap;
+  }
+  .report-icon:hover { color: var(--accent); background: rgba(var(--bg-glow-rgb),.15); }
 
   /* Site status dot — filled in after status.json loads (see applyStatusDots()).
      Hidden by default so cards don't flash an unknown/wrong color before the
@@ -510,6 +522,12 @@
     color: var(--muted); transition: background .2s, color .2s;
   }
   .copy-link-btn:hover { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent); }
+  /* Override copy-link-btn's fixed 30x30 square so the "Report" text label
+     has room to sit next to the icon instead of being clipped. */
+  .copy-link-btn.report-icon {
+    width: auto; height: auto; flex-shrink: 0;
+    padding: 5px 9px 5px 7px; border-radius: 20px;
+  }
 
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -1530,7 +1548,7 @@ function renderResult(data, query) {
         <div class="site-note">${s.note || 'Free streaming'}</div>
         ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
-      <button class="copy-link-btn" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken" style="font-size:.85rem;">🚩</button>
+      <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>Report</button>
       <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
       <span class="arrow">→</span>
     </a>`;
@@ -1757,11 +1775,19 @@ async function submitReport(siteName, url, movieTitle) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ siteName, url, movieTitle, reason, timestamp: Date.now() }),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // Surface the Worker's actual error text (e.g. "missing GitHub secrets",
+      // a GitHub API rejection, etc.) instead of a generic message — this is
+      // the only way to self-diagnose a misconfigured Worker from the UI.
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || `HTTP ${res.status}`);
+    }
     if (statusEl) { statusEl.textContent = '✅ Thanks — report sent!'; statusEl.style.color = 'var(--green)'; }
     setTimeout(() => { const o = document.getElementById('report-modal-overlay'); if (o) o.remove(); }, 1200);
   } catch (err) {
-    if (statusEl) { statusEl.textContent = `❌ Couldn't send report — try again later.`; statusEl.style.color = 'var(--accent2)'; }
+    // err.message is either the Worker's real error (see above) or a browser-level
+    // failure like "Failed to fetch" (wrong URL / Worker not deployed / CORS/DNS).
+    if (statusEl) { statusEl.textContent = `❌ ${err.message || "Couldn't send report — try again later."}`; statusEl.style.color = 'var(--accent2)'; }
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit'; }
   }
 }
@@ -2071,7 +2097,7 @@ function renderSitesDirectory() {
         <span class="status-label-mini" data-status-label></span>
         ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
-        <button class="pin-icon" style="position:absolute; bottom:6px; right:8px; z-index:2; font-size:.85rem;" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken">🚩</button>
+        <button class="pin-icon report-icon" style="position:absolute; bottom:6px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>Report</button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
