@@ -69,10 +69,10 @@
     --accent: #e63946; --accent2: #ff6b6b; --bg-glow-rgb: 230,57,70;
   }
   body.theme-cyber {
-    --bg: #0f050d; --surface: #1a0a17; --card: #1f0c1c;
-    --border: rgba(255,45,158,.35);
-    --text: #fff0f8; --muted: #c98bb0;
-    --accent: #ff2d9e; --accent2: #ff7ac4; --bg-glow-rgb: 255,45,158;
+    --bg: #05060f; --surface: #0a0d1f; --card: #0d1226;
+    --border: rgba(34,229,229,.35);
+    --text: #eef2ff; --muted: #8b93b8;
+    --accent: #22e5e5; --accent2: #6df0ff; --bg-glow-rgb: 34,229,229;
   }
   body.theme-galaxy {
     --bg: #120a1e; --surface: #1a1028; --card: #1c1230;
@@ -83,7 +83,7 @@
   /* Starfield + nebula glow, only rendered in Cyber Neon mode. Pure CSS
      (radial gradients / SVG data-URI), so no extra image requests. */
   body.theme-cyber .bg-glow {
-    background: radial-gradient(ellipse, rgba(255,45,158,.15) 0%, rgba(165,45,229,.08) 40%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(34,229,229,.15) 0%, rgba(45,165,229,.08) 40%, transparent 70%);
     width: 700px; height: 500px;
   }
   .starfield {
@@ -109,19 +109,19 @@
   /* Circuit-board texture overlay on site cards, Cyber Neon only */
   body.theme-cyber .site-card::before {
     content: ''; position: absolute; inset: 0; opacity: .35; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23ff2d9e' stroke-width='1'%3E%3Cpath d='M10 10 H50 V30 H90'/%3E%3Cpath d='M10 60 H30 V90 H70 V110'/%3E%3Cpath d='M100 10 V50 H80 V80'/%3E%3Cpath d='M110 100 H90 V70'/%3E%3C/g%3E%3Cg fill='%23ff2d9e'%3E%3Ccircle cx='50' cy='30' r='2.2'/%3E%3Ccircle cx='30' cy='90' r='2.2'/%3E%3Ccircle cx='80' cy='50' r='2.2'/%3E%3Ccircle cx='90' cy='70' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2322e5e5' stroke-width='1'%3E%3Cpath d='M10 10 H50 V30 H90'/%3E%3Cpath d='M10 60 H30 V90 H70 V110'/%3E%3Cpath d='M100 10 V50 H80 V80'/%3E%3Cpath d='M110 100 H90 V70'/%3E%3C/g%3E%3Cg fill='%2322e5e5'%3E%3Ccircle cx='50' cy='30' r='2.2'/%3E%3Ccircle cx='30' cy='90' r='2.2'/%3E%3Ccircle cx='80' cy='50' r='2.2'/%3E%3Ccircle cx='90' cy='70' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
     background-size: 120px 120px;
   }
   body.theme-cyber .site-card > * { position: relative; z-index: 1; }
   body.theme-cyber .site-card:hover {
-    border-color: var(--accent); box-shadow: 0 0 24px rgba(255,45,158,.35);
+    border-color: var(--accent); box-shadow: 0 0 24px rgba(34,229,229,.35);
   }
   body.theme-cyber .search-box,
   body.theme-cyber .search-wrap > div:first-child {
-    box-shadow: 0 0 24px rgba(255,45,158,.25);
+    box-shadow: 0 0 24px rgba(34,229,229,.25);
   }
   body.theme-cyber .logo span {
-    filter: drop-shadow(0 0 12px rgba(255,45,158,.6));
+    filter: drop-shadow(0 0 12px rgba(34,229,229,.6));
   }
 
   /* Nebula glow + twinkling stars, Galaxy theme only */
@@ -1872,6 +1872,42 @@ let customSites = [];
 let removedSiteNames = []; // normalized names deleted via admin — see deleteWebsite()
 let removedSitesData = []; // full site objects (name/url/icon/categories) for deleted sites — powers the Restore button
 
+// restoreWebsite()/deleteWebsite() commit real changes to custom-sites.json
+// and removed-sites.json via the GitHub API — those writes land immediately.
+// But this page (and the admin panel) read those files back as static files
+// through GitHub Pages, which takes up to ~1 min to redeploy/re-cache. Without
+// this, a reload during that window re-reads the stale files and a just-
+// restored site "reverts" — reappears as deleted, disappears from the
+// homepage. This stores the outcome locally and reapplies it on load until
+// the real fetched files agree, so nothing flashes back to the old state.
+function getPendingRestores() {
+  try { return JSON.parse(localStorage.getItem('cinefind-pending-restores') || '{}'); }
+  catch (e) { return {}; }
+}
+function markPendingRestore(siteObj) {
+  const map = getPendingRestores();
+  map[normalizeSiteName(siteObj.name)] = siteObj;
+  try { localStorage.setItem('cinefind-pending-restores', JSON.stringify(map)); } catch (e) { /* storage full/unavailable */ }
+}
+function applyPendingRestores(customList, removedList) {
+  const pending = getPendingRestores();
+  let changed = false;
+  Object.keys(pending).forEach(key => {
+    const alreadyReal = customList.some(s => normalizeSiteName(s.name) === key) && !removedList.some(s => normalizeSiteName(s.name) === key);
+    if (alreadyReal) {
+      delete pending[key]; // the real files have caught up — stop overriding
+      changed = true;
+    } else {
+      if (!customList.some(s => normalizeSiteName(s.name) === key)) {
+        if (pending[key].url) customList.push(pending[key]); // built-ins have no url snapshot — they already render via SITES_DIRECTORY, nothing to inject
+      }
+      removedList = removedList.filter(s => normalizeSiteName(s.name) !== key);
+    }
+  });
+  if (changed) { try { localStorage.setItem('cinefind-pending-restores', JSON.stringify(pending)); } catch (e) {} }
+  return { customList, removedList };
+}
+
 async function loadCustomSites() {
   try {
     const res = await fetch('./custom-sites.json?t=' + Date.now());
@@ -1886,11 +1922,13 @@ async function loadCustomSites() {
     // It now stores full objects so a deleted site can be fully restored —
     // normalize old string entries into { name } so nothing here breaks.
     removedSitesData = raw.map(entry => typeof entry === 'string' ? { name: entry } : entry);
-    removedSiteNames = removedSitesData.map(s => normalizeSiteName(s.name));
   } catch (err) {
     removedSitesData = [];
-    removedSiteNames = [];
   }
+  const applied = applyPendingRestores(customSites, removedSitesData);
+  customSites = applied.customList;
+  removedSitesData = applied.removedList;
+  removedSiteNames = removedSitesData.map(s => normalizeSiteName(s.name));
   renderSitesDirectory();
 }
 
@@ -2484,18 +2522,24 @@ async function loadAdminPanel() {
     if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
     const data = await res.json();
 
-    // Fresh copy of removed-sites.json — status.json only refreshes once a
-    // day via the GitHub Action, so a site deleted just now can still be
-    // sitting in data.results. Filter it out here (same as
-    // renderSitesDirectory() does for the public homepage) or it'll keep
-    // reappearing in the admin list even though the delete actually worked.
+    // Fresh copies of removed-sites.json / custom-sites.json — status.json
+    // only refreshes every 6h via the GitHub Action, so a site deleted or
+    // restored just now can still be stale in data.results. Filter/merge
+    // here (same as renderSitesDirectory() does for the public homepage),
+    // with the pending-restore override applied so a just-restored site
+    // doesn't flash back to "deleted" while GitHub Pages catches up.
+    let freshCustomList = [];
     try {
       const removedRes = await fetch('./removed-sites.json?t=' + Date.now());
-      const removedRaw = removedRes.ok ? await removedRes.json() : null;
-      if (removedRaw) {
-        removedSitesData = removedRaw.map(entry => typeof entry === 'string' ? { name: entry } : entry);
-        removedSiteNames = removedSitesData.map(s => normalizeSiteName(s.name));
-      }
+      const removedRaw = removedRes.ok ? await removedRes.json() : [];
+      removedSitesData = removedRaw.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+      const customRes = await fetch('./custom-sites.json?t=' + Date.now());
+      freshCustomList = customRes.ok ? await customRes.json() : [];
+      const applied = applyPendingRestores(freshCustomList, removedSitesData);
+      freshCustomList = applied.customList;
+      removedSitesData = applied.removedList;
+      removedSiteNames = removedSitesData.map(s => normalizeSiteName(s.name));
+      customSites = freshCustomList;
     } catch (removedErr) {
       // Non-fatal — falls back to whatever removedSiteNames/removedSitesData already has.
     }
@@ -2503,22 +2547,16 @@ async function loadAdminPanel() {
       r => !removedSiteNames.includes(normalizeSiteName(r.name))
     );
 
-    // Newly-added sites (via "Add New Website" below) live in
-    // custom-sites.json but won't be in status.json's results until the
-    // next scheduled checker run — without this, they'd only show up here
-    // right after adding (in the same session) and vanish again on reopen.
-    try {
-      const customRes = await fetch('./custom-sites.json?t=' + Date.now());
-      const customList = customRes.ok ? await customRes.json() : [];
-      const checkedNames = new Set((data.results || []).map(r => normalizeSiteName(r.name)));
-      customList.forEach(s => {
-        if (!checkedNames.has(normalizeSiteName(s.name))) {
-          data.results.push({ name: s.name, url: s.url, status: 'pending' });
-        }
-      });
-    } catch (customErr) {
-      // Non-fatal — admin list just won't show pending custom sites this time.
-    }
+    // Newly-added/restored sites live in custom-sites.json but won't be in
+    // status.json's results until the next scheduled checker run — without
+    // this, they'd only show up here right after adding (in the same
+    // session) and vanish again on reopen.
+    const checkedNames = new Set((data.results || []).map(r => normalizeSiteName(r.name)));
+    freshCustomList.forEach(s => {
+      if (!checkedNames.has(normalizeSiteName(s.name))) {
+        data.results.push({ name: s.name, url: s.url, status: 'pending' });
+      }
+    });
 
     renderAdminPanel(data);
     
@@ -3409,6 +3447,7 @@ async function restoreWebsite(siteName, btn) {
     // Reflect it in this session's own view right away.
     removedSitesData = removedSitesData.filter(s => normalizeSiteName(s.name) !== normalizedTarget);
     removedSiteNames = removedSiteNames.filter(n => n !== normalizedTarget);
+    markPendingRestore(dirMatch ? { name: siteName } : { name: snapshot.name, url: snapshot.url, domain: snapshot.domain, categories: snapshot.categories, icon: snapshot.icon });
 
     statusEl.textContent = `✅ Restored "${siteName}". Takes ~1 min to appear on the homepage; next automatic check within 24h.`;
     statusEl.style.color = '#06d6a0';
