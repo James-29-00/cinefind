@@ -408,6 +408,7 @@
     display: flex; align-items: center; gap: 14px;
     transition: border-color .2s, transform .2s, box-shadow .2s;
     animation: fadeUp .4s ease forwards;
+    max-width: 100%; overflow: hidden;
   }
   .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
   .site-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
@@ -580,6 +581,9 @@
     .filters { gap: 10px; }
     .filter-group { width: 100%; justify-content: space-between; }
     .filter-select { flex: 1; }
+    .site-card { gap: 8px; padding: 12px; }
+    .copy-link-btn.report-icon span.report-label-text { display: none; }
+    .copy-link-btn.report-icon { padding: 6px; }
   }
 </style>
 </head>
@@ -648,6 +652,7 @@
 
   <footer>
     <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
+    <p id="visit-stats" style="opacity:0.7; font-size:0.85em; margin-top:4px;"></p>
   </footer>
 </div>
 
@@ -1191,6 +1196,31 @@ function showSearchHistory() {
 // ⚠️ Replace this with YOUR deployed Cloudflare Worker URL (Step 3 of the guide)
 const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
+// TODO: palitan ito ng URL ng bago mong ide-deploy na Visit Worker (see instructions)
+const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
+
+// ===== VISITOR TRACKING =====
+async function trackVisit() {
+  try {
+    const res = await fetch(VISIT_WORKER_URL, {
+      method: 'POST',
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    renderVisitStats(data);
+  } catch (e) {
+    // fail silently — hindi dapat makaabala sa main site kung down ang worker
+  }
+}
+
+function renderVisitStats(data) {
+  const el = document.getElementById('visit-stats');
+  if (!el) return;
+  const total = (data.total || 0).toLocaleString();
+  const online = data.online || 1;
+  el.textContent = `👀 ${online} online now · ${total} total visits`;
+}
 
 // DEBUG ONLY — set to true to temporarily hide the static site list so you
 // can test the AI-verified sites feature in isolation. Static list code is
@@ -1558,7 +1588,7 @@ function renderResult(data, query) {
         <div class="site-note">${s.note || 'Free streaming'}</div>
         ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
-      <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>Report</button>
+      <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg><span class="report-label-text">Report</span></button>
       <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
       <span class="arrow">→</span>
     </a>`;
@@ -2080,10 +2110,16 @@ const SITES_DIRECTORY = [
   // working long-term instead of rotting in a few months.
   { name: 'iWantTFC',      url: 'https://www.iwanttfc.com/',    domain: 'iwanttfc.com',         categories: ['pinoy'],
     logoHtml: `<span class="logo-word"><span class="lw-white">iWant</span><span style="color:var(--accent);">TFC</span></span>` },
+  { name: 'Star Cinema',   url: 'https://www.youtube.com/@ABSstarcinema', domain: 'youtube.com', categories: ['pinoy'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:#fff;text-transform:uppercase;">Cinema</span></div>` },
   { name: 'Viva Films',    url: 'https://www.youtube.com/@VIVAFilms/videos', domain: 'youtube.com', categories: ['pinoy'],
     logoHtml: `<span class="logo-word"><span style="color:#ef4444;">VIVA</span><span class="lw-white" style="font-size:1rem;"> Films</span></span>` },
+  { name: 'Regal Entertainment', url: 'https://www.youtube.com/@RegalEntertainmentInc/', domain: 'youtube.com', categories: ['pinoy'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:#fff;">Regal</span></div>` },
   { name: 'Cinema One',    url: 'https://www.youtube.com/@CinemaOnePH/', domain: 'youtube.com',   categories: ['pinoy'],
     logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
+  { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">TBA</span><span style="color:#06d6a0;"> Studios</span></span>` },
 ];
 
 let activeDirFilters = []; // multi-select: any combo of 'drama' / 'anime' / 'movie'
@@ -2324,6 +2360,7 @@ window.addEventListener('load', () => {
   initTheme();
   updateFavCount();
   renderHomepage();
+  trackVisit();
   loadSiteStatus();
   loadUrlOverrides();
   loadCustomSites();
