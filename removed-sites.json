@@ -1,6 +1,11 @@
 [
-  "Plex",
-  "Miruro",
-  "KissKH",
-  "Viu"
+  {
+    "name": "Plex"
+  },
+  {
+    "name": "KissKH"
+  },
+  {
+    "name": "Viu"
+  }
 ]
