@@ -2583,6 +2583,26 @@ async function loadAdminPanel() {
   }
 }
 
+// Builds one row for the "🗑️ Recently Deleted" list — shared by the initial
+// admin panel render and by deleteWebsite()'s live-append (see below), so a
+// freshly-deleted site shows up immediately without needing to reopen the panel.
+function buildRemovedSiteRow(s) {
+  const safeName = s.name.replace(/'/g, "\\'");
+  const dirBackup = SITES_DIRECTORY.find(d => normalizeSiteName(d.name) === normalizeSiteName(s.name));
+  const hasSnapshot = !!s.url || !!dirBackup;
+  const urlLabel = s.url || (dirBackup ? dirBackup.url + ' (built-in, still in code)' : 'No saved URL (deleted before Restore existed)');
+  return `
+    <div class="site-row" style="background:#0f0f16;" data-removed-site="${normalizeSiteName(s.name)}">
+      <div style="flex:1;">
+        <div class="site-name">${s.name} ${s.icon || ''}</div>
+        <div class="site-meta">${urlLabel}${s.removedAt ? ' — deleted ' + new Date(s.removedAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) : ''}</div>
+        <button class="restore-site-btn" ${hasSnapshot ? '' : 'disabled'} onclick="restoreWebsite('${safeName}', this)">♻️ Restore</button>
+        <button class="delete-permanent-btn" onclick="confirmDeletePermanently('${safeName}', this)">🗑️ Delete Permanently</button>
+        <div class="restore-site-status site-meta" style="margin-top:4px;"></div>
+      </div>
+    </div>`;
+}
+
 function renderAdminPanel(data) {
   const overlay = document.getElementById('admin-overlay');
   const lastRun = new Date(data.lastRun).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
@@ -2671,26 +2691,14 @@ function renderAdminPanel(data) {
       </div>
     </div>
     <div class="test-link-box" id="removed-sites-box">
-      <div class="test-link-title">🗑️ Recently Deleted <span style="font-size:.7rem; color:#9494b5;">(${removedSitesData.length})</span></div>
-      ${removedSitesData.length === 0 ? `
-        <p style="font-size:.75rem; color:#9494b5; margin:0;">Wala pang deleted sites.</p>
-      ` : removedSitesData.map(s => {
-        const safeName = s.name.replace(/'/g, "\\'");
-        const dirBackup = SITES_DIRECTORY.find(d => normalizeSiteName(d.name) === normalizeSiteName(s.name));
-        const hasSnapshot = !!s.url || !!dirBackup;
-        const urlLabel = s.url || (dirBackup ? dirBackup.url + ' (built-in, still in code)' : 'No saved URL (deleted before Restore existed)');
-        return `
-        <div class="site-row" style="background:#0f0f16;">
-          <div style="flex:1;">
-            <div class="site-name">${s.name} ${s.icon || ''}</div>
-            <div class="site-meta">${urlLabel}${s.removedAt ? ' — deleted ' + new Date(s.removedAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) : ''}</div>
-            <button class="restore-site-btn" ${hasSnapshot ? '' : 'disabled'} onclick="restoreWebsite('${safeName}', this)">♻️ Restore</button>
-            <button class="delete-permanent-btn" onclick="confirmDeletePermanently('${safeName}', this)">🗑️ Delete Permanently</button>
-            <div class="restore-site-status site-meta" style="margin-top:4px;"></div>
-          </div>
-        </div>
-      `; }).join('')}
+      <div class="test-link-title">🗑️ Recently Deleted <span id="removed-sites-count" style="font-size:.7rem; color:#9494b5;">(${removedSitesData.length})</span></div>
+      <div id="removed-sites-list">
+        ${removedSitesData.length === 0 ? `<p style="font-size:.75rem; color:#9494b5; margin:0;">Wala pang deleted sites.</p>` : removedSitesData.map(buildRemovedSiteRow).join('')}
+      </div>
     </div>
+    <!-- "Wala pang deleted sites" placeholder, kept as a template to swap back in
+         if the list ever empties out again (e.g. after Delete Permanently) -->
+    <template id="removed-sites-empty-msg"><p style="font-size:.75rem; color:#9494b5; margin:0;">Wala pang deleted sites.</p></template>
     <div class="admin-summary">
       <div class="admin-stat"><div class="num" style="color:#06d6a0;">${data.upCount}</div><div class="lbl">Up</div></div>
       <div class="admin-stat"><div class="num" style="color:#f0b428;">${data.blockedCount || 0}</div><div class="lbl">Blocked</div></div>
@@ -3287,6 +3295,18 @@ async function deleteWebsite(siteName, btn) {
     }
     removedSiteNames.push(normalizedTarget); // reflect in this session's own view too
     removedSitesData.push(siteSnapshot);
+
+    // Show it in "Recently Deleted" immediately — without this, the row was
+    // only fetched fresh on the *next* admin panel open, so a just-deleted
+    // site would seem to vanish rather than appear as recoverable.
+    const removedListEl = document.getElementById('removed-sites-list');
+    const removedCountEl = document.getElementById('removed-sites-count');
+    if (removedListEl) {
+      const placeholder = removedListEl.querySelector('p');
+      if (placeholder) placeholder.remove();
+      removedListEl.insertAdjacentHTML('afterbegin', buildRemovedSiteRow(siteSnapshot));
+    }
+    if (removedCountEl) removedCountEl.textContent = `(${removedSitesData.length})`;
 
     // 4) If it's a built-in site (lives in SITES_DIRECTORY, hardcoded in this
     // very file), remove its entry from the source too so the homepage card
