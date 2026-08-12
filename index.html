@@ -1860,6 +1860,7 @@ function isHotSite(name) {
 // admin panel yet.
 let customSites = [];
 let removedSiteNames = []; // normalized names deleted via admin — see deleteWebsite()
+let removedSitesData = []; // full site objects (name/url/icon/categories) for deleted sites — powers the Restore button
 
 async function loadCustomSites() {
   try {
@@ -1870,8 +1871,14 @@ async function loadCustomSites() {
   }
   try {
     const res2 = await fetch('./removed-sites.json?t=' + Date.now());
-    removedSiteNames = res2.ok ? await res2.json() : [];
+    const raw = res2.ok ? await res2.json() : [];
+    // Backward compat: removed-sites.json used to store plain name strings.
+    // It now stores full objects so a deleted site can be fully restored —
+    // normalize old string entries into { name } so nothing here breaks.
+    removedSitesData = raw.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+    removedSiteNames = removedSitesData.map(s => normalizeSiteName(s.name));
   } catch (err) {
+    removedSitesData = [];
     removedSiteNames = [];
   }
   renderSitesDirectory();
@@ -1970,6 +1977,8 @@ const SITES_DIRECTORY = [
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:#fff;">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
   { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'],
     logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:#00c2b8;">ki</span></span>` },
+  { name: 'Viu',           url: 'https://www.viu.com/',         domain: 'viu.com',              categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span style="color:#00c2b8;">Vi</span><span class="lw-white">u</span></span>` },
   { name: 'Kocowa',        url: 'https://www.kocowa.com/',      domain: 'kocowa.com',           categories: ['drama'],
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#ff7a59;">Ko</span><span class="lw-white">cowa</span></span>` },
   { name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', domain: 'ondemandkorea.com',  categories: ['drama'],
@@ -2344,6 +2353,11 @@ async function loadAdminPanel() {
       border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px; margin-left: 6px;
     }
     #admin-overlay .delete-site-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .restore-site-btn {
+      background: #0f2a1c; border: 1px solid #06d6a066; color: #06d6a0;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px;
+    }
+    #admin-overlay .restore-site-btn:disabled { opacity: .5; cursor: default; }
     #admin-overlay .site-name { font-weight: 600; color: #f0f0f5; flex: 1; }
     #admin-overlay .site-meta { font-size: .72rem; color: #9494b5; }
     #admin-overlay .replace-input {
@@ -2439,6 +2453,25 @@ async function loadAdminPanel() {
     const res = await fetch('./status.json?t=' + Date.now()); // cache-bust
     if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
     const data = await res.json();
+
+    // Fresh copy of removed-sites.json — status.json only refreshes once a
+    // day via the GitHub Action, so a site deleted just now can still be
+    // sitting in data.results. Filter it out here (same as
+    // renderSitesDirectory() does for the public homepage) or it'll keep
+    // reappearing in the admin list even though the delete actually worked.
+    try {
+      const removedRes = await fetch('./removed-sites.json?t=' + Date.now());
+      const removedRaw = removedRes.ok ? await removedRes.json() : null;
+      if (removedRaw) {
+        removedSitesData = removedRaw.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+        removedSiteNames = removedSitesData.map(s => normalizeSiteName(s.name));
+      }
+    } catch (removedErr) {
+      // Non-fatal — falls back to whatever removedSiteNames/removedSitesData already has.
+    }
+    data.results = (data.results || []).filter(
+      r => !removedSiteNames.includes(normalizeSiteName(r.name))
+    );
 
     // Newly-added sites (via "Add New Website" below) live in
     // custom-sites.json but won't be in status.json's results until the
@@ -2557,6 +2590,24 @@ function renderAdminPanel(data) {
         <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
         <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
       </div>
+    </div>
+    <div class="test-link-box" id="removed-sites-box">
+      <div class="test-link-title">🗑️ Recently Deleted <span style="font-size:.7rem; color:#9494b5;">(${removedSitesData.length})</span></div>
+      ${removedSitesData.length === 0 ? `
+        <p style="font-size:.75rem; color:#9494b5; margin:0;">Wala pang deleted sites.</p>
+      ` : removedSitesData.map(s => {
+        const safeName = s.name.replace(/'/g, "\\'");
+        const hasSnapshot = !!s.url;
+        return `
+        <div class="site-row" style="background:#0f0f16;">
+          <div style="flex:1;">
+            <div class="site-name">${s.name} ${s.icon || ''}</div>
+            <div class="site-meta">${s.url || 'No saved URL (deleted before Restore existed)'}${s.removedAt ? ' — deleted ' + new Date(s.removedAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) : ''}</div>
+            <button class="restore-site-btn" ${hasSnapshot ? '' : 'disabled'} onclick="restoreWebsite('${safeName}', this)">♻️ Restore</button>
+            <div class="restore-site-status site-meta" style="margin-top:4px;"></div>
+          </div>
+        </div>
+      `; }).join('')}
     </div>
     <div class="admin-summary">
       <div class="admin-stat"><div class="num" style="color:#06d6a0;">${data.upCount}</div><div class="lbl">Up</div></div>
@@ -3042,6 +3093,22 @@ async function deleteWebsite(siteName, btn) {
 
   const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
 
+  // Snapshot the full site data (url/domain/categories/icon) *before* it gets
+  // removed from anywhere — this is what gets saved into removed-sites.json
+  // so restoreWebsite() can bring it back exactly as it was, not just its name.
+  const normalizedTargetName = normalizeSiteName(siteName);
+  const customMatch = customSites.find(s => normalizeSiteName(s.name) === normalizedTargetName);
+  const dirMatch = SITES_DIRECTORY.find(s => normalizeSiteName(s.name) === normalizedTargetName);
+  const source = customMatch || dirMatch || {};
+  const siteSnapshot = {
+    name: siteName,
+    url: source.url || '',
+    domain: source.domain || undefined,
+    categories: source.categories || undefined,
+    icon: source.icon || undefined,
+    removedAt: new Date().toISOString(),
+  };
+
   try {
     // 1) Remove from sites.json (the checker list) — if the site isn't in
     // there at all (e.g. a built-in SITES_DIRECTORY entry that was never
@@ -3111,14 +3178,16 @@ async function deleteWebsite(siteName, btn) {
     let removedSha = null;
     if (removedGetRes.status === 200) {
       const removedFileData = await removedGetRes.json();
-      removedList = JSON.parse(b64DecodeUtf8(removedFileData.content));
+      const rawRemoved = JSON.parse(b64DecodeUtf8(removedFileData.content));
+      // Normalize any legacy plain-string entries so they survive round-tripping.
+      removedList = rawRemoved.map(entry => typeof entry === 'string' ? { name: entry } : entry);
       removedSha = removedFileData.sha;
     } else if (removedGetRes.status !== 404) {
       throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
     }
-    const normalizedTarget = normalizeSiteName(siteName);
-    if (!removedList.some(n => normalizeSiteName(n) === normalizedTarget)) {
-      removedList.push(siteName);
+    const normalizedTarget = normalizedTargetName;
+    if (!removedList.some(entry => normalizeSiteName(entry.name) === normalizedTarget)) {
+      removedList.push(siteSnapshot);
       const removedBody = {
         message: `Mark site as removed: ${siteName}`,
         content: b64EncodeUtf8(JSON.stringify(removedList, null, 2)),
@@ -3135,6 +3204,7 @@ async function deleteWebsite(siteName, btn) {
       }
     }
     removedSiteNames.push(normalizedTarget); // reflect in this session's own view too
+    removedSitesData.push(siteSnapshot);
 
     // 4) If it's a built-in site (lives in SITES_DIRECTORY, hardcoded in this
     // very file), remove its entry from the source too so the homepage card
@@ -3181,6 +3251,125 @@ async function deleteWebsite(siteName, btn) {
     // a day via the GitHub Action — so without this, a successfully deleted
     // site would keep showing here until tomorrow. Remove the row now so the
     // panel reflects reality immediately.
+    const row = btn.closest('.site-row');
+    if (row) {
+      setTimeout(() => {
+        row.style.transition = 'opacity .4s ease';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 400);
+      }, 900);
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== RESTORE DELETED WEBSITE (admin panel) ==========
+// Undoes deleteWebsite(): takes the entry out of removed-sites.json (so it
+// stops being hidden everywhere) and re-adds it to custom-sites.json using
+// the url/domain/categories/icon snapshot saved at delete time — restored
+// sites always come back as "admin-added" cards (custom-sites.json), even
+// if they originally lived in the hardcoded SITES_DIRECTORY, since that's
+// the only place a restore can safely write the full card data back to.
+async function restoreWebsite(siteName, btn) {
+  const statusEl = btn.closest('.site-row').querySelector('.restore-site-status');
+  const config = getGithubConfig();
+
+  if (!config.owner || !config.repo || !config.token) {
+    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const normalizedTarget = normalizeSiteName(siteName);
+  const snapshot = removedSitesData.find(s => normalizeSiteName(s.name) === normalizedTarget);
+  if (!snapshot || !snapshot.url) {
+    statusEl.textContent = `⚠️ No saved details for "${siteName}" (deleted before Restore existed) — add it back manually via "Add New Website".`;
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Restoring...';
+  statusEl.textContent = '';
+
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    // 1) Take it out of removed-sites.json so it's no longer hidden.
+    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedGetRes = await fetch(removedUrl, { headers });
+    if (removedGetRes.status === 200) {
+      const removedFileData = await removedGetRes.json();
+      const rawRemoved = JSON.parse(b64DecodeUtf8(removedFileData.content));
+      const removedList = rawRemoved.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+      const filteredRemoved = removedList.filter(entry => normalizeSiteName(entry.name) !== normalizedTarget);
+      if (filteredRemoved.length !== removedList.length) {
+        const removedPutRes = await fetch(removedUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Restore site: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(filteredRemoved, null, 2)),
+            sha: removedFileData.sha,
+          }),
+        });
+        if (!removedPutRes.ok) {
+          const errData = await removedPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `GitHub rejected the removed-sites.json update (HTTP ${removedPutRes.status})`);
+        }
+      }
+    } else if (removedGetRes.status !== 404) {
+      throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
+    }
+
+    // 2) Re-add it to custom-sites.json so its homepage card comes back.
+    const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+    const customGetRes = await fetch(customUrl, { headers });
+    let customSha, customCurrent = [];
+    if (customGetRes.status === 200) {
+      const customFileData = await customGetRes.json();
+      customSha = customFileData.sha;
+      customCurrent = JSON.parse(b64DecodeUtf8(customFileData.content));
+    } else if (customGetRes.status !== 404) {
+      throw new Error(`Removed from removed-sites.json but could not read custom-sites.json (HTTP ${customGetRes.status})`);
+    }
+    if (!customCurrent.some(s => normalizeSiteName(s.name) === normalizedTarget)) {
+      customCurrent.push({
+        name: snapshot.name,
+        url: snapshot.url,
+        domain: snapshot.domain,
+        categories: snapshot.categories,
+        icon: snapshot.icon,
+      });
+      const customPutRes = await fetch(customUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Restore site: ${siteName}`,
+          content: b64EncodeUtf8(JSON.stringify(customCurrent, null, 2)),
+          ...(customSha ? { sha: customSha } : {}),
+        }),
+      });
+      if (!customPutRes.ok) {
+        const errData = await customPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `Removed from removed-sites.json but failed re-adding to custom-sites.json (HTTP ${customPutRes.status})`);
+      }
+    }
+
+    // Reflect it in this session's own view right away.
+    removedSitesData = removedSitesData.filter(s => normalizeSiteName(s.name) !== normalizedTarget);
+    removedSiteNames = removedSiteNames.filter(n => n !== normalizedTarget);
+    customSites.push({ name: snapshot.name, url: snapshot.url, domain: snapshot.domain, categories: snapshot.categories, icon: snapshot.icon });
+
+    statusEl.textContent = `✅ Restored "${siteName}". Takes ~1 min to appear on the homepage; next automatic check within 24h.`;
+    statusEl.style.color = '#06d6a0';
+    btn.textContent = 'Restored ✓';
+
     const row = btn.closest('.site-row');
     if (row) {
       setTimeout(() => {
