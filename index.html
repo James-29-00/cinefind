@@ -106,12 +106,6 @@
   }
   body.theme-cyber .starfield { display: block; }
 
-  /* Circuit-board texture overlay on site cards, Cyber Neon only */
-  body.theme-cyber .site-card::before {
-    content: ''; position: absolute; inset: 0; opacity: .35; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2322e5e5' stroke-width='1'%3E%3Cpath d='M10 10 H50 V30 H90'/%3E%3Cpath d='M10 60 H30 V90 H70 V110'/%3E%3Cpath d='M100 10 V50 H80 V80'/%3E%3Cpath d='M110 100 H90 V70'/%3E%3C/g%3E%3Cg fill='%2322e5e5'%3E%3Ccircle cx='50' cy='30' r='2.2'/%3E%3Ccircle cx='30' cy='90' r='2.2'/%3E%3Ccircle cx='80' cy='50' r='2.2'/%3E%3Ccircle cx='90' cy='70' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: 120px 120px;
-  }
   body.theme-cyber .site-card > * { position: relative; z-index: 1; }
   body.theme-cyber .site-card:hover {
     border-color: var(--accent); box-shadow: 0 0 24px rgba(34,229,229,.35);
@@ -194,6 +188,39 @@
   }
   .logo span { color: var(--accent); -webkit-text-fill-color: var(--accent); }
   .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
+
+  /* Online-now live badge, sits beside the logo */
+  .online-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: .78rem; font-weight: 600; letter-spacing: .02em;
+    color: #b8ffcf;
+    background: rgba(34, 197, 94, .12);
+    border: 1px solid rgba(34, 197, 94, .35);
+    padding: 5px 12px 5px 10px;
+    border-radius: 999px;
+    vertical-align: middle;
+    margin-left: 12px;
+    -webkit-text-fill-color: #b8ffcf;
+  }
+  .online-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e;
+    animation: online-pulse 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes online-pulse {
+    0%   { transform: scale(.85); box-shadow: 0 0 4px rgba(34,197,94,.6); }
+    50%  { transform: scale(1.15); box-shadow: 0 0 10px rgba(34,197,94,.9); }
+    100% { transform: scale(.85); box-shadow: 0 0 4px rgba(34,197,94,.6); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .online-dot { animation: none; }
+  }
+  @media (max-width: 480px) {
+    .online-badge { display: flex; margin: 10px auto 0; width: fit-content; }
+  }
 
   .safety-tip {
     max-width: 420px; margin: 14px auto 0;
@@ -600,7 +627,11 @@
         </button>
       </div>
     </div>
-    <div class="logo">Cine<span>Find</span></div>
+    <div class="logo">Cine<span>Find</span>
+      <span id="online-badge" class="online-badge" style="display:none;">
+        <span class="online-dot"></span><span id="online-count-text"></span>
+      </span>
+    </div>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
   </header>
 
@@ -1215,11 +1246,20 @@ async function trackVisit() {
 }
 
 function renderVisitStats(data) {
-  const el = document.getElementById('visit-stats');
-  if (!el) return;
   const total = (data.total || 0).toLocaleString();
   const online = data.online || 1;
-  el.textContent = `👀 ${online} online now · ${total} total visits`;
+
+  const badge = document.getElementById('online-badge');
+  const onlineText = document.getElementById('online-count-text');
+  if (badge && onlineText) {
+    onlineText.textContent = `${online} online now`;
+    badge.style.display = 'inline-flex';
+  }
+
+  const footerEl = document.getElementById('visit-stats');
+  if (footerEl) {
+    footerEl.textContent = `${total} visits since launch`;
+  }
 }
 
 // DEBUG ONLY — set to true to temporarily hide the static site list so you
