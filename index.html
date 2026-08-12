@@ -2547,14 +2547,25 @@ async function loadAdminPanel() {
       r => !removedSiteNames.includes(normalizeSiteName(r.name))
     );
 
-    // Newly-added/restored sites live in custom-sites.json but won't be in
-    // status.json's results until the next scheduled checker run — without
-    // this, they'd only show up here right after adding (in the same
-    // session) and vanish again on reopen.
+    // Sites live in status.json only once sites.json (the checker's own
+    // list) includes them AND the checker has actually run. Two separate
+    // gaps land a site in limbo here: (a) newly-added/restored sites that
+    // are in custom-sites.json but not yet checked, and (b) built-in
+    // SITES_DIRECTORY sites that were never added to sites.json in the
+    // first place (so the checker never even attempts them — this is what
+    // was hiding KissKH/MyAsianTV here even though their cards work fine
+    // on the homepage). Show both as "pending" instead of just vanishing.
     const checkedNames = new Set((data.results || []).map(r => normalizeSiteName(r.name)));
     freshCustomList.forEach(s => {
       if (!checkedNames.has(normalizeSiteName(s.name))) {
         data.results.push({ name: s.name, url: s.url, status: 'pending' });
+        checkedNames.add(normalizeSiteName(s.name));
+      }
+    });
+    SITES_DIRECTORY.forEach(s => {
+      if (!checkedNames.has(normalizeSiteName(s.name))) {
+        data.results.push({ name: s.name, url: s.url, status: 'pending' });
+        checkedNames.add(normalizeSiteName(s.name));
       }
     });
 
@@ -3442,6 +3453,36 @@ async function restoreWebsite(siteName, btn) {
         }
       }
       customSites.push({ name: snapshot.name, url: snapshot.url, domain: snapshot.domain, categories: snapshot.categories, icon: snapshot.icon });
+    }
+
+    // 3) Make sure the checker will actually verify this site going forward
+    // — add it to sites.json if it's not already there. This is what left
+    // KissKH/MyAsianTV stuck as "not checked yet" forever after restoring:
+    // they were built-ins that had never been added to sites.json at all,
+    // so the checker had nothing to check.
+    const sitesJsonUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/sites.json`;
+    const sitesJsonGetRes = await fetch(sitesJsonUrl, { headers });
+    if (sitesJsonGetRes.status === 200) {
+      const sitesJsonFileData = await sitesJsonGetRes.json();
+      const sitesJsonCurrent = JSON.parse(b64DecodeUtf8(sitesJsonFileData.content));
+      if (!sitesJsonCurrent.some(s => normalizeSiteName(s.name) === normalizedTarget)) {
+        sitesJsonCurrent.push({ name: siteName, url: (snapshot && snapshot.url) || (dirMatch && dirMatch.url) || '' });
+        const sitesJsonPutRes = await fetch(sitesJsonUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Add restored site to checker list: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(sitesJsonCurrent, null, 2)),
+            sha: sitesJsonFileData.sha,
+          }),
+        });
+        if (!sitesJsonPutRes.ok) {
+          const errData = await sitesJsonPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Restored but failed adding to sites.json for checking (HTTP ${sitesJsonPutRes.status})`);
+        }
+      }
+    } else if (sitesJsonGetRes.status !== 404) {
+      throw new Error(`Restored but could not read sites.json (HTTP ${sitesJsonGetRes.status})`);
     }
 
     // Reflect it in this session's own view right away.
