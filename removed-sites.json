@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "name": "Regal Entertainment",
+    "url": "https://www.youtube.com/@RegalEntertainmentInc/",
+    "domain": "youtube.com",
+    "categories": [
+      "pinoy"
+    ],
+    "removedAt": "2026-08-12T13:03:15.592Z"
+  }
+]
