@@ -5,5 +5,12 @@
     "movieTitle": "",
     "reason": "Wrong movie/title",
     "timestamp": 1786523621717
+  },
+  {
+    "siteName": "MyAsianTV",
+    "url": "https://myasiantv.com.lv/",
+    "movieTitle": "",
+    "reason": "Wrong movie/title",
+    "timestamp": 1786523660774
   }
 ]
