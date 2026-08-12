@@ -69,10 +69,10 @@
     --accent: #e63946; --accent2: #ff6b6b; --bg-glow-rgb: 230,57,70;
   }
   body.theme-cyber {
-    --bg: #05060f; --surface: #0a0d1f; --card: #0d1226;
-    --border: rgba(34,229,229,.35);
-    --text: #eef2ff; --muted: #8b93b8;
-    --accent: #22e5e5; --accent2: #6df0ff; --bg-glow-rgb: 34,229,229;
+    --bg: #0f050d; --surface: #1a0a17; --card: #1f0c1c;
+    --border: rgba(255,45,158,.35);
+    --text: #fff0f8; --muted: #c98bb0;
+    --accent: #ff2d9e; --accent2: #ff7ac4; --bg-glow-rgb: 255,45,158;
   }
   body.theme-galaxy {
     --bg: #120a1e; --surface: #1a1028; --card: #1c1230;
@@ -83,7 +83,7 @@
   /* Starfield + nebula glow, only rendered in Cyber Neon mode. Pure CSS
      (radial gradients / SVG data-URI), so no extra image requests. */
   body.theme-cyber .bg-glow {
-    background: radial-gradient(ellipse, rgba(34,229,229,.15) 0%, rgba(99,102,241,.08) 40%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(255,45,158,.15) 0%, rgba(165,45,229,.08) 40%, transparent 70%);
     width: 700px; height: 500px;
   }
   .starfield {
@@ -109,19 +109,19 @@
   /* Circuit-board texture overlay on site cards, Cyber Neon only */
   body.theme-cyber .site-card::before {
     content: ''; position: absolute; inset: 0; opacity: .35; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2322e5e5' stroke-width='1'%3E%3Cpath d='M10 10 H50 V30 H90'/%3E%3Cpath d='M10 60 H30 V90 H70 V110'/%3E%3Cpath d='M100 10 V50 H80 V80'/%3E%3Cpath d='M110 100 H90 V70'/%3E%3C/g%3E%3Cg fill='%2322e5e5'%3E%3Ccircle cx='50' cy='30' r='2.2'/%3E%3Ccircle cx='30' cy='90' r='2.2'/%3E%3Ccircle cx='80' cy='50' r='2.2'/%3E%3Ccircle cx='90' cy='70' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23ff2d9e' stroke-width='1'%3E%3Cpath d='M10 10 H50 V30 H90'/%3E%3Cpath d='M10 60 H30 V90 H70 V110'/%3E%3Cpath d='M100 10 V50 H80 V80'/%3E%3Cpath d='M110 100 H90 V70'/%3E%3C/g%3E%3Cg fill='%23ff2d9e'%3E%3Ccircle cx='50' cy='30' r='2.2'/%3E%3Ccircle cx='30' cy='90' r='2.2'/%3E%3Ccircle cx='80' cy='50' r='2.2'/%3E%3Ccircle cx='90' cy='70' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
     background-size: 120px 120px;
   }
   body.theme-cyber .site-card > * { position: relative; z-index: 1; }
   body.theme-cyber .site-card:hover {
-    border-color: var(--accent); box-shadow: 0 0 24px rgba(34,229,229,.35);
+    border-color: var(--accent); box-shadow: 0 0 24px rgba(255,45,158,.35);
   }
   body.theme-cyber .search-box,
   body.theme-cyber .search-wrap > div:first-child {
-    box-shadow: 0 0 24px rgba(34,229,229,.25);
+    box-shadow: 0 0 24px rgba(255,45,158,.25);
   }
   body.theme-cyber .logo span {
-    filter: drop-shadow(0 0 12px rgba(34,229,229,.6));
+    filter: drop-shadow(0 0 12px rgba(255,45,158,.6));
   }
 
   /* Nebula glow + twinkling stars, Galaxy theme only */
@@ -417,9 +417,9 @@
     display: flex; align-items: center; justify-content: center; overflow: hidden;
   }
   .site-logo-box > * { transform: scale(.62); transform-origin: center; }
-  .site-info { flex: 1; }
-  .site-name { font-weight: 600; font-size: .95rem; }
-  .site-note { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+  .site-info { flex: 1; min-width: 0; }
+  .site-name { font-weight: 600; font-size: .95rem; overflow-wrap: break-word; }
+  .site-note { font-size: .75rem; color: var(--muted); margin-top: 2px; overflow-wrap: break-word; }
   .site-free { font-size: .7rem; font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
   .arrow { color: var(--muted); font-size: .8rem; }
   .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 20px; align-items: stretch; }
@@ -484,13 +484,24 @@
 
   /* Explicit text status strip at the bottom of each directory card, so users
      don't have to interpret a colored dot — the word is right there. Sits on
-     top of the card, doesn't push card height (card has fixed height). */
+     top of the card, doesn't push card height (card has fixed height). Flex
+     row (not just centered text) so the Report pill can live inside this
+     same strip, right-aligned, instead of floating as a separate absolutely
+     positioned button that used to overlap/crowd this corner of the card. */
   .status-label-mini {
-    display: none; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    text-align: center; font-size: .58rem; font-weight: 700; letter-spacing: .03em;
-    text-transform: uppercase; padding: 3px 4px 4px;
-    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    display: none; align-items: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    padding: 3px 6px 4px 8px;
+    color: #fff;
   }
+  .status-label-mini .status-text-mini {
+    flex: 1; text-align: center; font-size: .58rem; font-weight: 700; letter-spacing: .03em;
+    text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
+  .status-label-mini .report-icon {
+    flex-shrink: 0; margin-left: 4px;
+    color: rgba(255,255,255,.75); background: rgba(0,0,0,.28);
+  }
+  .status-label-mini .report-icon:hover { color: #fff; background: rgba(0,0,0,.4); }
   /* Small "HOT" text badge, top-right area next to the pin icon. */
   .hot-label-mini {
     position: absolute; top: 7px; right: 32px; z-index: 2;
@@ -781,8 +792,7 @@ function buildFavSiteCard(s) {
   return `
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
-        <span class="status-dot-mini" data-status-dot style="position:absolute; top:7px; left:9px; width:15px; height:15px; z-index:2; filter:drop-shadow(0 0 2px rgba(0,0,0,.6));"></span>
-        <span class="status-label-mini" data-status-label></span>
+        <span class="status-label-mini" data-status-label><span class="status-text-mini" data-status-text></span></span>
         <button class="pin-icon faved" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
         </button>
@@ -1933,22 +1943,30 @@ function applyStatusDots() {
   if (!siteStatusMap) return;
   document.querySelectorAll('[data-site-name]').forEach(el => {
     const dot = el.querySelector('[data-status-dot]');
-    if (!dot) return;
+    const label = el.querySelector('[data-status-label]');
+    if (!dot && !label) return;
     const status = getSiteStatus(el.dataset.siteName);
     const color = statusDotColor(status);
-    const label = el.querySelector('[data-status-label]');
     if (color) {
       const tooltipText = statusDotLabel(status);
-      dot.innerHTML = statusDotIcon(status, color);
-      dot.style.display = 'inline-flex';
-      dot.style.borderColor = color;
-      dot.style.filter = `drop-shadow(0 0 4px ${color})`;
-      dot.title = tooltipText;
-      dot.setAttribute('role', 'img');
-      dot.setAttribute('aria-label', tooltipText);
+      if (dot) {
+        dot.innerHTML = statusDotIcon(status, color);
+        dot.style.display = 'inline-flex';
+        dot.style.borderColor = color;
+        dot.style.filter = `drop-shadow(0 0 4px ${color})`;
+        dot.title = tooltipText;
+        dot.setAttribute('role', 'img');
+        dot.setAttribute('aria-label', tooltipText);
+      }
       if (label) {
-        label.textContent = statusLabelText(status);
-        label.style.display = 'block';
+        // Older card types (e.g. favorites) still have the label itself as
+        // the text node with no Report button inside — falls back to
+        // writing directly on `label` for those. The homepage directory
+        // card now nests a dedicated text span so this can set the text
+        // without wiping out the Report button that lives alongside it.
+        const textEl = label.querySelector('[data-status-text]') || label;
+        textEl.textContent = statusLabelText(status);
+        label.style.display = 'flex';
         label.style.background = status === 'up'
           ? 'linear-gradient(0deg, rgba(6,214,160,.85), rgba(6,214,160,.55))'
           : status === 'blocked'
@@ -1957,11 +1975,17 @@ function applyStatusDots() {
         label.title = tooltipText;
       }
     } else {
-      dot.style.display = 'none';
-      dot.innerHTML = '';
-      dot.style.filter = '';
-      dot.removeAttribute('aria-label');
-      if (label) { label.style.display = 'none'; label.textContent = ''; }
+      if (dot) {
+        dot.style.display = 'none';
+        dot.innerHTML = '';
+        dot.style.filter = '';
+        dot.removeAttribute('aria-label');
+      }
+      if (label) {
+        label.style.display = 'none';
+        const textEl = label.querySelector('[data-status-text]');
+        if (textEl) textEl.textContent = ''; else label.textContent = '';
+      }
     }
   });
 }
@@ -2100,11 +2124,12 @@ function renderSitesDirectory() {
     return `
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
-        <span class="status-dot-mini" data-status-dot style="position:absolute; top:7px; left:9px; width:15px; height:15px; z-index:2; filter:drop-shadow(0 0 2px rgba(0,0,0,.6));"></span>
-        <span class="status-label-mini" data-status-label></span>
+        <span class="status-label-mini" data-status-label>
+          <span class="status-text-mini" data-status-text></span>
+          <button class="pin-icon report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>Report</button>
+        </span>
         ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
-        <button class="pin-icon report-icon" style="position:absolute; bottom:6px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>Report</button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -2358,6 +2383,11 @@ async function loadAdminPanel() {
       border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px;
     }
     #admin-overlay .restore-site-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .delete-permanent-btn {
+      background: #16161f; border: 1px solid #ffffff1f; color: #9494b5;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px; margin-left: 6px;
+    }
+    #admin-overlay .delete-permanent-btn:disabled { opacity: .5; cursor: default; }
     #admin-overlay .site-name { font-weight: 600; color: #f0f0f5; flex: 1; }
     #admin-overlay .site-meta { font-size: .72rem; color: #9494b5; }
     #admin-overlay .replace-input {
@@ -2597,13 +2627,16 @@ function renderAdminPanel(data) {
         <p style="font-size:.75rem; color:#9494b5; margin:0;">Wala pang deleted sites.</p>
       ` : removedSitesData.map(s => {
         const safeName = s.name.replace(/'/g, "\\'");
-        const hasSnapshot = !!s.url;
+        const dirBackup = SITES_DIRECTORY.find(d => normalizeSiteName(d.name) === normalizeSiteName(s.name));
+        const hasSnapshot = !!s.url || !!dirBackup;
+        const urlLabel = s.url || (dirBackup ? dirBackup.url + ' (built-in, still in code)' : 'No saved URL (deleted before Restore existed)');
         return `
         <div class="site-row" style="background:#0f0f16;">
           <div style="flex:1;">
             <div class="site-name">${s.name} ${s.icon || ''}</div>
-            <div class="site-meta">${s.url || 'No saved URL (deleted before Restore existed)'}${s.removedAt ? ' — deleted ' + new Date(s.removedAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) : ''}</div>
+            <div class="site-meta">${urlLabel}${s.removedAt ? ' — deleted ' + new Date(s.removedAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) : ''}</div>
             <button class="restore-site-btn" ${hasSnapshot ? '' : 'disabled'} onclick="restoreWebsite('${safeName}', this)">♻️ Restore</button>
+            <button class="delete-permanent-btn" onclick="confirmDeletePermanently('${safeName}', this)">🗑️ Delete Permanently</button>
             <div class="restore-site-status site-meta" style="margin-top:4px;"></div>
           </div>
         </div>
@@ -3286,8 +3319,14 @@ async function restoreWebsite(siteName, btn) {
 
   const normalizedTarget = normalizeSiteName(siteName);
   const snapshot = removedSitesData.find(s => normalizeSiteName(s.name) === normalizedTarget);
-  if (!snapshot || !snapshot.url) {
-    statusEl.textContent = `⚠️ No saved details for "${siteName}" (deleted before Restore existed) — add it back manually via "Add New Website".`;
+  // Legacy deletes (before the snapshot feature existed) only saved a name,
+  // no url — but if the site is still a built-in (its SITES_DIRECTORY entry
+  // was never actually stripped from the source, just hidden via
+  // removed-sites.json), we already have everything we need right here.
+  const dirMatch = SITES_DIRECTORY.find(s => normalizeSiteName(s.name) === normalizedTarget);
+  const hasUsableData = (snapshot && snapshot.url) || dirMatch;
+  if (!hasUsableData) {
+    statusEl.textContent = `⚠️ No saved details for "${siteName}" (deleted before Restore existed, and it's not a built-in either) — add it back manually via "Add New Website".`;
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3327,48 +3366,141 @@ async function restoreWebsite(siteName, btn) {
       throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
     }
 
-    // 2) Re-add it to custom-sites.json so its homepage card comes back.
-    const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
-    const customGetRes = await fetch(customUrl, { headers });
-    let customSha, customCurrent = [];
-    if (customGetRes.status === 200) {
-      const customFileData = await customGetRes.json();
-      customSha = customFileData.sha;
-      customCurrent = JSON.parse(b64DecodeUtf8(customFileData.content));
-    } else if (customGetRes.status !== 404) {
-      throw new Error(`Removed from removed-sites.json but could not read custom-sites.json (HTTP ${customGetRes.status})`);
-    }
-    if (!customCurrent.some(s => normalizeSiteName(s.name) === normalizedTarget)) {
-      customCurrent.push({
-        name: snapshot.name,
-        url: snapshot.url,
-        domain: snapshot.domain,
-        categories: snapshot.categories,
-        icon: snapshot.icon,
-      });
-      const customPutRes = await fetch(customUrl, {
-        method: 'PUT',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `Restore site: ${siteName}`,
-          content: b64EncodeUtf8(JSON.stringify(customCurrent, null, 2)),
-          ...(customSha ? { sha: customSha } : {}),
-        }),
-      });
-      if (!customPutRes.ok) {
-        const errData = await customPutRes.json().catch(() => ({}));
-        throw new Error(errData.message || `Removed from removed-sites.json but failed re-adding to custom-sites.json (HTTP ${customPutRes.status})`);
+    // 2) Re-add it to custom-sites.json so its homepage card comes back —
+    // only needed when it's not already a built-in. If it's still sitting
+    // in SITES_DIRECTORY (dirMatch), unhiding it via step 1 above is enough;
+    // adding it to custom-sites.json too would just create a duplicate card.
+    if (!dirMatch) {
+      const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+      const customGetRes = await fetch(customUrl, { headers });
+      let customSha, customCurrent = [];
+      if (customGetRes.status === 200) {
+        const customFileData = await customGetRes.json();
+        customSha = customFileData.sha;
+        customCurrent = JSON.parse(b64DecodeUtf8(customFileData.content));
+      } else if (customGetRes.status !== 404) {
+        throw new Error(`Removed from removed-sites.json but could not read custom-sites.json (HTTP ${customGetRes.status})`);
       }
+      if (!customCurrent.some(s => normalizeSiteName(s.name) === normalizedTarget)) {
+        customCurrent.push({
+          name: snapshot.name,
+          url: snapshot.url,
+          domain: snapshot.domain,
+          categories: snapshot.categories,
+          icon: snapshot.icon,
+        });
+        const customPutRes = await fetch(customUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Restore site: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(customCurrent, null, 2)),
+            ...(customSha ? { sha: customSha } : {}),
+          }),
+        });
+        if (!customPutRes.ok) {
+          const errData = await customPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Removed from removed-sites.json but failed re-adding to custom-sites.json (HTTP ${customPutRes.status})`);
+        }
+      }
+      customSites.push({ name: snapshot.name, url: snapshot.url, domain: snapshot.domain, categories: snapshot.categories, icon: snapshot.icon });
     }
 
     // Reflect it in this session's own view right away.
     removedSitesData = removedSitesData.filter(s => normalizeSiteName(s.name) !== normalizedTarget);
     removedSiteNames = removedSiteNames.filter(n => n !== normalizedTarget);
-    customSites.push({ name: snapshot.name, url: snapshot.url, domain: snapshot.domain, categories: snapshot.categories, icon: snapshot.icon });
 
     statusEl.textContent = `✅ Restored "${siteName}". Takes ~1 min to appear on the homepage; next automatic check within 24h.`;
     statusEl.style.color = '#06d6a0';
     btn.textContent = 'Restored ✓';
+
+    const row = btn.closest('.site-row');
+    if (row) {
+      setTimeout(() => {
+        row.style.transition = 'opacity .4s ease';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 400);
+      }, 900);
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== DELETE PERMANENTLY (admin panel — clears "Recently Deleted" history) ==========
+// Different from deleteWebsite(): that one hides a *live* site by adding it
+// to removed-sites.json. This one wipes an entry that's *already* in
+// removed-sites.json, so it stops accumulating there forever and stops
+// showing up in the Recently Deleted list. It never touches sites.json,
+// custom-sites.json, or SITES_DIRECTORY — the site is already gone from
+// those; this just clears its history record. Not reversible — no snapshot
+// is kept after this.
+function confirmDeletePermanently(siteName, btn) {
+  const ok = confirm(`Permanent na buburahin ang "${siteName}" sa Recently Deleted history.\n\nHindi na ito mababawi (kahit yung Restore option).`);
+  if (!ok) return;
+  deletePermanently(siteName, btn);
+}
+
+async function deletePermanently(siteName, btn) {
+  const statusEl = btn.closest('.site-row').querySelector('.restore-site-status');
+  const config = getGithubConfig();
+
+  if (!config.owner || !config.repo || !config.token) {
+    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const normalizedTarget = normalizeSiteName(siteName);
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+  statusEl.textContent = '';
+
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedGetRes = await fetch(removedUrl, { headers });
+    if (!removedGetRes.ok) throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
+    const removedFileData = await removedGetRes.json();
+    const rawRemoved = JSON.parse(b64DecodeUtf8(removedFileData.content));
+    const removedList = rawRemoved.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+    const filteredRemoved = removedList.filter(entry => normalizeSiteName(entry.name) !== normalizedTarget);
+
+    if (filteredRemoved.length === removedList.length) {
+      throw new Error(`"${siteName}" wasn't found in removed-sites.json.`);
+    }
+
+    const removedPutRes = await fetch(removedUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Permanently clear deleted-site record: ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(filteredRemoved, null, 2)),
+        sha: removedFileData.sha,
+      }),
+    });
+    if (!removedPutRes.ok) {
+      const errData = await removedPutRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the removed-sites.json update (HTTP ${removedPutRes.status})`);
+    }
+
+    // Reflect it in this session's own view right away.
+    removedSitesData = removedSitesData.filter(s => normalizeSiteName(s.name) !== normalizedTarget);
+    removedSiteNames = removedSiteNames.filter(n => n !== normalizedTarget);
+    // NOTE: this site is now gone from removed-sites.json — it's no longer
+    // actively hidden by name. If it's still sitting in SITES_DIRECTORY or
+    // custom-sites.json, it will reappear on the site next load. That's
+    // expected: "delete permanently" here means "stop remembering it was
+    // deleted," not "delete it again."
+
+    statusEl.textContent = `✅ Cleared "${siteName}" from history.`;
+    statusEl.style.color = '#06d6a0';
+    btn.textContent = 'Cleared ✓';
 
     const row = btn.closest('.site-row');
     if (row) {
