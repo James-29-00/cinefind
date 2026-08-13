@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CineFind — Free Movie & Show Search</title>
 <meta name="description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://James-29-00.github.io/cinefind/">
 
 <!-- Favicon: inline SVG, no separate file needed. Fixed red brand mark
      regardless of active theme, same reasoning as the logo colors — a
@@ -163,6 +165,17 @@
     min-height: 100vh;
     overflow-x: hidden;
     transition: background .3s, color .3s;
+  }
+
+  /* ===== Accessibility: global keyboard-focus fallback ===== */
+  /* Elements that already define their own :focus-visible style (search
+     input, pills, pin icons, etc.) keep using that. This is just a safety
+     net for every other button/link/input in the app so keyboard users
+     always get a visible focus ring, not just mouse-hover states. */
+  a:focus-visible, button:focus-visible, input:focus-visible,
+  select:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   body::before {
@@ -398,6 +411,17 @@
   .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 60px 0; color: var(--muted); }
   .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== Skeleton loader (initial search result) ===== */
+  /* Shows the shape of the movie header + site grid immediately, instead of
+     a bare spinner, so the layout feels like it's "arriving" rather than
+     the page looking frozen while the TMDB/AI calls are in flight. */
+  .poster-shimmer {
+    background: linear-gradient(90deg, var(--card) 25%, rgba(255,255,255,.06) 50%, var(--card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
   .movie-header {
     display: flex; gap: 20px; align-items: flex-start;
@@ -696,6 +720,8 @@
     <div class="suggestions-box" id="suggestions-box"></div>
   </div>
 
+  <div id="onboarding-banner"></div>
+
   <div style="display:flex; justify-content:flex-end; margin:-6px 0 18px;">
     <button class="fav-quick-link" onclick="showFavorites()"><span class="fav-star-icon">★</span> My Favorites (<span id="fav-count">0</span>)</button>
   </div>
@@ -738,6 +764,7 @@
 
   <footer>
     <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
+    <p style="margin-top:6px;"><button onclick="openAboutModal()" style="background:none; border:none; color:var(--muted); text-decoration:underline; font-size:.78rem; cursor:pointer; padding:0;">ℹ️ About & Disclaimer</button></p>
     <p id="visit-stats" style="opacity:0.7; font-size:0.85em; margin-top:4px;"></p>
   </footer>
 </div>
@@ -944,7 +971,7 @@ function showFavorites(sortBy) {
     html += `
       <div class="movie-header" style="margin-bottom:16px;">
         <div class="movie-poster${movie.poster ? ' poster-loading' : ''}" id="poster-${movie.title}">
-          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
+          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
         </div>
         <div class="movie-info">
           <div class="movie-title">${movie.title}</div>
@@ -1069,7 +1096,7 @@ function renderVisibleResults() {
   const cards = visible.map((m, i) => `
     <div class="result-card" onclick="selectMovie(${i})" style="animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
       <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
       </div>
       <div class="result-info">
         <div class="result-title">${m.title}</div>
@@ -1203,7 +1230,7 @@ function renderSuggestions(results, currentQuery) {
     const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : null;
     return `
       <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(title)}')">
-        <div class="suggestion-poster">${poster ? `<img class="poster-img" src="${poster}" alt="" onload="this.style.opacity=1">` : (r.media_type === 'tv' ? '📺' : '🎬')}</div>
+        <div class="suggestion-poster">${poster ? `<img class="poster-img" src="${poster}" alt="" loading="lazy" onload="this.style.opacity=1">` : (r.media_type === 'tv' ? '📺' : '🎬')}</div>
         <div class="suggestion-text">
           <div class="suggestion-title">${escapeAttr(title)}</div>
           <div class="suggestion-meta">${type}${year ? ' • ' + year : ''}</div>
@@ -1230,6 +1257,34 @@ function closeSuggestions() {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.search-wrap')) closeSuggestions();
 });
+
+// ========== FIRST-VISIT ONBOARDING ==========
+// One-time dismissible tip explaining the two things new visitors ask about
+// most: what the ✅/⚠️ link-type tags mean on a site card, and that the
+// colored status dots (🟢🟡🔴) are tap/hover-able for more detail. Shown
+// once via a localStorage flag — never re-shown after dismissal or on
+// repeat visits, so returning users aren't nagged by it.
+const ONBOARDING_SEEN_KEY = 'cinefind-onboarding-seen';
+function showOnboardingIfNeeded() {
+  if (localStorage.getItem(ONBOARDING_SEEN_KEY)) return;
+  const el = document.getElementById('onboarding-banner');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="background:rgba(230,57,70,.08); border:1px solid rgba(230,57,70,.25); border-radius:12px; padding:12px 14px; margin:-4px 0 18px; font-size:.78rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;">
+      <span style="font-size:1.1rem; flex-shrink:0;">💡</span>
+      <span style="flex:1;">
+        <strong style="color:var(--text);">Quick tip:</strong>
+        ✅ means a direct link to that title, ⚠️ means you'll need to search once you're on the site.
+        The colored dot (🟢🟡🔴) shows if a site's currently online — tap it for details.
+      </span>
+      <button onclick="dismissOnboarding()" aria-label="Dismiss tip" style="background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; flex-shrink:0; line-height:1; padding:0;">✕</button>
+    </div>`;
+}
+function dismissOnboarding() {
+  localStorage.setItem(ONBOARDING_SEEN_KEY, '1');
+  const el = document.getElementById('onboarding-banner');
+  if (el) el.innerHTML = '';
+}
 
 // ========== SEARCH HISTORY ==========
 const SEARCH_HISTORY_KEY = 'cinefind-search-history';
@@ -1543,7 +1598,21 @@ function searchMovie() {
   saveSearchHistory(query);
   isSearching = true;
   const area = document.getElementById('result-area');
-  area.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching...</p></div>';
+  area.innerHTML = `
+    <div style="display:flex; gap:16px;" aria-hidden="true">
+      <div class="poster-shimmer" style="width:110px; height:165px; border-radius:12px; flex-shrink:0;"></div>
+      <div style="flex:1; display:flex; flex-direction:column; gap:10px; padding-top:4px;">
+        <div class="poster-shimmer" style="height:22px; width:70%; border-radius:6px;"></div>
+        <div class="poster-shimmer" style="height:14px; width:40%; border-radius:6px;"></div>
+        <div class="poster-shimmer" style="height:14px; width:90%; border-radius:6px;"></div>
+        <div class="poster-shimmer" style="height:14px; width:80%; border-radius:6px;"></div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" aria-hidden="true">
+      ${Array(4).fill('<div class="poster-shimmer" style="height:86px; border-radius:14px;"></div>').join('')}
+    </div>
+    <p style="text-align:center; color:var(--muted); font-size:.8rem; margin-top:16px;">Searching…</p>
+  `;
 
   let cached = getFromCache(query);
   if (cached && !Array.isArray(cached)) cached = [cached]; // back-compat with old single-object cache format
@@ -1573,11 +1642,21 @@ function searchMovie() {
           <button class="pop-chip" onclick="quickSearch('${escapeAttr(s)}')" style="margin-right:8px; margin-top:8px;">
             🔍 ${escapeAttr(s)}
           </button>`).join('');
-        area.innerHTML = `
+        // TMDB itself found nothing even loosely related (not just no
+        // poster-having match) — "Did you mean..." would be misleading with
+        // an empty list under it, so this shows different, more actionable
+        // copy instead of a dead-end.
+        area.innerHTML = suggestions.length > 0 ? `
           <div class="empty">
             <div class="big">🤔</div>
-            <p style="margin-bottom:20px;">Couldn't find "<strong>${query}</strong>". Did you mean...</p>
+            <p style="margin-bottom:20px;">Couldn't find "<strong>${escapeAttr(query)}</strong>". Did you mean...</p>
             ${suggestionCards}
+          </div>` : `
+          <div class="empty">
+            <div class="big">🔍</div>
+            <p style="margin-bottom:6px;">No matches for "<strong>${escapeAttr(query)}</strong>".</p>
+            <p style="color:var(--muted); font-size:.82rem; margin-bottom:20px;">Double-check the spelling, try the original (non-translated) title, or search a shorter keyword.</p>
+            <button class="pop-chip" onclick="document.getElementById('search-input').value=''; document.getElementById('search-input').focus();">✏️ Edit search</button>
           </div>`;
         return;
       }
@@ -1659,6 +1738,39 @@ function checkDescOverflow() {
   if (desc.scrollHeight > desc.clientHeight + 2) {
     toggleBtn.style.display = 'inline-block';
   }
+}
+
+// ===== SEO: JSON-LD structured data (Movie/TVSeries schema) =====
+// Injected/updated per search result so a JS-executing crawler (Googlebot
+// renders JS before indexing) sees structured data for the specific title
+// being viewed, not just the generic homepage meta tags — this is what
+// enables rich results (poster, rating) in search listings. Removes any
+// previous instance first so navigating between titles doesn't stack up
+// duplicate tags in <head>.
+function injectMovieStructuredData(data) {
+  const existing = document.getElementById('movie-jsonld');
+  if (existing) existing.remove();
+  if (!data || !data.title) return;
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': data.type === 'series' ? 'TVSeries' : 'Movie',
+    name: data.title,
+    ...(data.description ? { description: data.description } : {}),
+    ...(data.poster ? { image: data.poster } : {}),
+    ...(data.year ? { datePublished: String(data.year) } : {}),
+    ...(data.rating ? { aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: data.rating,
+      bestRating: '10',
+      ratingCount: 1
+    } } : {}),
+  };
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.id = 'movie-jsonld';
+  script.textContent = JSON.stringify(schema);
+  document.head.appendChild(script);
 }
 
 function renderResult(data, query) {
@@ -1747,6 +1859,7 @@ function renderResult(data, query) {
 
   // Store current data for favorites
   window.currentMovie = data;
+  injectMovieStructuredData(data);
 
   if (data.id) loadSimilar(data);
 
@@ -1784,7 +1897,7 @@ function loadSimilar(movie) {
       grid.innerHTML = results.map((m, i) => `
         <div class="result-card" onclick="selectSimilar(${i})" style="animation-delay:${i * 0.05}s">
           <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-            ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+            ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
           </div>
           <div class="result-info">
             <div class="result-title">${m.title}</div>
@@ -1886,6 +1999,35 @@ function openReportModal(siteName, url) {
       <div style="display:flex; gap:8px;">
         <button class="pop-chip" style="flex:1;" onclick="document.getElementById('report-modal-overlay').remove()">Cancel</button>
         <button class="pop-chip" id="report-submit-btn" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent);" disabled onclick="submitReport('${escapeAttr(siteName)}', '${escapeAttr(url)}', '${escapeAttr(movieTitle)}')">Submit</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+// ===== About & Disclaimer modal (footer link) =====
+// Expands on the one-line footer disclaimer with the fuller legal/trust
+// context a directory site like this should surface: no hosting, no
+// affiliation with listed sites, and how to flag a broken/bad link (reuses
+// the same report flow already wired up per-site, see openReportModal above).
+function openAboutModal() {
+  const existing = document.getElementById('about-modal-overlay');
+  if (existing) { existing.remove(); return; }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'about-modal-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div style="background:#1a1a2e; border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:20px; max-width:380px; width:100%; max-height:80vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-weight:700; color:#f0f0f5;">ℹ️ About & Disclaimer</div>
+        <button onclick="document.getElementById('about-modal-overlay').remove()" style="background:none; border:none; color:#9494b5; font-size:1.1rem; cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:.8rem; color:#c3c3d6; line-height:1.6;">
+        <p style="margin-bottom:10px;"><strong>CineFind is a search &amp; directory tool only.</strong> We don't host, upload, or store any video content ourselves — we help you find where a title might be available on other, independent websites.</p>
+        <p style="margin-bottom:10px;">We're not affiliated with any of the third-party sites listed. Their availability, legality, and content are entirely outside our control, and can change at any time.</p>
+        <p style="margin-bottom:10px;">Streaming laws vary by country. Please check what's legal to access in your own region before using any listed site.</p>
+        <p style="margin-bottom:10px;">Found a broken link, a site with excessive ads/popups, or something that looks wrong? Use the 🚩 report button next to that site's card — reports go straight to us and help keep the list accurate for everyone.</p>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -2479,6 +2621,7 @@ window.addEventListener('load', () => {
   loadCustomSites();
   loadHotSites();
   checkAdminAccess();
+  showOnboardingIfNeeded();
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
@@ -2632,9 +2775,9 @@ async function loadAdminPanel() {
     <div class="test-link-box" id="gh-config-box">
       <div class="test-link-title">🔐 Admin Login (needed for live link updates)</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" ${loggedIn ? 'style=\'display:none;\'' : ''}>
-        <button class="test-link-btn" style="width:100%;" id="admin-login-btn" onclick="adminLogin()" ${loggedIn ? 'style=\'display:none;\'' : ''}>Log In</button>
-        <button class="test-link-btn" style="width:100%;" id="admin-logout-btn" onclick="adminLogout()" ${loggedIn ? '' : 'style=\'display:none;\''}>Log Out</button>
+        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" style="${loggedIn ? 'display:none;' : ''}">
+        <button class="test-link-btn" id="admin-login-btn" onclick="adminLogin()" style="width:100%;${loggedIn ? ' display:none;' : ''}">Log In</button>
+        <button class="test-link-btn" id="admin-logout-btn" onclick="adminLogout()" style="width:100%;${loggedIn ? '' : ' display:none;'}">Log Out</button>
         <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${loggedIn ? '✅ Logged in — session active for a few hours.' : 'Not logged in — enter the admin password to enable live edits.'}</div>
       </div>
     </div>
@@ -2807,9 +2950,9 @@ function renderAdminPanel(data) {
     <div class="test-link-box" id="gh-config-box">
       <div class="test-link-title">🔐 Admin Login (needed for live link updates)</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" ${loggedIn ? 'style=\'display:none;\'' : ''}>
-        <button class="test-link-btn" style="width:100%;" id="admin-login-btn" onclick="adminLogin()" ${loggedIn ? 'style=\'display:none;\'' : ''}>Log In</button>
-        <button class="test-link-btn" style="width:100%;" id="admin-logout-btn" onclick="adminLogout()" ${loggedIn ? '' : 'style=\'display:none;\''}>Log Out</button>
+        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" style="${loggedIn ? 'display:none;' : ''}">
+        <button class="test-link-btn" id="admin-login-btn" onclick="adminLogin()" style="width:100%;${loggedIn ? ' display:none;' : ''}">Log In</button>
+        <button class="test-link-btn" id="admin-logout-btn" onclick="adminLogout()" style="width:100%;${loggedIn ? '' : ' display:none;'}">Log Out</button>
         <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${loggedIn ? '✅ Logged in — session active for a few hours.' : 'Not logged in — enter the admin password to enable live edits.'}</div>
       </div>
     </div>
