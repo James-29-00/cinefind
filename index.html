@@ -2314,6 +2314,14 @@ function statusDotLabel(status) {
   return status === 'up' ? 'Online' : status === 'blocked' ? 'Usually works — flagged by the site\'s bot protection, not necessarily down' : status === 'down' ? 'Might be down' : '';
 }
 
+// Short status word shown directly on the card (Online / Warning / Down).
+// The dot above already conveys this via color/icon too, but a lot of users
+// don't parse color-only signals — pairing it with a word is more accessible
+// and answers the question people actually have ("does this work right now?").
+function statusShortLabel(status) {
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'Warning' : status === 'down' ? 'Down' : '';
+}
+
 // Relative "last checked" freshness text shown on the card's bottom strip —
 // this replaced the old per-card status word (Online/Flagged/Offline), which
 // just repeated what the dot icon+color already says. One signal (the dot)
@@ -2377,10 +2385,10 @@ function applyStatusDots() {
         // writing directly on `label` for those. The homepage directory
         // card now nests a dedicated text span so this can set the text
         // without wiping out the Report button that lives alongside it.
-        // Shows freshness ("Checked 2h ago"), not the status word — the dot
-        // above already communicates status via icon+color.
+        // Shows the status word (Online/Warning/Down) directly, so users
+        // don't have to interpret the dot's color on their own.
         const textEl = label.querySelector('[data-status-text]') || label;
-        textEl.textContent = formatRelativeTime(siteStatusLastRun);
+        textEl.textContent = statusShortLabel(status);
         label.style.display = 'flex';
         label.title = tooltipText;
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
