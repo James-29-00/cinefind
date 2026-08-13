@@ -52,18 +52,11 @@
     --muted: #9494b5;
   }
 
-  /* Light Mode */
-  /* --muted darkened from the original #6c757d — that only hit ~4.45:1
-     contrast against --bg (#f8f9fa), just under the 4.5:1 WCAG AA minimum
-     for normal-size text. #5f6672 clears ~5.5:1. */
-  body.light-mode {
-    --bg: #f8f9fa;
-    --surface: #ffffff;
-    --card: #f0f2f5;
-    --border: #0000001a;
-    --text: #1a1a2e;
-    --muted: #5f6672;
-  }
+  /* Note: CineFind is intentionally dark-mode-only — the theme toggle
+     cycles color themes (Crimson/Cyber/Galaxy), not a dark/light switch.
+     A .light-mode variant used to exist here but nothing in the app ever
+     applied that class, so it was dead code — removed rather than kept
+     around as an unused, unmaintained variant. */
 
   /* ===== Color Themes ===== */
   /* Three full themes cycled via the moon button — Crimson (default) is the
@@ -352,7 +345,8 @@
     border-radius: 9999px;
     border: 1.5px solid transparent;
     cursor: pointer; white-space: nowrap;
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow .2s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25);
   }
   .genre-pill:hover { opacity: 0.85; transform: translateY(-1px); }
   .dual-gradient-pill {
@@ -369,6 +363,7 @@
       linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25);
   }
   .dual-gradient-pill.active {
     color: var(--text); font-weight: 600;
@@ -483,14 +478,17 @@
   .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: .7rem; color: var(--muted); }
   .site-card {
     position: relative;
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    background: var(--card);
+    border: 1px solid rgba(var(--bg-glow-rgb),.35);
+    border-radius: 14px;
     padding: 16px; text-decoration: none; color: var(--text);
     display: flex; align-items: center; gap: 14px;
     transition: border-color .2s, transform .2s, box-shadow .2s;
     animation: fadeUp .4s ease forwards;
     max-width: 100%; overflow: hidden;
+    box-shadow: 0 0 10px rgba(var(--bg-glow-rgb),.12);
   }
-  .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
+  .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 0 20px rgba(var(--bg-glow-rgb),.3); }
   .site-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
   .site-logo-box {
     width: 64px; height: 46px; border-radius: 10px; flex-shrink: 0;
@@ -508,21 +506,15 @@
   /* ===== Gradient-border directory card ===== */
   .gradient-card-wrapper {
     position: relative;
-    border-radius: 16px;
-    padding: 1px;
-    /* Static, subtle border by default — glow is reserved for Hot cards
-       (see .is-hot below) so it actually means something instead of every
-       card in the grid glowing the same way. */
-    background: var(--border);
-    transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
+    border-radius: 30px;
+    padding: 2.5px;
+    aspect-ratio: 1 / 1;
+    background: linear-gradient(135deg, #22e5c9 0%, #d4e157 100%);
+    box-shadow: 0 0 18px rgba(34,229,201,.35), 0 0 4px rgba(34,229,201,.5);
+    transition: transform .2s ease, box-shadow .2s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
   }
-  /* Status border — deliberately selective, not applied to every card.
-     Online is the expected default (most cards), so it stays silent —
-     giving it a border too would just be noise. Down gets the strongest
-     signal since that's the one thing worth catching at a glance before
-     tapping in. Blocked sits quietly in between. */
   .gradient-card-wrapper.status-border-down {
     background: rgba(230,57,70,.55);
     box-shadow: 0 0 8px rgba(230,57,70,.18);
@@ -532,32 +524,37 @@
   }
   .gradient-card-wrapper:hover {
     transform: translateY(-3px);
-    background: rgba(var(--bg-glow-rgb),.45);
+    box-shadow: 0 0 26px rgba(34,229,201,.5), 0 0 6px rgba(34,229,201,.6);
   }
   .gradient-card-wrapper:active {
     transform: scale(.97);
     transition: transform .1s ease;
   }
   .gradient-card-wrapper.is-hot {
-    background: linear-gradient(135deg, #f0b428 0%, rgba(var(--bg-glow-rgb),.6) 100%);
-    box-shadow: 0 0 14px rgba(240,180,40,.25);
+    background: linear-gradient(135deg, #d4e157 0%, #22e5c9 100%);
+    box-shadow: 0 0 20px rgba(212,225,87,.4), 0 0 6px rgba(34,229,201,.4);
   }
   .gradient-card-wrapper.is-hot:hover {
-    box-shadow: 0 0 20px rgba(240,180,40,.4);
+    box-shadow: 0 0 28px rgba(212,225,87,.55), 0 0 8px rgba(34,229,201,.5);
   }
   .card-content {
-    background-color: #121219;
-    border-radius: 15px;
+    background-color: #111318;
+    border-radius: 28px;
     display: flex; flex-direction: column;
     text-decoration: none; color: var(--text);
-    height: 122px;
+    height: 100%;
     position: relative;
     overflow: hidden;
   }
   .pin-icon {
     color: rgba(255,255,255,.72); cursor: pointer; transition: color .2s ease;
-    background: none; border: none; line-height: 1; padding: 0;
+    background: none; border: none; line-height: 1;
     display: flex; align-items: center; justify-content: center;
+    /* Visible icon (15x15 SVG) sits centered inside a larger invisible box
+       so the actual tap area is close to the ~40px mobile touch-target
+       guideline, instead of the bare 15x15 icon itself being the only
+       clickable region. */
+    width: 36px; height: 36px;
   }
   .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
   /* Not-yet-favorited star stays dim by default — it's a secondary, optional
@@ -573,7 +570,7 @@
      sit on one line instead of wrapping. */
   .report-icon {
     display: inline-flex; align-items: center; justify-content: center;
-    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
     color: rgba(255,255,255,.5); background: rgba(0,0,0,.25);
   }
   .report-icon:hover, .report-icon:focus-visible { color: var(--accent); background: rgba(var(--bg-glow-rgb),.2); }
@@ -596,30 +593,49 @@
   .status-label-mini .status-dot-mini {
     position: static; flex-shrink: 0;
   }
+  /* Star, when placed inline inside the bottom bar (see Image-2-style
+     layout) instead of floating over the top-right corner — much smaller
+     than its 36x36 floating-corner touch target since it now shares a
+     compact bar with the status chip and report button. */
+  .status-label-mini .pin-icon {
+    width: 26px; height: 26px; flex-shrink: 0;
+  }
 
-  /* Neutral footer strip — freshness text + icon-only Report button, single
-     row, single line. No per-status color here anymore; the dot above is
-     the one place status lives. */
+  /* Status bar — glassmorphism footer overlay spanning the card width,
+     blending smoothly into the bottom of the card with a soft green glow. */
   .status-label-mini {
-    display: flex; align-items: center; justify-content: space-between; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    padding: 4px 6px 4px 8px;
-    gap: 6px;
-    color: #fff;
-    background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
+    display: flex; align-items: center; justify-content: space-between;
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    padding: 10px 12px;
+    border-radius: 0 0 28px 28px;
+    background: linear-gradient(180deg, rgba(6,20,18,.35) 0%, rgba(6,40,32,.68) 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 -1px 12px rgba(6,214,160,.15), inset 0 1px 0 rgba(255,255,255,.04);
     transition: background .3s ease;
   }
-  /* Color-coded tint once status resolves — green/gold/red wash across the
-     whole bar (not just the dot) so status reads at a glance without
-     needing to focus on the small icon. */
-  .status-label-mini.status-up {
-    background: linear-gradient(0deg, rgba(6,214,160,.32), rgba(6,214,160,.06));
+  .status-chip-mini {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 9px 3px 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    min-width: 0;
   }
-  .status-label-mini.status-blocked {
-    background: linear-gradient(0deg, rgba(240,180,40,.32), rgba(240,180,40,.06));
+  /* Color-coded chip fill once status resolves — green/gold/red wash on the
+     inner status chip only (not the report button), so status reads at a
+     glance without needing to focus on the small icon. */
+  .status-label-mini.status-up .status-chip-mini {
+    background: rgba(6,214,160,.22);
   }
-  .status-label-mini.status-down {
-    background: linear-gradient(0deg, rgba(230,57,70,.32), rgba(230,57,70,.06));
+  .status-label-mini.status-blocked .status-chip-mini {
+    background: rgba(240,180,40,.22);
   }
+  .status-label-mini.status-down .status-chip-mini {
+    background: rgba(230,57,70,.22);
+  }
+  .status-label-mini.status-up .status-text-mini { color: var(--green); }
+  .status-label-mini.status-blocked .status-text-mini { color: var(--gold); }
+  .status-label-mini.status-down .status-text-mini { color: var(--accent2); }
   /* Skeleton shimmer shown before status.json resolves, so the bottom bar
      never looks "broken"/empty on first paint — it visibly signals
      "checking..." instead of blank space. */
@@ -640,45 +656,47 @@
   }
 
   .status-label-mini .status-text-mini {
-    flex: 1; text-align: center;
-    font-size: .58rem; font-weight: 600; letter-spacing: .01em;
-    color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    font-size: .6rem; font-weight: 700; letter-spacing: .01em;
+    color: rgba(255,255,255,.75);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  /* Trending indicator — custom SVG flame (not emoji, for consistent
-     rendering across devices/OSes, matching the SVG language used by the
-     star/checkmark elsewhere on the card), top-left, sized to match the
-     favorite star on the opposite corner so the top row stays balanced
-     instead of a wide text pill competing for space. Subtle pulse glow
-     since "trending" is the one signal on the card meant to feel alive —
-     everything else (checkmark, star) stays static/steady by design. */
+  /* Trending indicator — its own badge, upper-left corner, separate from
+     the bottom status bar. Tried folding this into the status chip, but on
+     a small mobile card that made the bottom bar too dense/cramped to read
+     at a glance — a dedicated top-left badge is clearer even if it means
+     using another corner. */
   .hot-label-mini {
-    position: absolute; top: 8px; left: 10px; z-index: 2;
-    width: 15px; height: 15px;
-    display: flex; align-items: center; justify-content: center;
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 2;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px 4px 9px;
+    border-radius: 999px;
+    background: rgba(240,180,40,.9);
+    color: #1a1a2e;
+    font-size: .62rem; font-weight: 800; letter-spacing: .02em;
+    box-shadow: 0 0 10px rgba(240,180,40,.55);
     animation: hot-flame-pulse 2.2s ease-in-out infinite;
   }
-  .hot-label-mini svg { width: 100%; height: 100%; display: block; }
+  .hot-label-mini svg { width: 11px; height: 11px; display: block; }
   @keyframes hot-flame-pulse {
-    0%, 100% { filter: drop-shadow(0 0 3px rgba(240,180,40,.55)); transform: scale(1); }
-    50%      { filter: drop-shadow(0 0 7px rgba(240,180,40,.9));  transform: scale(1.08); }
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(240,180,40,.4)); transform: scale(1); }
+    50%      { filter: drop-shadow(0 0 6px rgba(240,180,40,.85)); transform: scale(1.04); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hot-label-mini { animation: none; filter: drop-shadow(0 0 4px rgba(240,180,40,.7)); }
+    .hot-label-mini { animation: none; filter: drop-shadow(0 0 3px rgba(240,180,40,.6)); }
   }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
-  .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; position: relative; z-index: 1; }
-  /* Soft radial glow behind the logo — breaks up the flat empty space in
-     the middle of the card without competing with the logo itself. */
+  .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; position: relative; z-index: 1; padding: 0 14px; }
+  /* Soft teal radial glow behind the logo — centered light source with bloom,
+     fading smoothly toward the card edges. */
   .card-content::before {
     content: '';
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 70%; height: 70%;
-    background: radial-gradient(circle, rgba(var(--bg-glow-rgb),.09) 0%, transparent 70%);
+    width: 85%; height: 85%;
+    background: radial-gradient(circle, rgba(34,229,201,.16) 0%, rgba(34,229,201,.06) 45%, transparent 75%);
     pointer-events: none; z-index: 0;
   }
-  .card-logo svg { width: 38px; height: 26px; display: block; }
+  .card-logo svg { width: 42px; height: 30px; display: block; }
   .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.65rem; letter-spacing: -.01em; line-height: 1; }
   .lw-white { color: #fff; }
   .lw-accent { color: var(--accent); }
@@ -986,12 +1004,14 @@ function buildFavSiteCard(s) {
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
-          <span class="status-dot-mini" data-status-dot></span>
-          <span class="status-text-mini" data-status-text></span>
+          <span class="status-chip-mini">
+            <span class="status-dot-mini" data-status-dot></span>
+            <span class="status-text-mini" data-status-text></span>
+          </span>
+          <button class="pin-icon faved" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
+          </button>
         </span>
-        <button class="pin-icon faved" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
-        </button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -1030,7 +1050,10 @@ function showFavorites(sortBy) {
   html += `<h3 style="font-size:1rem; margin:0 0 12px;">🌐 Favorite Websites</h3>`;
   html += favSites.length > 0
     ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map(buildFavSiteCard).join('')}</div>`
-    : `<p style="color:var(--muted); font-size:.85rem; margin-bottom:28px;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>`;
+    : `<div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:28px 16px; border:1px dashed var(--border); border-radius:16px; text-align:center; margin-bottom:28px;">
+        <span style="font-size:1.5rem; opacity:.6;">🌐</span>
+        <p style="color:var(--muted); font-size:.85rem; margin:0;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>
+      </div>`;
 
   if (favs.length > 0) html += `<h3 style="font-size:1rem; margin:0 0 12px;">🎬 Favorite Movies &amp; Shows</h3>`;
 
@@ -2299,6 +2322,28 @@ function statusDotLabel(status) {
   return status === 'up' ? 'Online' : status === 'blocked' ? 'Usually works — flagged by the site\'s bot protection, not necessarily down' : status === 'down' ? 'Might be down' : '';
 }
 
+// Short status word for the chip text itself — "Flagged" (not "Offline")
+// for blocked, since that status is often a false alarm caused by bot
+// protection rather than the site actually being down (see statusDotLabel
+// above for the full explanation, shown as the tooltip).
+function statusLabelText(status) {
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'Flagged' : status === 'down' ? 'Down' : '';
+}
+
+// Compact "1h ago" form (no "Checked " prefix) for pairing with the status
+// word on one line: "Online · 1h ago".
+function formatRelativeTimeShort(timestamp) {
+  if (!timestamp) return '';
+  const diffMs = Date.now() - timestamp;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
+
 // Relative "last checked" freshness text shown on the card's bottom strip —
 // this replaced the old per-card status word (Online/Flagged/Offline), which
 // just repeated what the dot icon+color already says. One signal (the dot)
@@ -2371,7 +2416,7 @@ function applyStatusDots() {
         // the label itself, which would wipe out the dot/report button
         // nested inside it.
         const textEl = label.querySelector('[data-status-text]');
-        if (textEl) textEl.textContent = formatRelativeTime(siteStatusLastRun);
+        if (textEl) textEl.textContent = statusLabelText(status);
         label.style.display = 'flex';
         label.title = tooltipText;
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
@@ -2511,13 +2556,15 @@ function renderSitesDirectory() {
   if (countEl) countEl.textContent = `${filtered.length} site${filtered.length === 1 ? '' : 's'}`;
 
   if (filtered.length === 0) {
-    const emptyMsg = activeDirFilters.includes('pinned')
+    const isPinned = activeDirFilters.includes('pinned');
+    const emptyMsg = isPinned
       ? 'No favorites yet — tap the ★ on any site to save it here.'
       : 'No sites in this category yet.';
     wrap.innerHTML = `
       <div style="grid-column:1/-1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:32px 16px; border:1px dashed var(--border); border-radius:16px; text-align:center;">
-        <span style="font-size:1.6rem; opacity:.6;">${activeDirFilters.includes('pinned') ? '★' : '🔍'}</span>
+        <span style="font-size:1.6rem; opacity:.6;">${isPinned ? '★' : '🔍'}</span>
         <p style="color:var(--muted); font-size:.85rem; margin:0;">${emptyMsg}</p>
+        ${!isPinned ? `<button class="pop-chip" onclick="clearDirFilters()" style="margin-top:6px;">Clear filter</button>` : ''}
       </div>`;
     return;
   }
@@ -2533,11 +2580,14 @@ function renderSitesDirectory() {
     <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
-          <span class="status-dot-mini" data-status-dot></span>
+          <span class="status-chip-mini">
+            <span class="status-dot-mini" data-status-dot></span>
+            <span class="status-text-mini" data-status-text></span>
+          </span>
+          <button class="pin-icon${isFav ? ' faved' : ''}" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
           <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
         </span>
-        ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M12 2c1 3-2 4.5-2 7.5a3 3 0 0 0 6 0c0-1-.4-1.8-1-2.5 2 1 3.5 3.3 3.5 6a6.5 6.5 0 0 1-13 0C5.5 8.5 9 6 12 2z" fill="#f0b428" stroke="#fce8a8" stroke-width=".6" stroke-linejoin="round"/></svg></span>` : ''}
-        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
+        ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2c1 3-2 4.5-2 7.5a3 3 0 0 0 6 0c0-1-.4-1.8-1-2.5 2 1 3.5 3.3 3.5 6a6.5 6.5 0 0 1-13 0C5.5 8.5 9 6 12 2z" fill="#1a1a2e"/></svg>HOT</span>` : ''}
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -2610,6 +2660,12 @@ function dismissDirTip() {
   if (el) el.remove();
 }
 
+function dismissDotsTip() {
+  localStorage.setItem('cinefind-dots-tip-dismissed', '1');
+  const el = document.getElementById('dir-dots-tip');
+  if (el) el.remove();
+}
+
 function renderHomepage() {
   hideFiltersBar();
   document.getElementById('result-area').innerHTML = `
@@ -2633,6 +2689,13 @@ function renderHomepage() {
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
       <div id="dir-results-count" style="font-size:.78rem; color:var(--muted);"></div>
     </div>
+    ${localStorage.getItem('cinefind-dots-tip-dismissed') ? '' : `
+    <div class="safety-tip" id="dir-dots-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
+      <span class="tip-icon">💡</span>
+      <span>What the dot colors mean: <strong style="color:var(--green);">🟢 Online</strong>, <strong style="color:var(--gold);">🟡 Flagged</strong> (usually still works — just caught by bot protection), <strong style="color:var(--accent2);">🔴 Down</strong>. Checked automatically once a day.</span>
+      <button class="tip-close" onclick="dismissDotsTip()" aria-label="Dismiss tip">✕</button>
+    </div>
+    `}
     <div class="dir-grid" id="sites-directory-grid"></div>
 
     <div style="margin:24px 0 12px" class="popular-label">🎭 Browse by Genre</div>
