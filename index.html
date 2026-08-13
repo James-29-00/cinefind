@@ -644,12 +644,12 @@
      above), so it still reads as genuinely special instead of one badge
      among several identical ones. */
   .hot-label-mini {
-    position: absolute; top: 6px; right: 32px; z-index: 2;
-    width: 20px; height: 20px; border-radius: 50%;
+    position: absolute; top: 8px; left: 8px; z-index: 2;
+    width: 20px; height: 20px;
     display: flex; align-items: center; justify-content: center;
-    font-size: .72rem; line-height: 1;
-    background: #f0b428; box-shadow: 0 0 6px rgba(240,180,40,.5);
+    filter: drop-shadow(0 0 4px rgba(255,140,20,.85)) drop-shadow(0 0 8px rgba(255,90,0,.5));
   }
+  .hot-label-mini svg { width: 100%; height: 100%; display: block; }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
   .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; position: relative; z-index: 1; }
@@ -2543,7 +2543,7 @@ function renderSitesDirectory() {
           <button class="pin-icon${isFav ? ' faved' : ''}" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
           <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
         </span>
-        ${isHot ? `<span class="hot-label-mini" title="Trending">🔥</span>` : ''}
+        ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff8f1f"/><stop offset="100%" stop-color="#ffd23f"/></linearGradient></defs><path fill="url(#flameGrad)" d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/><path fill="#1a1a2e" fill-opacity=".35" d="M12 21a3.3 3.3 0 0 1-3.3-3.3c0-1.6 1-2.5 1.9-3.3-.1.7.2 1.3.8 1.3.7 0 1-.6 1-1.3.7.9 1.2 1.8 1.2 3.1A2.6 2.6 0 0 1 12 21Z"/></svg></span>` : ''}
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
