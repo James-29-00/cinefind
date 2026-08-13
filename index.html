@@ -644,10 +644,11 @@
      above), so it still reads as genuinely special instead of one badge
      among several identical ones. */
   .hot-label-mini {
-    position: absolute; top: 8px; right: 34px; z-index: 2;
-    font-size: .56rem; font-weight: 800; letter-spacing: .02em;
-    color: #1a1a2e; background: #f0b428; border-radius: 6px; padding: 2px 6px;
-    box-shadow: 0 0 6px rgba(240,180,40,.5);
+    position: absolute; top: 6px; right: 32px; z-index: 2;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; line-height: 1;
+    background: #f0b428; box-shadow: 0 0 6px rgba(240,180,40,.5);
   }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
@@ -2542,7 +2543,7 @@ function renderSitesDirectory() {
           <button class="pin-icon${isFav ? ' faved' : ''}" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
           <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
         </span>
-        ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
+        ${isHot ? `<span class="hot-label-mini" title="Trending">🔥</span>` : ''}
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
