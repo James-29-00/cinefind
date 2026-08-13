@@ -518,6 +518,18 @@
     animation: fadeUp .4s ease forwards;
     height: 100%;
   }
+  /* Status border — deliberately selective, not applied to every card.
+     Online is the expected default (most cards), so it stays silent —
+     giving it a border too would just be noise. Down gets the strongest
+     signal since that's the one thing worth catching at a glance before
+     tapping in. Blocked sits quietly in between. */
+  .gradient-card-wrapper.status-border-down {
+    background: rgba(230,57,70,.55);
+    box-shadow: 0 0 8px rgba(230,57,70,.18);
+  }
+  .gradient-card-wrapper.status-border-blocked {
+    background: rgba(240,180,40,.32);
+  }
   .gradient-card-wrapper:hover {
     transform: translateY(-3px);
     background: rgba(var(--bg-glow-rgb),.45);
@@ -534,16 +546,16 @@
     box-shadow: 0 0 20px rgba(240,180,40,.4);
   }
   .card-content {
-    background-color: #16161f;
+    background-color: #121219;
     border-radius: 15px;
     display: flex; flex-direction: column;
     text-decoration: none; color: var(--text);
-    height: 130px;
+    height: 122px;
     position: relative;
     overflow: hidden;
   }
   .pin-icon {
-    color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
+    color: rgba(255,255,255,.72); cursor: pointer; transition: color .2s ease;
     background: none; border: none; line-height: 1; padding: 0;
     display: flex; align-items: center; justify-content: center;
   }
@@ -633,15 +645,26 @@
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  /* Small "HOT" badge — top-right, next to the favorite star. Only Hot
-     cards get any glow at all now (matches the card border treatment
-     above), so it still reads as genuinely special instead of one badge
-     among several identical ones. */
+  /* Trending indicator — custom SVG flame (not emoji, for consistent
+     rendering across devices/OSes, matching the SVG language used by the
+     star/checkmark elsewhere on the card), top-left, sized to match the
+     favorite star on the opposite corner so the top row stays balanced
+     instead of a wide text pill competing for space. Subtle pulse glow
+     since "trending" is the one signal on the card meant to feel alive —
+     everything else (checkmark, star) stays static/steady by design. */
   .hot-label-mini {
-    position: absolute; top: 8px; right: 34px; z-index: 2;
-    font-size: .56rem; font-weight: 800; letter-spacing: .02em;
-    color: #1a1a2e; background: #f0b428; border-radius: 6px; padding: 2px 6px;
-    box-shadow: 0 0 6px rgba(240,180,40,.5);
+    position: absolute; top: 8px; left: 10px; z-index: 2;
+    width: 15px; height: 15px;
+    display: flex; align-items: center; justify-content: center;
+    animation: hot-flame-pulse 2.2s ease-in-out infinite;
+  }
+  .hot-label-mini svg { width: 100%; height: 100%; display: block; }
+  @keyframes hot-flame-pulse {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(240,180,40,.55)); transform: scale(1); }
+    50%      { filter: drop-shadow(0 0 7px rgba(240,180,40,.9));  transform: scale(1.08); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hot-label-mini { animation: none; filter: drop-shadow(0 0 4px rgba(240,180,40,.7)); }
   }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
@@ -652,7 +675,7 @@
     content: '';
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: 70%; height: 70%;
-    background: radial-gradient(circle, rgba(var(--bg-glow-rgb),.16) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(var(--bg-glow-rgb),.09) 0%, transparent 70%);
     pointer-events: none; z-index: 0;
   }
   .card-logo svg { width: 38px; height: 26px; display: block; }
@@ -2322,6 +2345,12 @@ function applyStatusDots() {
     if (!dot && !label) return;
     const status = getSiteStatus(el.dataset.siteName);
     const color = statusDotColor(status);
+    // Selective border signal — see .status-border-down/.status-border-blocked
+    // CSS: Online stays silent (it's the expected default), Down/Blocked get
+    // a visible edge so problem sites stand out without tapping in.
+    el.classList.remove('status-border-down', 'status-border-blocked');
+    if (status === 'down') el.classList.add('status-border-down');
+    else if (status === 'blocked') el.classList.add('status-border-blocked');
     if (color) {
       const tooltipText = statusDotLabel(status);
       if (dot) {
@@ -2334,15 +2363,15 @@ function applyStatusDots() {
         dot.setAttribute('aria-label', tooltipText);
       }
       if (label) {
-        // Older card types (e.g. favorites) still have the label itself as
-        // the text node with no Report button inside — falls back to
-        // writing directly on `label` for those. The homepage directory
-        // card now nests a dedicated text span so this can set the text
-        // without wiping out the Report button that lives alongside it.
-        // Shows freshness ("Checked 2h ago"), not the status word — the dot
-        // above already communicates status via icon+color.
-        const textEl = label.querySelector('[data-status-text]') || label;
-        textEl.textContent = formatRelativeTime(siteStatusLastRun);
+        // Older card types (e.g. favorites) still have a dedicated
+        // [data-status-text] span for freshness text. The homepage
+        // directory card dropped that text entirely (icon + color tint
+        // now carry the status on their own) — so when there's no
+        // matching span, skip writing text instead of falling back to
+        // the label itself, which would wipe out the dot/report button
+        // nested inside it.
+        const textEl = label.querySelector('[data-status-text]');
+        if (textEl) textEl.textContent = formatRelativeTime(siteStatusLastRun);
         label.style.display = 'flex';
         label.title = tooltipText;
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
@@ -2359,7 +2388,7 @@ function applyStatusDots() {
         label.style.display = 'none';
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
         const textEl = label.querySelector('[data-status-text]');
-        if (textEl) textEl.textContent = ''; else label.textContent = '';
+        if (textEl) textEl.textContent = '';
       }
     }
   });
@@ -2483,9 +2512,13 @@ function renderSitesDirectory() {
 
   if (filtered.length === 0) {
     const emptyMsg = activeDirFilters.includes('pinned')
-      ? 'No pinned sites yet — tap the 📌 on any site to save it here.'
+      ? 'No favorites yet — tap the ★ on any site to save it here.'
       : 'No sites in this category yet.';
-    wrap.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">${emptyMsg}</p>`;
+    wrap.innerHTML = `
+      <div style="grid-column:1/-1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:32px 16px; border:1px dashed var(--border); border-radius:16px; text-align:center;">
+        <span style="font-size:1.6rem; opacity:.6;">${activeDirFilters.includes('pinned') ? '★' : '🔍'}</span>
+        <p style="color:var(--muted); font-size:.85rem; margin:0;">${emptyMsg}</p>
+      </div>`;
     return;
   }
 
@@ -2501,11 +2534,10 @@ function renderSitesDirectory() {
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
-          <span class="status-text-mini" data-status-text></span>
-          <button class="pin-icon${isFav ? ' faved' : ''}" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
           <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
         </span>
-        ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
+        ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M12 2c1 3-2 4.5-2 7.5a3 3 0 0 0 6 0c0-1-.4-1.8-1-2.5 2 1 3.5 3.3 3.5 6a6.5 6.5 0 0 1-13 0C5.5 8.5 9 6 12 2z" fill="#f0b428" stroke="#fce8a8" stroke-width=".6" stroke-linejoin="round"/></svg></span>` : ''}
+        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
