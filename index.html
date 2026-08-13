@@ -1282,6 +1282,10 @@ function showSearchHistory() {
 // ========== ORIGINAL CODE WITH MODIFICATIONS ==========
 // ⚠️ Replace this with YOUR deployed Cloudflare Worker URL (Step 3 of the guide)
 const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
+// Deploy worker.js as its own Worker (separate from the TMDB proxy — keeps
+// blast radius small) and put its *.workers.dev URL here. This worker is the
+// only thing that ever holds the real GitHub token — see worker.js for setup.
+const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
 // TODO: palitan ito ng URL ng bago mong ide-deploy na Visit Worker (see instructions)
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
@@ -2506,7 +2510,12 @@ document.getElementById('search-input').addEventListener('focus', () => {
 
 // ========== HIDDEN ADMIN PANEL ==========
 // Access by visiting: yoursite.com/?admin=cf_x7k9m2
-// Only shows up with the exact secret code in the URL — regular visitors never see it.
+// NOTE: this URL param only hides the panel from casual visitors (security
+// through obscurity) — it is NOT real auth, since anyone can view-source
+// this file and read the value. The actual security boundary is the admin
+// password login (adminLogin()) + the ADMIN_PROXY_URL worker, which is the
+// only thing that can write to GitHub. Even if someone finds this URL and
+// opens the panel, they still can't change anything without the password.
 const ADMIN_SECRET = 'cf_x7k9m2';
 
 function checkAdminAccess() {
@@ -2605,7 +2614,7 @@ async function loadAdminPanel() {
 
   const overlay = document.createElement('div');
   overlay.id = 'admin-overlay';
-  const gh = getGithubConfig();
+  const loggedIn = !!getAdminSession();
   overlay.innerHTML = `
     <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
     <div class="admin-header">
@@ -2621,13 +2630,12 @@ async function loadAdminPanel() {
       <div style="margin-top:6px;">Just updated a link and it's still yellow after reload? The re-check likely ran and got bot-blocked on this new URL too — see 🟡 above.</div>
     </div>
     <div class="test-link-box" id="gh-config-box">
-      <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
+      <div class="test-link-title">🔐 Admin Login (needed for live link updates)</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <input type="text" id="gh-owner" class="test-link-input" placeholder="GitHub username (repo owner)" value="${escapeForAttr(gh.owner || '')}">
-        <input type="text" id="gh-repo" class="test-link-input" placeholder="Repository name" value="${escapeForAttr(gh.repo || '')}">
-        <input type="password" id="gh-token" class="test-link-input" placeholder="Personal Access Token" value="${escapeForAttr(gh.token || '')}">
-        <button class="test-link-btn" style="width:100%;" onclick="saveGithubConfig()">Save Connection</button>
-        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${gh.token ? '✅ Connection saved on this device.' : 'Not connected yet — set this up once.'}</div>
+        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" ${loggedIn ? 'style=\'display:none;\'' : ''}>
+        <button class="test-link-btn" style="width:100%;" id="admin-login-btn" onclick="adminLogin()" ${loggedIn ? 'style=\'display:none;\'' : ''}>Log In</button>
+        <button class="test-link-btn" style="width:100%;" id="admin-logout-btn" onclick="adminLogout()" ${loggedIn ? '' : 'style=\'display:none;\''}>Log Out</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${loggedIn ? '✅ Logged in — session active for a few hours.' : 'Not logged in — enter the admin password to enable live edits.'}</div>
       </div>
     </div>
     <div class="test-link-box">
@@ -2789,7 +2797,7 @@ function renderAdminPanel(data) {
   `;
   }).join('');
 
-  const gh = getGithubConfig();
+  const loggedIn = !!getAdminSession();
   overlay.innerHTML = `
     <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
     <div class="admin-header">
@@ -2797,13 +2805,12 @@ function renderAdminPanel(data) {
       <p>Last checked: ${lastRun}</p>
     </div>
     <div class="test-link-box" id="gh-config-box">
-      <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
+      <div class="test-link-title">🔐 Admin Login (needed for live link updates)</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <input type="text" id="gh-owner" class="test-link-input" placeholder="GitHub username (repo owner)" value="${escapeForAttr(gh.owner || '')}">
-        <input type="text" id="gh-repo" class="test-link-input" placeholder="Repository name" value="${escapeForAttr(gh.repo || '')}">
-        <input type="password" id="gh-token" class="test-link-input" placeholder="Personal Access Token" value="${escapeForAttr(gh.token || '')}">
-        <button class="test-link-btn" style="width:100%;" onclick="saveGithubConfig()">Save Connection</button>
-        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${gh.token ? '✅ Connection saved on this device.' : 'Not connected yet — set this up once.'}</div>
+        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" ${loggedIn ? 'style=\'display:none;\'' : ''}>
+        <button class="test-link-btn" style="width:100%;" id="admin-login-btn" onclick="adminLogin()" ${loggedIn ? 'style=\'display:none;\'' : ''}>Log In</button>
+        <button class="test-link-btn" style="width:100%;" id="admin-logout-btn" onclick="adminLogout()" ${loggedIn ? '' : 'style=\'display:none;\''}>Log Out</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${loggedIn ? '✅ Logged in — session active for a few hours.' : 'Not logged in — enter the admin password to enable live edits.'}</div>
       </div>
     </div>
     <div class="test-link-box">
@@ -2907,16 +2914,16 @@ async function loadReportsIntoAdmin() {
 }
 
 async function dismissReport(index, btn) {
-  const config = getGithubConfig();
-  if (!config.owner || !config.repo || !config.token) {
-    alert('⚠️ Set up GitHub Connection above first.');
+  const session = getAdminSession();
+  if (!session) {
+    alert('⚠️ Please log in with the admin password above first.');
     return;
   }
   btn.disabled = true;
   btn.textContent = '...';
 
-  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/reports.json`;
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/reports.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
     const getRes = await fetch(apiUrl, { headers });
@@ -2946,30 +2953,71 @@ async function dismissReport(index, btn) {
   }
 }
 
-// ========== LIVE LINK UPDATES (via GitHub API) ==========
+// ========== LIVE LINK UPDATES (via the admin proxy Worker) ==========
 // GitHub Pages is static — there's no server to write files to on demand.
 // So "publishing" a link update means committing a change to overrides.json
-// straight to the repo via GitHub's REST API, using a Personal Access Token
-// the admin enters once (stored only in this browser's localStorage, never
-// sent anywhere except directly to api.github.com).
-function getGithubConfig() {
-  try { return JSON.parse(localStorage.getItem('cinefind-gh-config') || '{}'); }
-  catch (e) { return {}; }
+// straight to the repo via GitHub's REST API. IMPORTANT: the real GitHub
+// token never touches this browser. It lives only as a secret on the
+// ADMIN_PROXY_URL Cloudflare Worker (see worker.js). This page just logs
+// in with a password, gets back a short-lived signed session token, and
+// sends that session token to the worker — which is the only thing that
+// ever talks to api.github.com directly.
+function getAdminSession() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('cinefind-admin-session') || 'null');
+    if (!raw || !raw.session || !raw.exp) return null;
+    if (Date.now() / 1000 > raw.exp) { // expired locally, don't even bother the worker
+      localStorage.removeItem('cinefind-admin-session');
+      return null;
+    }
+    return raw.session;
+  } catch (e) { return null; }
 }
 
-function saveGithubConfig() {
-  const owner = document.getElementById('gh-owner').value.trim();
-  const repo = document.getElementById('gh-repo').value.trim();
-  const token = document.getElementById('gh-token').value.trim();
+async function adminLogin() {
+  const input = document.getElementById('admin-password');
   const statusEl = document.getElementById('gh-config-status');
-  if (!owner || !repo || !token) {
-    statusEl.textContent = 'Fill in all 3 fields first.';
+  const password = input ? input.value : '';
+  if (!password) {
+    statusEl.textContent = 'Enter the admin password first.';
     statusEl.style.color = '#e63946';
     return;
   }
-  localStorage.setItem('cinefind-gh-config', JSON.stringify({ owner, repo, token }));
-  statusEl.textContent = '✅ Saved on this device.';
-  statusEl.style.color = '#06d6a0';
+  statusEl.textContent = 'Logging in...';
+  statusEl.style.color = '#9494b5';
+  try {
+    const res = await fetch(`${ADMIN_PROXY_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Login failed (HTTP ${res.status})`);
+    localStorage.setItem('cinefind-admin-session', JSON.stringify({
+      session: data.session,
+      exp: Math.floor(Date.now() / 1000) + (data.expiresIn || 0),
+    }));
+    statusEl.textContent = '✅ Logged in — session active for a few hours.';
+    statusEl.style.color = '#06d6a0';
+    document.getElementById('admin-password').style.display = 'none';
+    document.getElementById('admin-login-btn').style.display = 'none';
+    document.getElementById('admin-logout-btn').style.display = '';
+  } catch (err) {
+    statusEl.textContent = `❌ ${err.message}`;
+    statusEl.style.color = '#e63946';
+  }
+}
+
+function adminLogout() {
+  localStorage.removeItem('cinefind-admin-session');
+  const statusEl = document.getElementById('gh-config-status');
+  if (statusEl) {
+    statusEl.textContent = 'Logged out.';
+    statusEl.style.color = '#9494b5';
+  }
+  document.getElementById('admin-password').style.display = '';
+  document.getElementById('admin-login-btn').style.display = '';
+  document.getElementById('admin-logout-btn').style.display = 'none';
 }
 
 // UTF-8 safe base64 helpers — plain btoa()/atob() break on non-ASCII chars.
@@ -2981,10 +3029,10 @@ async function updateLiveLink(siteName, btn) {
   const input = wrap.querySelector('.live-update-input');
   const statusEl = wrap.querySelector('.live-update-status');
   const newUrl = input.value.trim();
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -2999,8 +3047,8 @@ async function updateLiveLink(siteName, btn) {
   btn.textContent = 'Updating...';
   statusEl.textContent = '';
 
-  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/overrides.json`;
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/overrides.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
     let sha, current = {};
@@ -3040,7 +3088,7 @@ async function updateLiveLink(siteName, btn) {
     // wait up to 6h, so a reload shows the real, confirmed result sooner.
     try {
       const dispatchRes = await fetch(
-        `https://api.github.com/repos/${config.owner}/${config.repo}/actions/workflows/check-sites.yml/dispatches`,
+        `${ADMIN_PROXY_URL}/api/github/actions/workflows/check-sites.yml/dispatches`,
         {
           method: 'POST',
           headers: { ...headers, 'Content-Type': 'application/json' },
@@ -3100,9 +3148,9 @@ async function updateLiveLink(siteName, btn) {
 // Same GitHub-commit pattern as updateLiveLink(), but writes to hot-sites.json,
 // a simple array of normalized site names.
 async function toggleHotSite(siteName, btn) {
-  const config = getGithubConfig();
-  if (!config.owner || !config.repo || !config.token) {
-    alert('⚠️ Set up GitHub Connection above first.');
+  const session = getAdminSession();
+  if (!session) {
+    alert('⚠️ Please log in with the admin password above first.');
     return;
   }
 
@@ -3110,8 +3158,8 @@ async function toggleHotSite(siteName, btn) {
   btn.disabled = true;
   btn.textContent = 'Saving...';
 
-  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/hot-sites.json`;
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/hot-sites.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
   const key = normalizeSiteName(siteName);
 
   try {
@@ -3173,10 +3221,10 @@ async function addNewWebsite(btn) {
   if (document.getElementById('new-site-cat-anime').checked) cats.push('anime');
   if (document.getElementById('new-site-cat-pinoy').checked) cats.push('pinoy');
   const statusEl = document.getElementById('add-site-status');
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3195,8 +3243,8 @@ async function addNewWebsite(btn) {
   btn.textContent = 'Adding...';
   statusEl.textContent = '';
 
-  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
     let sha, current = [];
@@ -3308,10 +3356,10 @@ function confirmDeleteWebsite(siteName, btn) {
 
 async function deleteWebsite(siteName, btn) {
   const statusEl = btn.closest('.site-row').querySelector('.delete-site-status');
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3321,7 +3369,7 @@ async function deleteWebsite(siteName, btn) {
   btn.textContent = 'Deleting...';
   statusEl.textContent = '';
 
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   // Snapshot the full site data (url/domain/categories/icon) *before* it gets
   // removed from anywhere — this is what gets saved into removed-sites.json
@@ -3345,7 +3393,7 @@ async function deleteWebsite(siteName, btn) {
     // added to the checker list), that's fine, just skip this step instead
     // of aborting the whole deletion.
     let removedFromSitesJson = false;
-    const sitesUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/sites.json`;
+    const sitesUrl = `${ADMIN_PROXY_URL}/api/github/contents/sites.json`;
     const sitesGetRes = await fetch(sitesUrl, { headers });
     if (!sitesGetRes.ok) throw new Error(`Could not read sites.json (HTTP ${sitesGetRes.status})`);
     const sitesFileData = await sitesGetRes.json();
@@ -3374,7 +3422,7 @@ async function deleteWebsite(siteName, btn) {
     // so its homepage card disappears. Built-in SITES_DIRECTORY sites don't
     // live here, so a 404/miss here is expected and not an error.
     let removedFromCustom = false;
-    const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+    const customUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
     const customGetRes = await fetch(customUrl, { headers });
     if (customGetRes.status === 200) {
       const customFileData = await customGetRes.json();
@@ -3402,7 +3450,7 @@ async function deleteWebsite(siteName, btn) {
     // cache-busted file the front-end filters against on every load, so the
     // card disappears immediately even before index.html's own edit (below,
     // for built-ins) or GitHub Pages' cache has caught up.
-    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
     const removedGetRes = await fetch(removedUrl, { headers });
     let removedList = [];
     let removedSha = null;
@@ -3456,7 +3504,7 @@ async function deleteWebsite(siteName, btn) {
     // keeps index.html's own source clean long-term.)
     let removedFromDirectory = false;
     if (SITES_DIRECTORY.some(s => normalizeSiteName(s.name) === normalizeSiteName(siteName))) {
-      const idxUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/index.html`;
+      const idxUrl = `${ADMIN_PROXY_URL}/api/github/contents/index.html`;
       const idxGetRes = await fetch(idxUrl, { headers });
       if (!idxGetRes.ok) throw new Error(`Could not read index.html (HTTP ${idxGetRes.status})`);
       const idxFileData = await idxGetRes.json();
@@ -3518,10 +3566,10 @@ async function deleteWebsite(siteName, btn) {
 // the only place a restore can safely write the full card data back to.
 async function restoreWebsite(siteName, btn) {
   const statusEl = btn.closest('.site-row').querySelector('.restore-site-status');
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3545,11 +3593,11 @@ async function restoreWebsite(siteName, btn) {
   btn.textContent = 'Restoring...';
   statusEl.textContent = '';
 
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
     // 1) Take it out of removed-sites.json so it's no longer hidden.
-    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
     const removedGetRes = await fetch(removedUrl, { headers });
     if (removedGetRes.status === 200) {
       const removedFileData = await removedGetRes.json();
@@ -3580,7 +3628,7 @@ async function restoreWebsite(siteName, btn) {
     // in SITES_DIRECTORY (dirMatch), unhiding it via step 1 above is enough;
     // adding it to custom-sites.json too would just create a duplicate card.
     if (!dirMatch) {
-      const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+      const customUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
       const customGetRes = await fetch(customUrl, { headers });
       let customSha, customCurrent = [];
       if (customGetRes.status === 200) {
@@ -3620,7 +3668,7 @@ async function restoreWebsite(siteName, btn) {
     // KissKH/MyAsianTV stuck as "not checked yet" forever after restoring:
     // they were built-ins that had never been added to sites.json at all,
     // so the checker had nothing to check.
-    const sitesJsonUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/sites.json`;
+    const sitesJsonUrl = `${ADMIN_PROXY_URL}/api/github/contents/sites.json`;
     const sitesJsonGetRes = await fetch(sitesJsonUrl, { headers });
     if (sitesJsonGetRes.status === 200) {
       const sitesJsonFileData = await sitesJsonGetRes.json();
@@ -3710,10 +3758,10 @@ function confirmDeletePermanently(siteName, btn) {
 
 async function deletePermanently(siteName, btn) {
   const statusEl = btn.closest('.site-row').querySelector('.restore-site-status');
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3724,10 +3772,10 @@ async function deletePermanently(siteName, btn) {
   btn.textContent = 'Deleting...';
   statusEl.textContent = '';
 
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
-    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
     const removedGetRes = await fetch(removedUrl, { headers });
     if (!removedGetRes.ok) throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
     const removedFileData = await removedGetRes.json();
