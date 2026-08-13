@@ -359,17 +359,16 @@
   }
   .dual-gradient-pill.active {
     color: var(--text); font-weight: 600;
-    transform: scale(1.05);
     background-image:
       linear-gradient(var(--card), var(--card)),
       linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
     border-color: transparent;
-    /* Extra outline ring (not just the gradient border) plus a checkmark, so
-       "selected" is legible even without relying on color — helps colorblind
-       users and matches the icon+color pattern used for site status dots. */
-    box-shadow: 0 0 0 1.5px var(--text), 0 0 0 1px rgba(var(--bg-glow-rgb),.6), 0 0 16px rgba(var(--bg-glow-rgb),.55);
+    /* Solid ring instead of a large neon blur — reads clearly as "selected"
+       without competing with the Hot-card glow, which is now the only
+       heavy glow effect on the page. */
+    box-shadow: 0 0 0 1.5px var(--text);
   }
   .dual-gradient-pill.active::before {
     content: "✓";
@@ -487,15 +486,24 @@
     position: relative;
     border-radius: 16px;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(var(--bg-glow-rgb),.45) 0%, rgba(6,214,160,.35) 100%);
-    transition: transform .25s ease, box-shadow .25s ease;
+    /* Static, subtle border by default — glow is reserved for Hot cards
+       (see .is-hot below) so it actually means something instead of every
+       card in the grid glowing the same way. */
+    background: var(--border);
+    transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
   }
   .gradient-card-wrapper:hover {
     transform: translateY(-3px);
-    background: linear-gradient(135deg, rgba(var(--bg-glow-rgb),.75) 0%, rgba(6,214,160,.55) 100%);
-    box-shadow: 0 8px 24px rgba(var(--bg-glow-rgb),.12);
+    background: rgba(var(--bg-glow-rgb),.45);
+  }
+  .gradient-card-wrapper.is-hot {
+    background: linear-gradient(135deg, #f0b428 0%, rgba(var(--bg-glow-rgb),.6) 100%);
+    box-shadow: 0 0 14px rgba(240,180,40,.25);
+  }
+  .gradient-card-wrapper.is-hot:hover {
+    box-shadow: 0 0 20px rgba(240,180,40,.4);
   }
   .card-content {
     background-color: #16161f;
@@ -512,63 +520,61 @@
     display: flex; align-items: center; justify-content: center;
   }
   .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
-  /* Report-broken flag — labeled (not icon-only) since a bare flag icon reads
-     ambiguously (bookmark? pin?) especially with no hover tooltip on mobile.
-     Small pill so it still fits the tight card corner without crowding the
-     favorite star or logo. Hovers to the theme accent, not gold, so it
-     reads as "flag a problem" rather than "favorite". */
+  /* Not-yet-favorited star stays dim by default — it's a secondary, optional
+     action, not something that needs equal visual weight to status or Hot.
+     Full opacity on hover/focus (discoverable) and once actually favorited. */
+  .pin-icon:not(.faved) { opacity: .4; }
+  .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
+  .pin-icon.faved { opacity: 1; }
+
+  /* Report-broken — icon-only with a tooltip (title/aria-label carry the
+     text for screen readers and on long-press/hover) instead of a labeled
+     pill. Frees up footer width so the "Checked Xm ago" text has room to
+     sit on one line instead of wrapping. */
   .report-icon {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-size: .58rem; font-weight: 600; letter-spacing: .01em;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
     color: rgba(255,255,255,.5); background: rgba(0,0,0,.25);
-    border-radius: 20px; padding: 3px 7px 3px 6px; width: auto; white-space: nowrap;
   }
-  .report-icon:hover { color: var(--accent); background: rgba(var(--bg-glow-rgb),.15); }
+  .report-icon:hover, .report-icon:focus-visible { color: var(--accent); background: rgba(var(--bg-glow-rgb),.2); }
 
   /* Site status dot — filled in after status.json loads (see applyStatusDots()).
-     Hidden by default so cards don't flash an unknown/wrong color before the
-     fetch resolves. A dark circular badge behind the icon (rather than a bare
-     stroke icon floating on the card) so it reads clearly on any card color
-     and matches the pill/badge language used elsewhere in the UI. */
+     Deliberately small and quiet (just enough contrast to read at a glance
+     across a full grid) rather than a large bordered/shadowed badge — the
+     status still needs to be scannable corner-to-corner, but it shouldn't
+     out-shout the card content to do that. */
   .status-dot-mini {
     display: none; align-items: center; justify-content: center;
-    position: absolute; top: 8px; left: 10px; z-index: 2;
-    width: 20px; height: 20px;
+    position: absolute; top: 8px; left: 8px; z-index: 2;
+    width: 16px; height: 16px;
     border-radius: 50%;
-    background: rgba(8,8,16,.82);
-    border: 1.5px solid transparent;
-    box-shadow: 0 1px 4px rgba(0,0,0,.4);
-    transition: filter .3s, border-color .3s, background .3s;
+    background: rgba(8,8,16,.75);
   }
-  .status-dot-mini svg { width: 58%; height: 58%; display: block; }
+  .status-dot-mini svg { width: 62%; height: 62%; display: block; }
 
-  /* Neutral meta strip at the bottom of each directory card — shows "last
-     checked" freshness and houses the Report button. Not colored per status
-     anymore (the dot above is the single source of truth for status; this
-     strip used to duplicate that with a colored, all-caps word, which was
-     redundant with the dot). Kept as a strip rather than inline text so the
-     Report button still has a predictable, tap-friendly spot. */
+  /* Neutral footer strip — freshness text + icon-only Report button, single
+     row, single line. No per-status color here anymore; the dot above is
+     the one place status lives. */
   .status-label-mini {
-    display: none; align-items: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    padding: 3px 6px 4px 8px;
+    display: none; align-items: center; justify-content: space-between; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    padding: 4px 6px 4px 8px;
     color: #fff;
-    background: linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,.15));
+    background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
   }
   .status-label-mini .status-text-mini {
-    flex: 1; text-align: left; font-size: .58rem; font-weight: 600; letter-spacing: .02em;
-    color: rgba(255,255,255,.75); text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    font-size: .58rem; font-weight: 600; letter-spacing: .01em;
+    color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .status-label-mini .report-icon {
-    flex-shrink: 0; margin-left: 4px;
-    color: rgba(255,255,255,.75); background: rgba(0,0,0,.28);
-  }
-  .status-label-mini .report-icon:hover { color: #fff; background: rgba(0,0,0,.4); }
-  /* Small "HOT" text badge, top-right area next to the pin icon. */
+  /* Small "HOT" badge — top-right, next to the favorite star. Only Hot
+     cards get any glow at all now (matches the card border treatment
+     above), so it still reads as genuinely special instead of one badge
+     among several identical ones. */
   .hot-label-mini {
-    position: absolute; top: 7px; right: 32px; z-index: 2;
-    font-size: .58rem; font-weight: 800; letter-spacing: .03em;
+    position: absolute; top: 8px; right: 34px; z-index: 2;
+    font-size: .56rem; font-weight: 800; letter-spacing: .02em;
     color: #1a1a2e; background: #f0b428; border-radius: 6px; padding: 2px 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.4);
+    box-shadow: 0 0 6px rgba(240,180,40,.5);
   }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
@@ -2288,12 +2294,12 @@ function renderSitesDirectory() {
       ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
       : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
     return `
-    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
+    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
         <span class="status-dot-mini" data-status-dot></span>
         <span class="status-label-mini" data-status-label>
           <span class="status-text-mini" data-status-text></span>
-          <button class="pin-icon report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>Report</button>
+          <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
         </span>
         ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
