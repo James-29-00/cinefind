@@ -478,14 +478,17 @@
   .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: .7rem; color: var(--muted); }
   .site-card {
     position: relative;
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    background: var(--card);
+    border: 1px solid rgba(var(--bg-glow-rgb),.35);
+    border-radius: 14px;
     padding: 16px; text-decoration: none; color: var(--text);
     display: flex; align-items: center; gap: 14px;
     transition: border-color .2s, transform .2s, box-shadow .2s;
     animation: fadeUp .4s ease forwards;
     max-width: 100%; overflow: hidden;
+    box-shadow: 0 0 10px rgba(var(--bg-glow-rgb),.12);
   }
-  .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
+  .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 0 20px rgba(var(--bg-glow-rgb),.3); }
   .site-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
   .site-logo-box {
     width: 64px; height: 46px; border-radius: 10px; flex-shrink: 0;
@@ -534,11 +537,11 @@
     transition: transform .1s ease;
   }
   .gradient-card-wrapper.is-hot {
-    background: linear-gradient(135deg, #f0b428 0%, rgba(var(--bg-glow-rgb),.6) 100%);
-    box-shadow: 0 0 14px rgba(240,180,40,.25);
+    background: linear-gradient(135deg, var(--gold, #f0b428) 0%, rgba(var(--bg-glow-rgb),.6) 100%);
+    box-shadow: 0 0 14px rgba(var(--bg-glow-rgb),.25);
   }
   .gradient-card-wrapper.is-hot:hover {
-    box-shadow: 0 0 20px rgba(240,180,40,.4);
+    box-shadow: 0 0 20px rgba(var(--bg-glow-rgb),.4);
   }
   .card-content {
     background-color: #121219;
