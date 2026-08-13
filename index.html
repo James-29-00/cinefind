@@ -51,13 +51,16 @@
   }
 
   /* Light Mode */
+  /* --muted darkened from the original #6c757d — that only hit ~4.45:1
+     contrast against --bg (#f8f9fa), just under the 4.5:1 WCAG AA minimum
+     for normal-size text. #5f6672 clears ~5.5:1. */
   body.light-mode {
     --bg: #f8f9fa;
     --surface: #ffffff;
     --card: #f0f2f5;
     --border: #0000001a;
     --text: #1a1a2e;
-    --muted: #6c757d;
+    --muted: #5f6672;
   }
 
   /* ===== Color Themes ===== */
@@ -363,7 +366,21 @@
     background-origin: border-box;
     background-clip: padding-box, border-box;
     border-color: transparent;
-    box-shadow: 0 0 0 1px rgba(var(--bg-glow-rgb),.6), 0 0 16px rgba(var(--bg-glow-rgb),.55);
+    /* Extra outline ring (not just the gradient border) plus a checkmark, so
+       "selected" is legible even without relying on color — helps colorblind
+       users and matches the icon+color pattern used for site status dots. */
+    box-shadow: 0 0 0 1.5px var(--text), 0 0 0 1px rgba(var(--bg-glow-rgb),.6), 0 0 16px rgba(var(--bg-glow-rgb),.55);
+  }
+  .dual-gradient-pill.active::before {
+    content: "✓";
+    display: inline-block;
+    margin-right: 5px;
+    font-weight: 700;
+  }
+  .dual-gradient-pill:focus-visible,
+  .genre-pill:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
   }
 
   .genre-chip {
@@ -515,6 +532,8 @@
      and matches the pill/badge language used elsewhere in the UI. */
   .status-dot-mini {
     display: none; align-items: center; justify-content: center;
+    position: absolute; top: 8px; left: 10px; z-index: 2;
+    width: 20px; height: 20px;
     border-radius: 50%;
     background: rgba(8,8,16,.82);
     border: 1.5px solid transparent;
@@ -523,20 +542,21 @@
   }
   .status-dot-mini svg { width: 58%; height: 58%; display: block; }
 
-  /* Explicit text status strip at the bottom of each directory card, so users
-     don't have to interpret a colored dot — the word is right there. Sits on
-     top of the card, doesn't push card height (card has fixed height). Flex
-     row (not just centered text) so the Report pill can live inside this
-     same strip, right-aligned, instead of floating as a separate absolutely
-     positioned button that used to overlap/crowd this corner of the card. */
+  /* Neutral meta strip at the bottom of each directory card — shows "last
+     checked" freshness and houses the Report button. Not colored per status
+     anymore (the dot above is the single source of truth for status; this
+     strip used to duplicate that with a colored, all-caps word, which was
+     redundant with the dot). Kept as a strip rather than inline text so the
+     Report button still has a predictable, tap-friendly spot. */
   .status-label-mini {
     display: none; align-items: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
     padding: 3px 6px 4px 8px;
     color: #fff;
+    background: linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,.15));
   }
   .status-label-mini .status-text-mini {
-    flex: 1; text-align: center; font-size: .58rem; font-weight: 700; letter-spacing: .03em;
-    text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    flex: 1; text-align: left; font-size: .58rem; font-weight: 600; letter-spacing: .02em;
+    color: rgba(255,255,255,.75); text-shadow: 0 1px 2px rgba(0,0,0,.6);
   }
   .status-label-mini .report-icon {
     flex-shrink: 0; margin-left: 4px;
@@ -624,6 +644,22 @@
     .site-card { gap: 8px; padding: 12px; }
     .copy-link-btn.report-icon span.report-label-text { display: none; }
     .copy-link-btn.report-icon { padding: 6px; }
+  }
+
+  /* Respect the OS/browser "Reduce Motion" setting — turns off looping and
+     entrance animations for users who find motion distracting, dizzying,
+     or nauseating. Loading spinners are simplified rather than fully
+     removed so there's still a visible sign that something is loading. */
+  @media (prefers-reduced-motion: reduce) {
+    .starfield, .online-dot, .spinner,
+    [style*="animation"], [class*="fadeUp"],
+    .gradient-card-wrapper, .site-card, .card-content,
+    .poster-shimmer, .genre-pill, .dual-gradient-pill {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+    .spinner { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
   }
 </style>
 </head>
@@ -841,6 +877,7 @@ function buildFavSiteCard(s) {
   return `
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+        <span class="status-dot-mini" data-status-dot></span>
         <span class="status-label-mini" data-status-label><span class="status-text-mini" data-status-text></span></span>
         <button class="pin-icon faved" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
@@ -1803,6 +1840,7 @@ function resetSearch() {
 // ========== SITE STATUS DOTS (public-facing, reuses the same status.json ==========
 // the admin panel already generates from the daily GitHub Action checker) ==========
 let siteStatusMap = null; // { normalizedName: 'up' | 'blocked' | 'down' }
+let siteStatusLastRun = null; // ms timestamp of the batch status check, for "last checked" freshness text
 
 // Strips everything but letters/numbers before comparing site names, so
 // "1Shows" / "1-Shows" / "1 Shows" (AI output, directory entries, and
@@ -1893,6 +1931,7 @@ async function loadSiteStatus() {
     const map = {};
     (data.results || []).forEach(r => { if (r.name) map[normalizeSiteName(r.name)] = r.status; });
     siteStatusMap = map;
+    siteStatusLastRun = data.lastRun ? new Date(data.lastRun).getTime() : null;
     applyStatusDots();
   } catch (err) {
     // Silent fail — dots just stay hidden. Not worth bothering the user
@@ -2031,11 +2070,20 @@ function statusDotLabel(status) {
   return status === 'up' ? 'Online' : status === 'blocked' ? 'Usually works — flagged by the site\'s bot protection, not necessarily down' : status === 'down' ? 'Might be down' : '';
 }
 
-// Short word shown directly on the card (not just a tooltip) so users don't
-// have to guess what a colored dot means. "Flagged" (not "Offline") for
-// blocked, since that status is often a false alarm — see statusDotLabel above.
-function statusLabelText(status) {
-  return status === 'up' ? 'Online' : status === 'blocked' ? 'Flagged' : status === 'down' ? 'Offline' : '';
+// Relative "last checked" freshness text shown on the card's bottom strip —
+// this replaced the old per-card status word (Online/Flagged/Offline), which
+// just repeated what the dot icon+color already says. One signal (the dot)
+// instead of two doing the same job.
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return '';
+  const diffMs = Date.now() - timestamp;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'Checked just now';
+  if (mins < 60) return `Checked ${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `Checked ${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `Checked ${days}d ago`;
 }
 
 // Distinct SHAPE per status (not just color) so the indicator still reads
@@ -2085,14 +2133,11 @@ function applyStatusDots() {
         // writing directly on `label` for those. The homepage directory
         // card now nests a dedicated text span so this can set the text
         // without wiping out the Report button that lives alongside it.
+        // Shows freshness ("Checked 2h ago"), not the status word — the dot
+        // above already communicates status via icon+color.
         const textEl = label.querySelector('[data-status-text]') || label;
-        textEl.textContent = statusLabelText(status);
+        textEl.textContent = formatRelativeTime(siteStatusLastRun);
         label.style.display = 'flex';
-        label.style.background = status === 'up'
-          ? 'linear-gradient(0deg, rgba(6,214,160,.85), rgba(6,214,160,.55))'
-          : status === 'blocked'
-          ? 'linear-gradient(0deg, rgba(240,180,40,.85), rgba(240,180,40,.55))'
-          : 'linear-gradient(0deg, rgba(230,57,70,.85), rgba(230,57,70,.55))';
         label.title = tooltipText;
       }
     } else {
@@ -2245,6 +2290,7 @@ function renderSitesDirectory() {
     return `
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+        <span class="status-dot-mini" data-status-dot></span>
         <span class="status-label-mini" data-status-label>
           <span class="status-text-mini" data-status-text></span>
           <button class="pin-icon report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>Report</button>
@@ -2345,11 +2391,6 @@ function renderHomepage() {
     `}
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
       <div id="dir-results-count" style="font-size:.78rem; color:var(--muted);"></div>
-      <div style="font-size:.7rem; color:var(--muted); display:flex; align-items:center; gap:6px;">
-        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px var(--green));"><path d="M4 12l5 5L20 6"/></svg> Online</span>
-        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px var(--gold));"><path d="M12 3 L22 20 L2 20 Z"/><line x1="12" y1="9.5" x2="12" y2="14.5"/><circle cx="12" cy="17.3" r="0.5" fill="var(--gold)" stroke="none"/></svg> Issues</span>
-        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="3.5" stroke-linecap="round" style="filter:drop-shadow(0 0 3px var(--accent2));"><path d="M5 5 L19 19 M19 5 L5 19"/></svg> Down</span>
-      </div>
     </div>
     <div class="dir-grid" id="sites-directory-grid"></div>
 
