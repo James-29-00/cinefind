@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CineFind — Free Movie & Show Search</title>
 <meta name="description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://James-29-00.github.io/cinefind/">
 
 <!-- Favicon: inline SVG, no separate file needed. Fixed red brand mark
      regardless of active theme, same reasoning as the logo colors — a
@@ -51,13 +53,16 @@
   }
 
   /* Light Mode */
+  /* --muted darkened from the original #6c757d — that only hit ~4.45:1
+     contrast against --bg (#f8f9fa), just under the 4.5:1 WCAG AA minimum
+     for normal-size text. #5f6672 clears ~5.5:1. */
   body.light-mode {
     --bg: #f8f9fa;
     --surface: #ffffff;
     --card: #f0f2f5;
     --border: #0000001a;
     --text: #1a1a2e;
-    --muted: #6c757d;
+    --muted: #5f6672;
   }
 
   /* ===== Color Themes ===== */
@@ -88,7 +93,11 @@
   }
   .starfield {
     display: none;
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    /* Absolute (not fixed) and capped in height so the dots only live
+       behind the hero/header — logo, tagline, search bar — and scroll
+       away with the page instead of showing through every card below. */
+    position: absolute; top: 0; left: 0; right: 0; height: 560px;
+    overflow: hidden; z-index: 0; pointer-events: none;
     background:
       radial-gradient(1.5px 1.5px at 20% 15%, #fff 100%, transparent),
       radial-gradient(1.5px 1.5px at 75% 8%, #fff 100%, transparent),
@@ -158,6 +167,17 @@
     transition: background .3s, color .3s;
   }
 
+  /* ===== Accessibility: global keyboard-focus fallback ===== */
+  /* Elements that already define their own :focus-visible style (search
+     input, pills, pin icons, etc.) keep using that. This is just a safety
+     net for every other button/link/input in the app so keyboard users
+     always get a visible focus ring, not just mouse-hover states. */
+  a:focus-visible, button:focus-visible, input:focus-visible,
+  select:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
   body::before {
     content: '';
     position: fixed; inset: 0;
@@ -187,24 +207,30 @@
     flex: 1;
   }
   .logo span { color: var(--accent); -webkit-text-fill-color: var(--accent); }
+  body.theme-crimson .logo span {
+    filter: drop-shadow(0 0 12px rgba(230,57,70,.6));
+  }
   .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
 
-  /* Online-now live badge, sits beside the logo */
+  /* Online-now live badge — a secondary trust signal, so it lives in the
+     top corner (beside the theme toggle) rather than next to the wordmark.
+     Keeping it out of the .logo row lets the brand mark stand alone as the
+     one thing that grabs attention first. */
   .online-badge {
     display: inline-flex; align-items: center; gap: 6px;
     font-family: system-ui, -apple-system, sans-serif;
-    font-size: .78rem; font-weight: 600; letter-spacing: .02em;
+    font-size: .72rem; font-weight: 600; letter-spacing: .02em;
     color: #b8ffcf;
     background: rgba(34, 197, 94, .12);
     border: 1px solid rgba(34, 197, 94, .35);
-    padding: 5px 12px 5px 10px;
+    padding: 4px 10px 4px 8px;
     border-radius: 999px;
     vertical-align: middle;
-    margin-left: 12px;
+    margin-right: auto;
     -webkit-text-fill-color: #b8ffcf;
   }
   .online-dot {
-    width: 8px; height: 8px; border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
     background: #22c55e;
     box-shadow: 0 0 6px #22c55e;
     animation: online-pulse 1.6s ease-in-out infinite;
@@ -218,9 +244,6 @@
   @media (prefers-reduced-motion: reduce) {
     .online-dot { animation: none; }
   }
-  @media (max-width: 480px) {
-    .online-badge { display: flex; margin: 10px auto 0; width: fit-content; }
-  }
 
   .safety-tip {
     max-width: 420px; margin: 14px auto 0;
@@ -229,6 +252,12 @@
   }
   .safety-tip .tip-icon { font-size: .85rem; opacity: .7; flex-shrink: 0; }
   .safety-tip strong { color: var(--accent2); font-weight: 600; }
+  .safety-tip .tip-close {
+    background: none; border: none; color: var(--muted); opacity: .6;
+    cursor: pointer; font-size: .95rem; line-height: 1; padding: 2px 4px;
+    flex-shrink: 0; margin-left: auto; align-self: flex-start;
+  }
+  .safety-tip .tip-close:hover { opacity: 1; color: var(--text); }
 
   /* Moon Button — icon color/glow matches the active theme's accent:
      crimson red on the default theme, cyan on Cyber Neon. Uses `color` so
@@ -343,14 +372,27 @@
   }
   .dual-gradient-pill.active {
     color: var(--text); font-weight: 600;
-    transform: scale(1.05);
     background-image:
       linear-gradient(var(--card), var(--card)),
       linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
     border-color: transparent;
-    box-shadow: 0 0 0 1px rgba(var(--bg-glow-rgb),.6), 0 0 16px rgba(var(--bg-glow-rgb),.55);
+    /* Solid ring instead of a large neon blur — reads clearly as "selected"
+       without competing with the Hot-card glow, which is now the only
+       heavy glow effect on the page. */
+    box-shadow: 0 0 0 1.5px var(--text);
+  }
+  .dual-gradient-pill.active::before {
+    content: "✓";
+    display: inline-block;
+    margin-right: 5px;
+    font-weight: 700;
+  }
+  .dual-gradient-pill:focus-visible,
+  .genre-pill:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
   }
 
   .genre-chip {
@@ -369,6 +411,17 @@
   .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 60px 0; color: var(--muted); }
   .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== Skeleton loader (initial search result) ===== */
+  /* Shows the shape of the movie header + site grid immediately, instead of
+     a bare spinner, so the layout feels like it's "arriving" rather than
+     the page looking frozen while the TMDB/AI calls are in flight. */
+  .poster-shimmer {
+    background: linear-gradient(90deg, var(--card) 25%, rgba(255,255,255,.06) 50%, var(--card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
   .movie-header {
     display: flex; gap: 20px; align-items: flex-start;
@@ -457,15 +510,28 @@
     position: relative;
     border-radius: 16px;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(var(--bg-glow-rgb),.45) 0%, rgba(6,214,160,.35) 100%);
-    transition: transform .25s ease, box-shadow .25s ease;
+    /* Static, subtle border by default — glow is reserved for Hot cards
+       (see .is-hot below) so it actually means something instead of every
+       card in the grid glowing the same way. */
+    background: var(--border);
+    transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
   }
   .gradient-card-wrapper:hover {
     transform: translateY(-3px);
-    background: linear-gradient(135deg, rgba(var(--bg-glow-rgb),.75) 0%, rgba(6,214,160,.55) 100%);
-    box-shadow: 0 8px 24px rgba(var(--bg-glow-rgb),.12);
+    background: rgba(var(--bg-glow-rgb),.45);
+  }
+  .gradient-card-wrapper:active {
+    transform: scale(.97);
+    transition: transform .1s ease;
+  }
+  .gradient-card-wrapper.is-hot {
+    background: linear-gradient(135deg, #f0b428 0%, rgba(var(--bg-glow-rgb),.6) 100%);
+    box-shadow: 0 0 14px rgba(240,180,40,.25);
+  }
+  .gradient-card-wrapper.is-hot:hover {
+    box-shadow: 0 0 20px rgba(240,180,40,.4);
   }
   .card-content {
     background-color: #16161f;
@@ -476,90 +542,119 @@
     position: relative;
     overflow: hidden;
   }
-  /* Vertical "ONLINE" ribbon on the card's left edge — shown when the site's
-     live status is 'up' (see applyStatusDots). Signals "free streaming
-     available now" without repeating the top status pill. */
-  .online-ribbon {
-    position: absolute; top: 0; left: 0; bottom: 0;
-    width: 18px;
-    display: none;
-    align-items: center; justify-content: center;
-    background: linear-gradient(180deg, #1fae6a, #0d8a54);
-    color: #eafff3;
-    font-size: .58rem; font-weight: 700; letter-spacing: .12em;
-    writing-mode: vertical-rl; transform: rotate(180deg);
-    z-index: 2;
-  }
-  .online-ribbon::before {
-    content: ''; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-    width: 5px; height: 5px; border-radius: 50%;
-    background: #b8ffcf;
-    animation: online-pulse 1.6s ease-in-out infinite;
-  }
   .pin-icon {
     color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
     background: none; border: none; line-height: 1; padding: 0;
     display: flex; align-items: center; justify-content: center;
   }
   .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
-  /* Report-broken flag — labeled (not icon-only) since a bare flag icon reads
-     ambiguously (bookmark? pin?) especially with no hover tooltip on mobile.
-     Small pill so it still fits the tight card corner without crowding the
-     favorite star or logo. Hovers to the theme accent, not gold, so it
-     reads as "flag a problem" rather than "favorite". */
+  /* Not-yet-favorited star stays dim by default — it's a secondary, optional
+     action, not something that needs equal visual weight to status or Hot.
+     Full opacity on hover/focus (discoverable) and once actually favorited. */
+  .pin-icon:not(.faved) { opacity: .4; }
+  .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
+  .pin-icon.faved { opacity: 1; }
+
+  /* Report-broken — icon-only with a tooltip (title/aria-label carry the
+     text for screen readers and on long-press/hover) instead of a labeled
+     pill. Frees up footer width so the "Checked Xm ago" text has room to
+     sit on one line instead of wrapping. */
   .report-icon {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-size: .58rem; font-weight: 600; letter-spacing: .01em;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
     color: rgba(255,255,255,.5); background: rgba(0,0,0,.25);
-    border-radius: 20px; padding: 3px 7px 3px 6px; width: auto; white-space: nowrap;
   }
-  .report-icon:hover { color: var(--accent); background: rgba(var(--bg-glow-rgb),.15); }
+  .report-icon:hover, .report-icon:focus-visible { color: var(--accent); background: rgba(var(--bg-glow-rgb),.2); }
 
   /* Site status dot — filled in after status.json loads (see applyStatusDots()).
-     Hidden by default so cards don't flash an unknown/wrong color before the
-     fetch resolves. A dark circular badge behind the icon (rather than a bare
-     stroke icon floating on the card) so it reads clearly on any card color
-     and matches the pill/badge language used elsewhere in the UI. */
+     Deliberately small and quiet (just enough contrast to read at a glance
+     across a full grid) rather than a large bordered/shadowed badge — the
+     status still needs to be scannable corner-to-corner, but it shouldn't
+     out-shout the card content to do that. */
   .status-dot-mini {
     display: none; align-items: center; justify-content: center;
+    position: absolute; top: 8px; left: 8px; z-index: 2;
+    width: 16px; height: 16px;
     border-radius: 50%;
-    background: rgba(8,8,16,.82);
-    border: 1.5px solid transparent;
-    box-shadow: 0 1px 4px rgba(0,0,0,.4);
-    transition: filter .3s, border-color .3s, background .3s;
+    background: rgba(8,8,16,.75);
   }
-  .status-dot-mini svg { width: 58%; height: 58%; display: block; }
+  .status-dot-mini svg { width: 62%; height: 62%; display: block; }
+  /* Inline variant — used when the dot sits inside the bottom label bar
+     (next to the ONLINE text) instead of floating top-left on its own. */
+  .status-label-mini .status-dot-mini {
+    position: static; flex-shrink: 0;
+  }
 
-  /* Explicit text status strip at the bottom of each directory card, so users
-     don't have to interpret a colored dot — the word is right there. Sits on
-     top of the card, doesn't push card height (card has fixed height). Flex
-     row (not just centered text) so the Report pill can live inside this
-     same strip, right-aligned, instead of floating as a separate absolutely
-     positioned button that used to overlap/crowd this corner of the card. */
+  /* Neutral footer strip — freshness text + icon-only Report button, single
+     row, single line. No per-status color here anymore; the dot above is
+     the one place status lives. */
   .status-label-mini {
-    display: none; align-items: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    padding: 3px 6px 4px 8px;
+    display: flex; align-items: center; justify-content: space-between; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    padding: 4px 6px 4px 8px;
+    gap: 6px;
     color: #fff;
+    background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
+    transition: background .3s ease;
   }
+  /* Color-coded tint once status resolves — green/gold/red wash across the
+     whole bar (not just the dot) so status reads at a glance without
+     needing to focus on the small icon. */
+  .status-label-mini.status-up {
+    background: linear-gradient(0deg, rgba(6,214,160,.32), rgba(6,214,160,.06));
+  }
+  .status-label-mini.status-blocked {
+    background: linear-gradient(0deg, rgba(240,180,40,.32), rgba(240,180,40,.06));
+  }
+  .status-label-mini.status-down {
+    background: linear-gradient(0deg, rgba(230,57,70,.32), rgba(230,57,70,.06));
+  }
+  /* Skeleton shimmer shown before status.json resolves, so the bottom bar
+     never looks "broken"/empty on first paint — it visibly signals
+     "checking..." instead of blank space. */
+  .status-label-mini.status-loading .status-text-mini {
+    display: inline-block; width: 46px; height: 8px; border-radius: 4px;
+    background: linear-gradient(90deg, rgba(255,255,255,.08) 25%, rgba(255,255,255,.18) 50%, rgba(255,255,255,.08) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+  .status-label-mini.status-loading .status-dot-mini {
+    display: inline-flex;
+    background: rgba(255,255,255,.08);
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
   .status-label-mini .status-text-mini {
-    flex: 1; text-align: center; font-size: .58rem; font-weight: 700; letter-spacing: .03em;
-    text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    flex: 1; text-align: center;
+    font-size: .58rem; font-weight: 600; letter-spacing: .01em;
+    color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .status-label-mini .report-icon {
-    flex-shrink: 0; margin-left: 4px;
-    color: rgba(255,255,255,.75); background: rgba(0,0,0,.28);
-  }
-  .status-label-mini .report-icon:hover { color: #fff; background: rgba(0,0,0,.4); }
-  /* Small "HOT" text badge, top-right area next to the pin icon. */
+  /* Small "HOT" badge — top-right, next to the favorite star. Only Hot
+     cards get any glow at all now (matches the card border treatment
+     above), so it still reads as genuinely special instead of one badge
+     among several identical ones. */
   .hot-label-mini {
-    position: absolute; top: 7px; right: 32px; z-index: 2;
-    font-size: .58rem; font-weight: 800; letter-spacing: .03em;
+    position: absolute; top: 8px; right: 34px; z-index: 2;
+    font-size: .56rem; font-weight: 800; letter-spacing: .02em;
     color: #1a1a2e; background: #f0b428; border-radius: 6px; padding: 2px 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.4);
+    box-shadow: 0 0 6px rgba(240,180,40,.5);
   }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
-  .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; }
+  .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; position: relative; z-index: 1; }
+  /* Soft radial glow behind the logo — breaks up the flat empty space in
+     the middle of the card without competing with the logo itself. */
+  .card-content::before {
+    content: '';
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 70%; height: 70%;
+    background: radial-gradient(circle, rgba(var(--bg-glow-rgb),.16) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
   .card-logo svg { width: 38px; height: 26px; display: block; }
   .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.65rem; letter-spacing: -.01em; line-height: 1; }
   .lw-white { color: #fff; }
@@ -632,6 +727,22 @@
     .copy-link-btn.report-icon span.report-label-text { display: none; }
     .copy-link-btn.report-icon { padding: 6px; }
   }
+
+  /* Respect the OS/browser "Reduce Motion" setting — turns off looping and
+     entrance animations for users who find motion distracting, dizzying,
+     or nauseating. Loading spinners are simplified rather than fully
+     removed so there's still a visible sign that something is loading. */
+  @media (prefers-reduced-motion: reduce) {
+    .starfield, .online-dot, .spinner,
+    [style*="animation"], [class*="fadeUp"],
+    .gradient-card-wrapper, .site-card, .card-content,
+    .poster-shimmer, .genre-pill, .dual-gradient-pill {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+    .spinner { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
+  }
 </style>
 </head>
 <body class="dark-mode theme-crimson">
@@ -640,6 +751,9 @@
 <div class="wrapper">
   <header>
     <div class="header-top">
+      <span id="online-badge" class="online-badge" style="display:none;">
+        <span class="online-dot"></span><span id="online-count-text"></span>
+      </span>
       <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
         <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
         <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
@@ -648,9 +762,6 @@
       </div>
     </div>
     <div class="logo">Cine<span>Find</span>
-      <span id="online-badge" class="online-badge" style="display:none;">
-        <span class="online-dot"></span><span id="online-count-text"></span>
-      </span>
     </div>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
   </header>
@@ -660,6 +771,8 @@
     <button class="search-btn" onclick="searchMovie()" aria-label="Search">🔍</button>
     <div class="suggestions-box" id="suggestions-box"></div>
   </div>
+
+  <div id="onboarding-banner"></div>
 
   <div style="display:flex; justify-content:flex-end; margin:-6px 0 18px;">
     <button class="fav-quick-link" onclick="showFavorites()"><span class="fav-star-icon">★</span> My Favorites (<span id="fav-count">0</span>)</button>
@@ -703,6 +816,7 @@
 
   <footer>
     <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
+    <p style="margin-top:6px;"><button onclick="openAboutModal()" style="background:none; border:none; color:var(--muted); text-decoration:underline; font-size:.78rem; cursor:pointer; padding:0;">ℹ️ About & Disclaimer</button></p>
     <p id="visit-stats" style="opacity:0.7; font-size:0.85em; margin-top:4px;"></p>
   </footer>
 </div>
@@ -848,7 +962,10 @@ function buildFavSiteCard(s) {
   return `
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
-        <span class="status-label-mini" data-status-label><span class="status-text-mini" data-status-text></span></span>
+        <span class="status-label-mini status-loading" data-status-label>
+          <span class="status-dot-mini" data-status-dot></span>
+          <span class="status-text-mini" data-status-text></span>
+        </span>
         <button class="pin-icon faved" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
         </button>
@@ -908,7 +1025,7 @@ function showFavorites(sortBy) {
     html += `
       <div class="movie-header" style="margin-bottom:16px;">
         <div class="movie-poster${movie.poster ? ' poster-loading' : ''}" id="poster-${movie.title}">
-          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
+          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
         </div>
         <div class="movie-info">
           <div class="movie-title">${movie.title}</div>
@@ -1033,7 +1150,7 @@ function renderVisibleResults() {
   const cards = visible.map((m, i) => `
     <div class="result-card" onclick="selectMovie(${i})" style="animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
       <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
       </div>
       <div class="result-info">
         <div class="result-title">${m.title}</div>
@@ -1167,7 +1284,7 @@ function renderSuggestions(results, currentQuery) {
     const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : null;
     return `
       <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(title)}')">
-        <div class="suggestion-poster">${poster ? `<img class="poster-img" src="${poster}" alt="" onload="this.style.opacity=1">` : (r.media_type === 'tv' ? '📺' : '🎬')}</div>
+        <div class="suggestion-poster">${poster ? `<img class="poster-img" src="${poster}" alt="" loading="lazy" onload="this.style.opacity=1">` : (r.media_type === 'tv' ? '📺' : '🎬')}</div>
         <div class="suggestion-text">
           <div class="suggestion-title">${escapeAttr(title)}</div>
           <div class="suggestion-meta">${type}${year ? ' • ' + year : ''}</div>
@@ -1194,6 +1311,34 @@ function closeSuggestions() {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.search-wrap')) closeSuggestions();
 });
+
+// ========== FIRST-VISIT ONBOARDING ==========
+// One-time dismissible tip explaining the two things new visitors ask about
+// most: what the ✅/⚠️ link-type tags mean on a site card, and that the
+// colored status dots (🟢🟡🔴) are tap/hover-able for more detail. Shown
+// once via a localStorage flag — never re-shown after dismissal or on
+// repeat visits, so returning users aren't nagged by it.
+const ONBOARDING_SEEN_KEY = 'cinefind-onboarding-seen';
+function showOnboardingIfNeeded() {
+  if (localStorage.getItem(ONBOARDING_SEEN_KEY)) return;
+  const el = document.getElementById('onboarding-banner');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="background:rgba(230,57,70,.08); border:1px solid rgba(230,57,70,.25); border-radius:12px; padding:12px 14px; margin:-4px 0 18px; font-size:.78rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;">
+      <span style="font-size:1.1rem; flex-shrink:0;">💡</span>
+      <span style="flex:1;">
+        <strong style="color:var(--text);">Quick tip:</strong>
+        ✅ means a direct link to that title, ⚠️ means you'll need to search once you're on the site.
+        The colored dot (🟢🟡🔴) shows if a site's currently online — tap it for details.
+      </span>
+      <button onclick="dismissOnboarding()" aria-label="Dismiss tip" style="background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; flex-shrink:0; line-height:1; padding:0;">✕</button>
+    </div>`;
+}
+function dismissOnboarding() {
+  localStorage.setItem(ONBOARDING_SEEN_KEY, '1');
+  const el = document.getElementById('onboarding-banner');
+  if (el) el.innerHTML = '';
+}
 
 // ========== SEARCH HISTORY ==========
 const SEARCH_HISTORY_KEY = 'cinefind-search-history';
@@ -1246,6 +1391,10 @@ function showSearchHistory() {
 // ========== ORIGINAL CODE WITH MODIFICATIONS ==========
 // ⚠️ Replace this with YOUR deployed Cloudflare Worker URL (Step 3 of the guide)
 const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
+// Deploy worker.js as its own Worker (separate from the TMDB proxy — keeps
+// blast radius small) and put its *.workers.dev URL here. This worker is the
+// only thing that ever holds the real GitHub token — see worker.js for setup.
+const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
 // TODO: palitan ito ng URL ng bago mong ide-deploy na Visit Worker (see instructions)
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
@@ -1503,7 +1652,21 @@ function searchMovie() {
   saveSearchHistory(query);
   isSearching = true;
   const area = document.getElementById('result-area');
-  area.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching...</p></div>';
+  area.innerHTML = `
+    <div style="display:flex; gap:16px;" aria-hidden="true">
+      <div class="poster-shimmer" style="width:110px; height:165px; border-radius:12px; flex-shrink:0;"></div>
+      <div style="flex:1; display:flex; flex-direction:column; gap:10px; padding-top:4px;">
+        <div class="poster-shimmer" style="height:22px; width:70%; border-radius:6px;"></div>
+        <div class="poster-shimmer" style="height:14px; width:40%; border-radius:6px;"></div>
+        <div class="poster-shimmer" style="height:14px; width:90%; border-radius:6px;"></div>
+        <div class="poster-shimmer" style="height:14px; width:80%; border-radius:6px;"></div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" aria-hidden="true">
+      ${Array(4).fill('<div class="poster-shimmer" style="height:86px; border-radius:14px;"></div>').join('')}
+    </div>
+    <p style="text-align:center; color:var(--muted); font-size:.8rem; margin-top:16px;">Searching…</p>
+  `;
 
   let cached = getFromCache(query);
   if (cached && !Array.isArray(cached)) cached = [cached]; // back-compat with old single-object cache format
@@ -1533,11 +1696,21 @@ function searchMovie() {
           <button class="pop-chip" onclick="quickSearch('${escapeAttr(s)}')" style="margin-right:8px; margin-top:8px;">
             🔍 ${escapeAttr(s)}
           </button>`).join('');
-        area.innerHTML = `
+        // TMDB itself found nothing even loosely related (not just no
+        // poster-having match) — "Did you mean..." would be misleading with
+        // an empty list under it, so this shows different, more actionable
+        // copy instead of a dead-end.
+        area.innerHTML = suggestions.length > 0 ? `
           <div class="empty">
             <div class="big">🤔</div>
-            <p style="margin-bottom:20px;">Couldn't find "<strong>${query}</strong>". Did you mean...</p>
+            <p style="margin-bottom:20px;">Couldn't find "<strong>${escapeAttr(query)}</strong>". Did you mean...</p>
             ${suggestionCards}
+          </div>` : `
+          <div class="empty">
+            <div class="big">🔍</div>
+            <p style="margin-bottom:6px;">No matches for "<strong>${escapeAttr(query)}</strong>".</p>
+            <p style="color:var(--muted); font-size:.82rem; margin-bottom:20px;">Double-check the spelling, try the original (non-translated) title, or search a shorter keyword.</p>
+            <button class="pop-chip" onclick="document.getElementById('search-input').value=''; document.getElementById('search-input').focus();">✏️ Edit search</button>
           </div>`;
         return;
       }
@@ -1621,6 +1794,39 @@ function checkDescOverflow() {
   }
 }
 
+// ===== SEO: JSON-LD structured data (Movie/TVSeries schema) =====
+// Injected/updated per search result so a JS-executing crawler (Googlebot
+// renders JS before indexing) sees structured data for the specific title
+// being viewed, not just the generic homepage meta tags — this is what
+// enables rich results (poster, rating) in search listings. Removes any
+// previous instance first so navigating between titles doesn't stack up
+// duplicate tags in <head>.
+function injectMovieStructuredData(data) {
+  const existing = document.getElementById('movie-jsonld');
+  if (existing) existing.remove();
+  if (!data || !data.title) return;
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': data.type === 'series' ? 'TVSeries' : 'Movie',
+    name: data.title,
+    ...(data.description ? { description: data.description } : {}),
+    ...(data.poster ? { image: data.poster } : {}),
+    ...(data.year ? { datePublished: String(data.year) } : {}),
+    ...(data.rating ? { aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: data.rating,
+      bestRating: '10',
+      ratingCount: 1
+    } } : {}),
+  };
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.id = 'movie-jsonld';
+  script.textContent = JSON.stringify(schema);
+  document.head.appendChild(script);
+}
+
 function renderResult(data, query) {
   hideFiltersBar(); // filters apply to result lists, not a single detail view
   const area = document.getElementById('result-area');
@@ -1644,7 +1850,7 @@ function renderResult(data, query) {
     <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i*0.07}s">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
-        <div class="site-name"><span class="status-dot-mini" data-status-dot style="display:none; width:13px; height:13px; margin-right:6px; vertical-align:middle;"></span>${s.name}</div>
+        <div class="site-name">${s.name}</div>
         <div class="site-note">${s.note || 'Free streaming'}</div>
         ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
@@ -1707,6 +1913,7 @@ function renderResult(data, query) {
 
   // Store current data for favorites
   window.currentMovie = data;
+  injectMovieStructuredData(data);
 
   if (data.id) loadSimilar(data);
 
@@ -1744,7 +1951,7 @@ function loadSimilar(movie) {
       grid.innerHTML = results.map((m, i) => `
         <div class="result-card" onclick="selectSimilar(${i})" style="animation-delay:${i * 0.05}s">
           <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-            ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+            ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
           </div>
           <div class="result-info">
             <div class="result-title">${m.title}</div>
@@ -1810,6 +2017,7 @@ function resetSearch() {
 // ========== SITE STATUS DOTS (public-facing, reuses the same status.json ==========
 // the admin panel already generates from the daily GitHub Action checker) ==========
 let siteStatusMap = null; // { normalizedName: 'up' | 'blocked' | 'down' }
+let siteStatusLastRun = null; // ms timestamp of the batch status check, for "last checked" freshness text
 
 // Strips everything but letters/numbers before comparing site names, so
 // "1Shows" / "1-Shows" / "1 Shows" (AI output, directory entries, and
@@ -1845,6 +2053,35 @@ function openReportModal(siteName, url) {
       <div style="display:flex; gap:8px;">
         <button class="pop-chip" style="flex:1;" onclick="document.getElementById('report-modal-overlay').remove()">Cancel</button>
         <button class="pop-chip" id="report-submit-btn" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent);" disabled onclick="submitReport('${escapeAttr(siteName)}', '${escapeAttr(url)}', '${escapeAttr(movieTitle)}')">Submit</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+// ===== About & Disclaimer modal (footer link) =====
+// Expands on the one-line footer disclaimer with the fuller legal/trust
+// context a directory site like this should surface: no hosting, no
+// affiliation with listed sites, and how to flag a broken/bad link (reuses
+// the same report flow already wired up per-site, see openReportModal above).
+function openAboutModal() {
+  const existing = document.getElementById('about-modal-overlay');
+  if (existing) { existing.remove(); return; }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'about-modal-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div style="background:#1a1a2e; border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:20px; max-width:380px; width:100%; max-height:80vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-weight:700; color:#f0f0f5;">ℹ️ About & Disclaimer</div>
+        <button onclick="document.getElementById('about-modal-overlay').remove()" style="background:none; border:none; color:#9494b5; font-size:1.1rem; cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:.8rem; color:#c3c3d6; line-height:1.6;">
+        <p style="margin-bottom:10px;"><strong>CineFind is a search &amp; directory tool only.</strong> We don't host, upload, or store any video content ourselves — we help you find where a title might be available on other, independent websites.</p>
+        <p style="margin-bottom:10px;">We're not affiliated with any of the third-party sites listed. Their availability, legality, and content are entirely outside our control, and can change at any time.</p>
+        <p style="margin-bottom:10px;">Streaming laws vary by country. Please check what's legal to access in your own region before using any listed site.</p>
+        <p style="margin-bottom:10px;">Found a broken link, a site with excessive ads/popups, or something that looks wrong? Use the 🚩 report button next to that site's card — reports go straight to us and help keep the list accurate for everyone.</p>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -1900,6 +2137,7 @@ async function loadSiteStatus() {
     const map = {};
     (data.results || []).forEach(r => { if (r.name) map[normalizeSiteName(r.name)] = r.status; });
     siteStatusMap = map;
+    siteStatusLastRun = data.lastRun ? new Date(data.lastRun).getTime() : null;
     applyStatusDots();
   } catch (err) {
     // Silent fail — dots just stay hidden. Not worth bothering the user
@@ -2038,11 +2276,20 @@ function statusDotLabel(status) {
   return status === 'up' ? 'Online' : status === 'blocked' ? 'Usually works — flagged by the site\'s bot protection, not necessarily down' : status === 'down' ? 'Might be down' : '';
 }
 
-// Short word shown directly on the card (not just a tooltip) so users don't
-// have to guess what a colored dot means. "Flagged" (not "Offline") for
-// blocked, since that status is often a false alarm — see statusDotLabel above.
-function statusLabelText(status) {
-  return status === 'up' ? 'Online' : status === 'blocked' ? 'Flagged' : status === 'down' ? 'Offline' : '';
+// Relative "last checked" freshness text shown on the card's bottom strip —
+// this replaced the old per-card status word (Online/Flagged/Offline), which
+// just repeated what the dot icon+color already says. One signal (the dot)
+// instead of two doing the same job.
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return '';
+  const diffMs = Date.now() - timestamp;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'Checked just now';
+  if (mins < 60) return `Checked ${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `Checked ${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `Checked ${days}d ago`;
 }
 
 // Distinct SHAPE per status (not just color) so the indicator still reads
@@ -2072,10 +2319,8 @@ function applyStatusDots() {
   document.querySelectorAll('[data-site-name]').forEach(el => {
     const dot = el.querySelector('[data-status-dot]');
     const label = el.querySelector('[data-status-label]');
-    const ribbon = el.querySelector('[data-online-ribbon]');
-    if (!dot && !label && !ribbon) return;
+    if (!dot && !label) return;
     const status = getSiteStatus(el.dataset.siteName);
-    if (ribbon) ribbon.style.display = status === 'up' ? 'flex' : 'none';
     const color = statusDotColor(status);
     if (color) {
       const tooltipText = statusDotLabel(status);
@@ -2094,15 +2339,14 @@ function applyStatusDots() {
         // writing directly on `label` for those. The homepage directory
         // card now nests a dedicated text span so this can set the text
         // without wiping out the Report button that lives alongside it.
+        // Shows freshness ("Checked 2h ago"), not the status word — the dot
+        // above already communicates status via icon+color.
         const textEl = label.querySelector('[data-status-text]') || label;
-        textEl.textContent = statusLabelText(status);
+        textEl.textContent = formatRelativeTime(siteStatusLastRun);
         label.style.display = 'flex';
-        label.style.background = status === 'up'
-          ? 'linear-gradient(0deg, rgba(6,214,160,.85), rgba(6,214,160,.55))'
-          : status === 'blocked'
-          ? 'linear-gradient(0deg, rgba(240,180,40,.85), rgba(240,180,40,.55))'
-          : 'linear-gradient(0deg, rgba(230,57,70,.85), rgba(230,57,70,.55))';
         label.title = tooltipText;
+        label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
+        label.classList.add(`status-${status}`);
       }
     } else {
       if (dot) {
@@ -2113,6 +2357,7 @@ function applyStatusDots() {
       }
       if (label) {
         label.style.display = 'none';
+        label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
         const textEl = label.querySelector('[data-status-text]');
         if (textEl) textEl.textContent = ''; else label.textContent = '';
       }
@@ -2252,15 +2497,15 @@ function renderSitesDirectory() {
       ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
       : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
     return `
-    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
+    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
-        <span class="online-ribbon" data-online-ribbon>ONLINE</span>
-        <span class="status-label-mini" data-status-label>
+        <span class="status-label-mini status-loading" data-status-label>
+          <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
-          <button class="pin-icon report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>Report</button>
+          <button class="pin-icon${isFav ? ' faved' : ''}" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
+          <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
         </span>
         ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
-        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -2327,6 +2572,12 @@ function syncDirFilterChipsUI() {
   });
 }
 
+function dismissDirTip() {
+  localStorage.setItem('cinefind-dir-tip-dismissed', '1');
+  const el = document.getElementById('dir-safety-tip');
+  if (el) el.remove();
+}
+
 function renderHomepage() {
   hideFiltersBar();
   document.getElementById('result-area').innerHTML = `
@@ -2340,17 +2591,15 @@ function renderHomepage() {
       <button class="genre-pill dual-gradient-pill" data-cat="hot" onclick="toggleDirFilter('hot', this)">Hot</button>
       <button class="genre-pill dual-gradient-pill" data-cat="pinned" onclick="toggleDirFilter('pinned', this)">📌 Pinned</button>
     </div>
-    <div class="safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
+    ${localStorage.getItem('cinefind-dir-tip-dismissed') ? '' : `
+    <div class="safety-tip" id="dir-safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
       <span class="tip-icon">🛡️</span>
-      <span>Tip: these are third-party sites we don't control — use a browser with built-in ad/tracker blocking (like <strong>Brave Browser <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Brave_lion_icon.svg" width="15" height="15" alt="Brave lion logo" style="vertical-align:-3px; display:inline-block;"></strong>) and avoid clicking pop-ups or "download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:underline;">Download Brave here →</a></span>
+      <span>Use an ad-blocking browser like <strong>Brave</strong> and avoid pop-ups/"download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:underline;">Get Brave →</a></span>
+      <button class="tip-close" onclick="dismissDirTip()" aria-label="Dismiss tip">✕</button>
     </div>
+    `}
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
       <div id="dir-results-count" style="font-size:.78rem; color:var(--muted);"></div>
-      <div style="font-size:.7rem; color:var(--muted); display:flex; align-items:center; gap:6px;">
-        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px var(--green));"><path d="M4 12l5 5L20 6"/></svg> Online</span>
-        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px var(--gold));"><path d="M12 3 L22 20 L2 20 Z"/><line x1="12" y1="9.5" x2="12" y2="14.5"/><circle cx="12" cy="17.3" r="0.5" fill="var(--gold)" stroke="none"/></svg> Issues</span>
-        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="3.5" stroke-linecap="round" style="filter:drop-shadow(0 0 3px var(--accent2));"><path d="M5 5 L19 19 M19 5 L5 19"/></svg> Down</span>
-      </div>
     </div>
     <div class="dir-grid" id="sites-directory-grid"></div>
 
@@ -2429,6 +2678,7 @@ window.addEventListener('load', () => {
   loadCustomSites();
   loadHotSites();
   checkAdminAccess();
+  showOnboardingIfNeeded();
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
@@ -2460,7 +2710,12 @@ document.getElementById('search-input').addEventListener('focus', () => {
 
 // ========== HIDDEN ADMIN PANEL ==========
 // Access by visiting: yoursite.com/?admin=cf_x7k9m2
-// Only shows up with the exact secret code in the URL — regular visitors never see it.
+// NOTE: this URL param only hides the panel from casual visitors (security
+// through obscurity) — it is NOT real auth, since anyone can view-source
+// this file and read the value. The actual security boundary is the admin
+// password login (adminLogin()) + the ADMIN_PROXY_URL worker, which is the
+// only thing that can write to GitHub. Even if someone finds this URL and
+// opens the panel, they still can't change anything without the password.
 const ADMIN_SECRET = 'cf_x7k9m2';
 
 function checkAdminAccess() {
@@ -2559,7 +2814,7 @@ async function loadAdminPanel() {
 
   const overlay = document.createElement('div');
   overlay.id = 'admin-overlay';
-  const gh = getGithubConfig();
+  const loggedIn = !!getAdminSession();
   overlay.innerHTML = `
     <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
     <div class="admin-header">
@@ -2575,13 +2830,12 @@ async function loadAdminPanel() {
       <div style="margin-top:6px;">Just updated a link and it's still yellow after reload? The re-check likely ran and got bot-blocked on this new URL too — see 🟡 above.</div>
     </div>
     <div class="test-link-box" id="gh-config-box">
-      <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
+      <div class="test-link-title">🔐 Admin Login (needed for live link updates)</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <input type="text" id="gh-owner" class="test-link-input" placeholder="GitHub username (repo owner)" value="${escapeForAttr(gh.owner || '')}">
-        <input type="text" id="gh-repo" class="test-link-input" placeholder="Repository name" value="${escapeForAttr(gh.repo || '')}">
-        <input type="password" id="gh-token" class="test-link-input" placeholder="Personal Access Token" value="${escapeForAttr(gh.token || '')}">
-        <button class="test-link-btn" style="width:100%;" onclick="saveGithubConfig()">Save Connection</button>
-        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${gh.token ? '✅ Connection saved on this device.' : 'Not connected yet — set this up once.'}</div>
+        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" style="${loggedIn ? 'display:none;' : ''}">
+        <button class="test-link-btn" id="admin-login-btn" onclick="adminLogin()" style="width:100%;${loggedIn ? ' display:none;' : ''}">Log In</button>
+        <button class="test-link-btn" id="admin-logout-btn" onclick="adminLogout()" style="width:100%;${loggedIn ? '' : ' display:none;'}">Log Out</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${loggedIn ? '✅ Logged in — session active for a few hours.' : 'Not logged in — enter the admin password to enable live edits.'}</div>
       </div>
     </div>
     <div class="test-link-box">
@@ -2743,7 +2997,7 @@ function renderAdminPanel(data) {
   `;
   }).join('');
 
-  const gh = getGithubConfig();
+  const loggedIn = !!getAdminSession();
   overlay.innerHTML = `
     <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
     <div class="admin-header">
@@ -2751,13 +3005,12 @@ function renderAdminPanel(data) {
       <p>Last checked: ${lastRun}</p>
     </div>
     <div class="test-link-box" id="gh-config-box">
-      <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
+      <div class="test-link-title">🔐 Admin Login (needed for live link updates)</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <input type="text" id="gh-owner" class="test-link-input" placeholder="GitHub username (repo owner)" value="${escapeForAttr(gh.owner || '')}">
-        <input type="text" id="gh-repo" class="test-link-input" placeholder="Repository name" value="${escapeForAttr(gh.repo || '')}">
-        <input type="password" id="gh-token" class="test-link-input" placeholder="Personal Access Token" value="${escapeForAttr(gh.token || '')}">
-        <button class="test-link-btn" style="width:100%;" onclick="saveGithubConfig()">Save Connection</button>
-        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${gh.token ? '✅ Connection saved on this device.' : 'Not connected yet — set this up once.'}</div>
+        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" style="${loggedIn ? 'display:none;' : ''}">
+        <button class="test-link-btn" id="admin-login-btn" onclick="adminLogin()" style="width:100%;${loggedIn ? ' display:none;' : ''}">Log In</button>
+        <button class="test-link-btn" id="admin-logout-btn" onclick="adminLogout()" style="width:100%;${loggedIn ? '' : ' display:none;'}">Log Out</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${loggedIn ? '✅ Logged in — session active for a few hours.' : 'Not logged in — enter the admin password to enable live edits.'}</div>
       </div>
     </div>
     <div class="test-link-box">
@@ -2861,16 +3114,16 @@ async function loadReportsIntoAdmin() {
 }
 
 async function dismissReport(index, btn) {
-  const config = getGithubConfig();
-  if (!config.owner || !config.repo || !config.token) {
-    alert('⚠️ Set up GitHub Connection above first.');
+  const session = getAdminSession();
+  if (!session) {
+    alert('⚠️ Please log in with the admin password above first.');
     return;
   }
   btn.disabled = true;
   btn.textContent = '...';
 
-  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/reports.json`;
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/reports.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
     const getRes = await fetch(apiUrl, { headers });
@@ -2900,30 +3153,71 @@ async function dismissReport(index, btn) {
   }
 }
 
-// ========== LIVE LINK UPDATES (via GitHub API) ==========
+// ========== LIVE LINK UPDATES (via the admin proxy Worker) ==========
 // GitHub Pages is static — there's no server to write files to on demand.
 // So "publishing" a link update means committing a change to overrides.json
-// straight to the repo via GitHub's REST API, using a Personal Access Token
-// the admin enters once (stored only in this browser's localStorage, never
-// sent anywhere except directly to api.github.com).
-function getGithubConfig() {
-  try { return JSON.parse(localStorage.getItem('cinefind-gh-config') || '{}'); }
-  catch (e) { return {}; }
+// straight to the repo via GitHub's REST API. IMPORTANT: the real GitHub
+// token never touches this browser. It lives only as a secret on the
+// ADMIN_PROXY_URL Cloudflare Worker (see worker.js). This page just logs
+// in with a password, gets back a short-lived signed session token, and
+// sends that session token to the worker — which is the only thing that
+// ever talks to api.github.com directly.
+function getAdminSession() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('cinefind-admin-session') || 'null');
+    if (!raw || !raw.session || !raw.exp) return null;
+    if (Date.now() / 1000 > raw.exp) { // expired locally, don't even bother the worker
+      localStorage.removeItem('cinefind-admin-session');
+      return null;
+    }
+    return raw.session;
+  } catch (e) { return null; }
 }
 
-function saveGithubConfig() {
-  const owner = document.getElementById('gh-owner').value.trim();
-  const repo = document.getElementById('gh-repo').value.trim();
-  const token = document.getElementById('gh-token').value.trim();
+async function adminLogin() {
+  const input = document.getElementById('admin-password');
   const statusEl = document.getElementById('gh-config-status');
-  if (!owner || !repo || !token) {
-    statusEl.textContent = 'Fill in all 3 fields first.';
+  const password = input ? input.value : '';
+  if (!password) {
+    statusEl.textContent = 'Enter the admin password first.';
     statusEl.style.color = '#e63946';
     return;
   }
-  localStorage.setItem('cinefind-gh-config', JSON.stringify({ owner, repo, token }));
-  statusEl.textContent = '✅ Saved on this device.';
-  statusEl.style.color = '#06d6a0';
+  statusEl.textContent = 'Logging in...';
+  statusEl.style.color = '#9494b5';
+  try {
+    const res = await fetch(`${ADMIN_PROXY_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Login failed (HTTP ${res.status})`);
+    localStorage.setItem('cinefind-admin-session', JSON.stringify({
+      session: data.session,
+      exp: Math.floor(Date.now() / 1000) + (data.expiresIn || 0),
+    }));
+    statusEl.textContent = '✅ Logged in — session active for a few hours.';
+    statusEl.style.color = '#06d6a0';
+    document.getElementById('admin-password').style.display = 'none';
+    document.getElementById('admin-login-btn').style.display = 'none';
+    document.getElementById('admin-logout-btn').style.display = '';
+  } catch (err) {
+    statusEl.textContent = `❌ ${err.message}`;
+    statusEl.style.color = '#e63946';
+  }
+}
+
+function adminLogout() {
+  localStorage.removeItem('cinefind-admin-session');
+  const statusEl = document.getElementById('gh-config-status');
+  if (statusEl) {
+    statusEl.textContent = 'Logged out.';
+    statusEl.style.color = '#9494b5';
+  }
+  document.getElementById('admin-password').style.display = '';
+  document.getElementById('admin-login-btn').style.display = '';
+  document.getElementById('admin-logout-btn').style.display = 'none';
 }
 
 // UTF-8 safe base64 helpers — plain btoa()/atob() break on non-ASCII chars.
@@ -2935,10 +3229,10 @@ async function updateLiveLink(siteName, btn) {
   const input = wrap.querySelector('.live-update-input');
   const statusEl = wrap.querySelector('.live-update-status');
   const newUrl = input.value.trim();
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -2953,8 +3247,8 @@ async function updateLiveLink(siteName, btn) {
   btn.textContent = 'Updating...';
   statusEl.textContent = '';
 
-  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/overrides.json`;
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/overrides.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
     let sha, current = {};
@@ -2994,7 +3288,7 @@ async function updateLiveLink(siteName, btn) {
     // wait up to 6h, so a reload shows the real, confirmed result sooner.
     try {
       const dispatchRes = await fetch(
-        `https://api.github.com/repos/${config.owner}/${config.repo}/actions/workflows/check-sites.yml/dispatches`,
+        `${ADMIN_PROXY_URL}/api/github/actions/workflows/check-sites.yml/dispatches`,
         {
           method: 'POST',
           headers: { ...headers, 'Content-Type': 'application/json' },
@@ -3054,9 +3348,9 @@ async function updateLiveLink(siteName, btn) {
 // Same GitHub-commit pattern as updateLiveLink(), but writes to hot-sites.json,
 // a simple array of normalized site names.
 async function toggleHotSite(siteName, btn) {
-  const config = getGithubConfig();
-  if (!config.owner || !config.repo || !config.token) {
-    alert('⚠️ Set up GitHub Connection above first.');
+  const session = getAdminSession();
+  if (!session) {
+    alert('⚠️ Please log in with the admin password above first.');
     return;
   }
 
@@ -3064,8 +3358,8 @@ async function toggleHotSite(siteName, btn) {
   btn.disabled = true;
   btn.textContent = 'Saving...';
 
-  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/hot-sites.json`;
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/hot-sites.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
   const key = normalizeSiteName(siteName);
 
   try {
@@ -3127,10 +3421,10 @@ async function addNewWebsite(btn) {
   if (document.getElementById('new-site-cat-anime').checked) cats.push('anime');
   if (document.getElementById('new-site-cat-pinoy').checked) cats.push('pinoy');
   const statusEl = document.getElementById('add-site-status');
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3149,8 +3443,8 @@ async function addNewWebsite(btn) {
   btn.textContent = 'Adding...';
   statusEl.textContent = '';
 
-  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
     let sha, current = [];
@@ -3262,10 +3556,10 @@ function confirmDeleteWebsite(siteName, btn) {
 
 async function deleteWebsite(siteName, btn) {
   const statusEl = btn.closest('.site-row').querySelector('.delete-site-status');
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3275,7 +3569,7 @@ async function deleteWebsite(siteName, btn) {
   btn.textContent = 'Deleting...';
   statusEl.textContent = '';
 
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   // Snapshot the full site data (url/domain/categories/icon) *before* it gets
   // removed from anywhere — this is what gets saved into removed-sites.json
@@ -3299,7 +3593,7 @@ async function deleteWebsite(siteName, btn) {
     // added to the checker list), that's fine, just skip this step instead
     // of aborting the whole deletion.
     let removedFromSitesJson = false;
-    const sitesUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/sites.json`;
+    const sitesUrl = `${ADMIN_PROXY_URL}/api/github/contents/sites.json`;
     const sitesGetRes = await fetch(sitesUrl, { headers });
     if (!sitesGetRes.ok) throw new Error(`Could not read sites.json (HTTP ${sitesGetRes.status})`);
     const sitesFileData = await sitesGetRes.json();
@@ -3328,7 +3622,7 @@ async function deleteWebsite(siteName, btn) {
     // so its homepage card disappears. Built-in SITES_DIRECTORY sites don't
     // live here, so a 404/miss here is expected and not an error.
     let removedFromCustom = false;
-    const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+    const customUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
     const customGetRes = await fetch(customUrl, { headers });
     if (customGetRes.status === 200) {
       const customFileData = await customGetRes.json();
@@ -3356,7 +3650,7 @@ async function deleteWebsite(siteName, btn) {
     // cache-busted file the front-end filters against on every load, so the
     // card disappears immediately even before index.html's own edit (below,
     // for built-ins) or GitHub Pages' cache has caught up.
-    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
     const removedGetRes = await fetch(removedUrl, { headers });
     let removedList = [];
     let removedSha = null;
@@ -3410,7 +3704,7 @@ async function deleteWebsite(siteName, btn) {
     // keeps index.html's own source clean long-term.)
     let removedFromDirectory = false;
     if (SITES_DIRECTORY.some(s => normalizeSiteName(s.name) === normalizeSiteName(siteName))) {
-      const idxUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/index.html`;
+      const idxUrl = `${ADMIN_PROXY_URL}/api/github/contents/index.html`;
       const idxGetRes = await fetch(idxUrl, { headers });
       if (!idxGetRes.ok) throw new Error(`Could not read index.html (HTTP ${idxGetRes.status})`);
       const idxFileData = await idxGetRes.json();
@@ -3472,10 +3766,10 @@ async function deleteWebsite(siteName, btn) {
 // the only place a restore can safely write the full card data back to.
 async function restoreWebsite(siteName, btn) {
   const statusEl = btn.closest('.site-row').querySelector('.restore-site-status');
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3499,11 +3793,11 @@ async function restoreWebsite(siteName, btn) {
   btn.textContent = 'Restoring...';
   statusEl.textContent = '';
 
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
     // 1) Take it out of removed-sites.json so it's no longer hidden.
-    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
     const removedGetRes = await fetch(removedUrl, { headers });
     if (removedGetRes.status === 200) {
       const removedFileData = await removedGetRes.json();
@@ -3534,7 +3828,7 @@ async function restoreWebsite(siteName, btn) {
     // in SITES_DIRECTORY (dirMatch), unhiding it via step 1 above is enough;
     // adding it to custom-sites.json too would just create a duplicate card.
     if (!dirMatch) {
-      const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+      const customUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
       const customGetRes = await fetch(customUrl, { headers });
       let customSha, customCurrent = [];
       if (customGetRes.status === 200) {
@@ -3574,7 +3868,7 @@ async function restoreWebsite(siteName, btn) {
     // KissKH/MyAsianTV stuck as "not checked yet" forever after restoring:
     // they were built-ins that had never been added to sites.json at all,
     // so the checker had nothing to check.
-    const sitesJsonUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/sites.json`;
+    const sitesJsonUrl = `${ADMIN_PROXY_URL}/api/github/contents/sites.json`;
     const sitesJsonGetRes = await fetch(sitesJsonUrl, { headers });
     if (sitesJsonGetRes.status === 200) {
       const sitesJsonFileData = await sitesJsonGetRes.json();
@@ -3664,10 +3958,10 @@ function confirmDeletePermanently(siteName, btn) {
 
 async function deletePermanently(siteName, btn) {
   const statusEl = btn.closest('.site-row').querySelector('.restore-site-status');
-  const config = getGithubConfig();
+  const session = getAdminSession();
 
-  if (!config.owner || !config.repo || !config.token) {
-    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
     statusEl.style.color = '#f0b428';
     return;
   }
@@ -3678,10 +3972,10 @@ async function deletePermanently(siteName, btn) {
   btn.textContent = 'Deleting...';
   statusEl.textContent = '';
 
-  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
 
   try {
-    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
     const removedGetRes = await fetch(removedUrl, { headers });
     if (!removedGetRes.ok) throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
     const removedFileData = await removedGetRes.json();
