@@ -25,6 +25,8 @@
 <meta name="twitter:title" content="CineFind — Free Movie & Show Search">
 <meta name="twitter:description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
 <meta name="twitter:image" content="https://James-29-00.github.io/cinefind/og-image.png">
+<meta name="theme-color" content="#e63946">
+<link rel="manifest" href="manifest.json">
 
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
@@ -840,7 +842,9 @@ function cycleTheme() {
 function applyTheme(themeClass, announce) {
   document.body.classList.remove(...THEME_CYCLE);
   document.body.classList.add(themeClass);
-  localStorage.setItem(THEME_KEY, themeClass);
+  try {
+    localStorage.setItem(THEME_KEY, themeClass);
+  } catch (e) { /* storage unavailable — theme still applied to DOM */ }
   // No JS-driven color logic needed for the button itself — it reads
   // var(--accent), which the theme-* CSS classes already set, so the
   // icon color/glow follows automatically.
@@ -853,8 +857,12 @@ function applyTheme(themeClass, announce) {
 }
 
 function loadColorTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  applyTheme(THEME_CYCLE.includes(saved) ? saved : 'theme-crimson', false);
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    applyTheme(THEME_CYCLE.includes(saved) ? saved : 'theme-crimson', false);
+  } catch (e) {
+    applyTheme('theme-crimson', false);
+  }
 }
 
 // ========== TOAST / SHARE / COPY LINK ==========
@@ -931,7 +939,7 @@ function getFavorites() {
 }
 
 function saveFavorites(favs) {
-  localStorage.setItem('cinefind-favorites', JSON.stringify(favs));
+  try { localStorage.setItem('cinefind-favorites', JSON.stringify(favs)); } catch (e) { /* storage full/unavailable */ }
   updateFavCount();
 }
 
@@ -1025,7 +1033,7 @@ function showFavorites(sortBy) {
     html += `
       <div class="movie-header" style="margin-bottom:16px;">
         <div class="movie-poster${movie.poster ? ' poster-loading' : ''}" id="poster-${movie.title}">
-          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
+          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" alt="${escapeAttr(movie.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
         </div>
         <div class="movie-info">
           <div class="movie-title">${movie.title}</div>
@@ -1236,7 +1244,22 @@ function handleSuggestInput() {
   suggestDebounceTimer = setTimeout(() => fetchSuggestions(query), SUGGEST_DEBOUNCE_MS);
 }
 
+// In-memory cache for TMDB suggestion (autocomplete) results, keyed by
+// lowercased query. Session-only — not localStorage — since these are cheap
+// to refetch on a fresh page load, but within one typing session the same
+// partial query often gets re-typed (backspace + retype, arrow-key
+// browsing), so this skips hitting the Worker again for a query already
+// seen. Capped so it can't grow unbounded during a long browsing session.
+const suggestionCache = new Map();
+const SUGGESTION_CACHE_MAX = 50;
+
 function fetchSuggestions(query) {
+  const cacheKey = query.toLowerCase();
+  if (suggestionCache.has(cacheKey)) {
+    renderSuggestions(suggestionCache.get(cacheKey), query);
+    return;
+  }
+
   // Cancel any suggestion request still in flight so results don't stack up
   if (suggestAbortController) suggestAbortController.abort();
   suggestAbortController = new AbortController();
@@ -1254,6 +1277,10 @@ function fetchSuggestions(query) {
       const results = (tmdb.results || [])
         .filter(m => m.media_type === 'movie' || m.media_type === 'tv')
         .slice(0, 6);
+      if (suggestionCache.size >= SUGGESTION_CACHE_MAX) {
+        suggestionCache.delete(suggestionCache.keys().next().value); // evict oldest
+      }
+      suggestionCache.set(cacheKey, results);
       renderSuggestions(results, query);
     })
     .catch(err => {
@@ -1320,7 +1347,9 @@ document.addEventListener('click', (e) => {
 // repeat visits, so returning users aren't nagged by it.
 const ONBOARDING_SEEN_KEY = 'cinefind-onboarding-seen';
 function showOnboardingIfNeeded() {
-  if (localStorage.getItem(ONBOARDING_SEEN_KEY)) return;
+  let seen;
+  try { seen = localStorage.getItem(ONBOARDING_SEEN_KEY); } catch (e) { seen = null; }
+  if (seen) return;
   const el = document.getElementById('onboarding-banner');
   if (!el) return;
   el.innerHTML = `
@@ -1335,7 +1364,7 @@ function showOnboardingIfNeeded() {
     </div>`;
 }
 function dismissOnboarding() {
-  localStorage.setItem(ONBOARDING_SEEN_KEY, '1');
+  try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch (e) { /* storage full/unavailable */ }
   const el = document.getElementById('onboarding-banner');
   if (el) el.innerHTML = '';
 }
@@ -1361,7 +1390,7 @@ function saveSearchHistory(query) {
 }
 
 function clearSearchHistory() {
-  localStorage.removeItem(SEARCH_HISTORY_KEY);
+  try { localStorage.removeItem(SEARCH_HISTORY_KEY); } catch (e) { /* storage unavailable */ }
   closeSuggestions();
 }
 
@@ -1389,14 +1418,12 @@ function showSearchHistory() {
 }
 
 // ========== ORIGINAL CODE WITH MODIFICATIONS ==========
-// ⚠️ Replace this with YOUR deployed Cloudflare Worker URL (Step 3 of the guide)
 const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
 // Deploy worker.js as its own Worker (separate from the TMDB proxy — keeps
 // blast radius small) and put its *.workers.dev URL here. This worker is the
 // only thing that ever holds the real GitHub token — see worker.js for setup.
 const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
-// TODO: palitan ito ng URL ng bago mong ide-deploy na Visit Worker (see instructions)
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
 
 // ===== VISITOR TRACKING =====
@@ -1477,48 +1504,54 @@ const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const CACHE_VERSION = 2;
 
 (function migrateCacheIfStale() {
-  const storedVersion = parseInt(localStorage.getItem('cinefind-cache-version') || '1', 10);
-  if (storedVersion !== CACHE_VERSION) {
-    localStorage.removeItem('cinefind-cache');
-    localStorage.setItem('cinefind-cache-version', String(CACHE_VERSION));
-  }
+  try {
+    const storedVersion = parseInt(localStorage.getItem('cinefind-cache-version') || '1', 10);
+    if (storedVersion !== CACHE_VERSION) {
+      localStorage.removeItem('cinefind-cache');
+      localStorage.setItem('cinefind-cache-version', String(CACHE_VERSION));
+    }
+  } catch (e) { /* storage unavailable — proceed without cache */ }
 })();
 
 function saveToCache(query, data) {
-  let cache = JSON.parse(localStorage.getItem('cinefind-cache') || '{}');
-
-  // Drop expired entries first so they don't count against the size limit
-  const now = Date.now();
-  cache = Object.fromEntries(
-    Object.entries(cache).filter(([, v]) => now - v.timestamp < CACHE_TTL_MS)
-  );
-
-  cache[query.toLowerCase()] = { data, timestamp: now };
-
-  // If still over the limit, evict the oldest entries until we're back under it
-  const entries = Object.entries(cache);
-  if (entries.length > CACHE_MAX_ENTRIES) {
-    entries.sort((a, b) => a[1].timestamp - b[1].timestamp); // oldest first
-    const toRemove = entries.length - CACHE_MAX_ENTRIES;
-    for (let i = 0; i < toRemove; i++) delete cache[entries[i][0]];
-  }
-
   try {
-    localStorage.setItem('cinefind-cache', JSON.stringify(cache));
-  } catch (e) {
-    // Storage quota exceeded — clear the cache and try once more with just this entry
+    let cache = JSON.parse(localStorage.getItem('cinefind-cache') || '{}');
+
+    // Drop expired entries first so they don't count against the size limit
+    const now = Date.now();
+    cache = Object.fromEntries(
+      Object.entries(cache).filter(([, v]) => now - v.timestamp < CACHE_TTL_MS)
+    );
+
+    cache[query.toLowerCase()] = { data, timestamp: now };
+
+    // If still over the limit, evict the oldest entries until we're back under it
+    const entries = Object.entries(cache);
+    if (entries.length > CACHE_MAX_ENTRIES) {
+      entries.sort((a, b) => a[1].timestamp - b[1].timestamp); // oldest first
+      const toRemove = entries.length - CACHE_MAX_ENTRIES;
+      for (let i = 0; i < toRemove; i++) delete cache[entries[i][0]];
+    }
+
     try {
-      localStorage.setItem('cinefind-cache', JSON.stringify({ [query.toLowerCase()]: { data, timestamp: now } }));
-    } catch (e2) { /* give up silently — cache is a nice-to-have, not critical */ }
-  }
+      localStorage.setItem('cinefind-cache', JSON.stringify(cache));
+    } catch (e) {
+      // Storage quota exceeded — clear the cache and try once more with just this entry
+      try {
+        localStorage.setItem('cinefind-cache', JSON.stringify({ [query.toLowerCase()]: { data, timestamp: now } }));
+      } catch (e2) { /* give up silently — cache is a nice-to-have, not critical */ }
+    }
+  } catch (e) { /* storage unavailable — proceed without caching */ }
 }
 
 function getFromCache(query) {
-  const cache = JSON.parse(localStorage.getItem('cinefind-cache') || '{}');
-  const cached = cache[query.toLowerCase()];
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached.data;
-  }
+  try {
+    const cache = JSON.parse(localStorage.getItem('cinefind-cache') || '{}');
+    const cached = cache[query.toLowerCase()];
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+  } catch (e) { /* storage unavailable — proceed without cache */ }
   return null;
 }
 
@@ -1875,7 +1908,7 @@ function renderResult(data, query) {
     <div class="movie-header">
       <div class="movie-poster${data.poster ? ' poster-loading' : ''}" id="poster-box">
         ${data.poster
-          ? `<img class="poster-img" src="${data.poster}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${data.type === 'series' ? '📺' : '🎬'}'">`
+          ? `<img class="poster-img" src="${data.poster}" alt="${escapeAttr(data.title || query)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${data.type === 'series' ? '📺' : '🎬'}'">`
           : (data.type === 'series' ? '📺' : '🎬')}
         <button class="fav-btn ${isFavorited ? 'favorited' : ''}" onclick="toggleFavorite(event)" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-label="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-pressed="${isFavorited}">⭐</button>
       </div>
@@ -2442,7 +2475,7 @@ function toggleDirFav(e, name) {
   let favs = getDirFavs();
   if (favs.includes(name)) favs = favs.filter(n => n !== name);
   else favs.push(name);
-  localStorage.setItem('cinefind-dir-favs', JSON.stringify(favs));
+  try { localStorage.setItem('cinefind-dir-favs', JSON.stringify(favs)); } catch (e) { /* storage full/unavailable */ }
   renderSitesDirectory();
   updateFavCount();
 }
@@ -2573,13 +2606,15 @@ function syncDirFilterChipsUI() {
 }
 
 function dismissDirTip() {
-  localStorage.setItem('cinefind-dir-tip-dismissed', '1');
+  try { localStorage.setItem('cinefind-dir-tip-dismissed', '1'); } catch (e) { /* storage full/unavailable */ }
   const el = document.getElementById('dir-safety-tip');
   if (el) el.remove();
 }
 
 function renderHomepage() {
   hideFiltersBar();
+  let dirTipDismissed;
+  try { dirTipDismissed = localStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
     <div style="margin-bottom:12px" class="popular-label">🌐 Free Websites</div>
     <div class="pill-container" id="dir-filter-chips">
@@ -2591,7 +2626,7 @@ function renderHomepage() {
       <button class="genre-pill dual-gradient-pill" data-cat="hot" onclick="toggleDirFilter('hot', this)">Hot</button>
       <button class="genre-pill dual-gradient-pill" data-cat="pinned" onclick="toggleDirFilter('pinned', this)">📌 Pinned</button>
     </div>
-    ${localStorage.getItem('cinefind-dir-tip-dismissed') ? '' : `
+    ${dirTipDismissed ? '' : `
     <div class="safety-tip" id="dir-safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
       <span class="tip-icon">🛡️</span>
       <span>Use an ad-blocking browser like <strong>Brave</strong> and avoid pop-ups/"download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:underline;">Get Brave →</a></span>
@@ -3193,10 +3228,12 @@ async function adminLogin() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `Login failed (HTTP ${res.status})`);
-    localStorage.setItem('cinefind-admin-session', JSON.stringify({
-      session: data.session,
-      exp: Math.floor(Date.now() / 1000) + (data.expiresIn || 0),
-    }));
+    try {
+      localStorage.setItem('cinefind-admin-session', JSON.stringify({
+        session: data.session,
+        exp: Math.floor(Date.now() / 1000) + (data.expiresIn || 0),
+      }));
+    } catch (e) { /* storage unavailable — session won't persist but login flow continues */ }
     statusEl.textContent = '✅ Logged in — session active for a few hours.';
     statusEl.style.color = '#06d6a0';
     document.getElementById('admin-password').style.display = 'none';
@@ -3209,7 +3246,7 @@ async function adminLogin() {
 }
 
 function adminLogout() {
-  localStorage.removeItem('cinefind-admin-session');
+  try { localStorage.removeItem('cinefind-admin-session'); } catch (e) { /* storage unavailable */ }
   const statusEl = document.getElementById('gh-config-status');
   if (statusEl) {
     statusEl.textContent = 'Logged out.';
