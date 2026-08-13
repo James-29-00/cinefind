@@ -596,6 +596,13 @@
   .status-label-mini .status-dot-mini {
     position: static; flex-shrink: 0;
   }
+  /* Star, when placed inline inside the bottom bar (see Image-2-style
+     layout) instead of floating over the top-right corner — much smaller
+     than its 36x36 floating-corner touch target since it now shares a
+     compact bar with the status chip and report button. */
+  .status-label-mini .pin-icon {
+    width: 26px; height: 26px; flex-shrink: 0;
+  }
 
   /* Status bar is now an embedded pill (inset from the card edges, rounded)
      rather than a flat edge-to-edge strip — gives it presence as its own
@@ -659,28 +666,28 @@
     color: rgba(255,255,255,.75);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  /* Trending indicator — custom SVG flame (not emoji, for consistent
-     rendering across devices/OSes, matching the SVG language used by the
-     star/checkmark elsewhere on the card). Now lives inline inside the
-     status chip at the bottom instead of floating as its own top-left
-     badge — consolidates card "state" signals (hot + status) into one
-     place instead of scattering them across three separate corners, so
-     only the favorite star competes with the logo up top. Subtle pulse
-     glow since "trending" is the one signal on the card meant to feel
-     alive — everything else (checkmark, star) stays static/steady by
-     design. */
-  .hot-flame-inline {
-    display: inline-flex; align-items: center; justify-content: center;
-    flex-shrink: 0; width: 12px; height: 12px;
+  /* Trending indicator — its own badge, upper-left corner, separate from
+     the bottom status bar. Tried folding this into the status chip, but on
+     a small mobile card that made the bottom bar too dense/cramped to read
+     at a glance — a dedicated top-left badge is clearer even if it means
+     using another corner. */
+  .hot-label-mini {
+    position: absolute; top: 8px; left: 8px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px 3px 6px;
+    border-radius: 999px;
+    background: rgba(240,180,40,.9);
+    color: #1a1a2e;
+    font-size: .62rem; font-weight: 800; letter-spacing: .02em;
     animation: hot-flame-pulse 2.2s ease-in-out infinite;
   }
-  .hot-flame-inline svg { width: 100%; height: 100%; display: block; }
+  .hot-label-mini svg { width: 11px; height: 11px; display: block; }
   @keyframes hot-flame-pulse {
-    0%, 100% { filter: drop-shadow(0 0 2px rgba(240,180,40,.55)); transform: scale(1); }
-    50%      { filter: drop-shadow(0 0 5px rgba(240,180,40,.9));  transform: scale(1.08); }
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(240,180,40,.4)); transform: scale(1); }
+    50%      { filter: drop-shadow(0 0 6px rgba(240,180,40,.85)); transform: scale(1.04); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hot-flame-inline { animation: none; filter: drop-shadow(0 0 3px rgba(240,180,40,.7)); }
+    .hot-label-mini { animation: none; filter: drop-shadow(0 0 3px rgba(240,180,40,.6)); }
   }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
@@ -1006,10 +1013,10 @@ function buildFavSiteCard(s) {
             <span class="status-dot-mini" data-status-dot></span>
             <span class="status-text-mini" data-status-text></span>
           </span>
+          <button class="pin-icon faved" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
+          </button>
         </span>
-        <button class="pin-icon faved" style="position:absolute; top:1px; right:3px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
-        </button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -2414,10 +2421,7 @@ function applyStatusDots() {
         // the label itself, which would wipe out the dot/report button
         // nested inside it.
         const textEl = label.querySelector('[data-status-text]');
-        if (textEl) {
-          const shortTime = formatRelativeTimeShort(siteStatusLastRun);
-          textEl.textContent = shortTime ? `${statusLabelText(status)} · ${shortTime}` : statusLabelText(status);
-        }
+        if (textEl) textEl.textContent = statusLabelText(status);
         label.style.display = 'flex';
         label.title = tooltipText;
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
@@ -2582,13 +2586,13 @@ function renderSitesDirectory() {
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-chip-mini">
-            ${isHot ? `<span class="hot-flame-inline" title="Trending"><svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M12 2c1 3-2 4.5-2 7.5a3 3 0 0 0 6 0c0-1-.4-1.8-1-2.5 2 1 3.5 3.3 3.5 6a6.5 6.5 0 0 1-13 0C5.5 8.5 9 6 12 2z" fill="#f0b428" stroke="#fce8a8" stroke-width=".6" stroke-linejoin="round"/></svg></span>` : ''}
             <span class="status-dot-mini" data-status-dot></span>
             <span class="status-text-mini" data-status-text></span>
           </span>
+          <button class="pin-icon${isFav ? ' faved' : ''}" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
           <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
         </span>
-        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:1px; right:3px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
+        ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2c1 3-2 4.5-2 7.5a3 3 0 0 0 6 0c0-1-.4-1.8-1-2.5 2 1 3.5 3.3 3.5 6a6.5 6.5 0 0 1-13 0C5.5 8.5 9 6 12 2z" fill="#1a1a2e"/></svg>HOT</span>` : ''}
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
