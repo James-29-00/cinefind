@@ -473,6 +473,17 @@
 
   .section-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
   .sites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  /* Small label row between the "direct link" and "search inside site"
+     groups of streaming sources — spans the full grid width so it reads as
+     a section break rather than another card. Only rendered when a result
+     actually has both kinds of sources. */
+  .site-group-header {
+    grid-column: 1 / -1;
+    font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted);
+    margin: 4px 0 -2px;
+  }
+  .site-group-header:not(:first-child) { margin-top: 10px; }
 
   .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
   .result-card {
@@ -729,7 +740,7 @@
   }
   .tips-box strong { color: var(--gold); }
 
-  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); animation: fadeUp .4s ease forwards; }
   .empty .big { font-size: 3rem; margin-bottom: 12px; }
   .empty p { font-size: .95rem; }
 
@@ -1726,12 +1737,21 @@ function searchMovie() {
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;" aria-hidden="true">
       ${Array(4).fill('<div class="poster-shimmer" style="height:86px; border-radius:14px;"></div>').join('')}
     </div>
-    <p style="text-align:center; color:var(--muted); font-size:.8rem; margin-top:16px;">Searching…</p>
+    <p id="search-wait-msg" style="text-align:center; color:var(--muted); font-size:.8rem; margin-top:16px;">Searching…</p>
   `;
+
+  // If the request is taking noticeably longer than usual, swap the caption
+  // instead of leaving "Searching…" sitting there unchanged — a static
+  // label past a few seconds reads as frozen even though it's still working.
+  const slowSearchTimer = setTimeout(() => {
+    const msg = document.getElementById('search-wait-msg');
+    if (msg) msg.textContent = 'Still searching… this is taking longer than usual.';
+  }, 4000);
 
   let cached = getFromCache(query);
   if (cached && !Array.isArray(cached)) cached = [cached]; // back-compat with old single-object cache format
   if (cached) {
+    clearTimeout(slowSearchTimer);
     lastSearchResult = cached;
     if (cached.length === 1) {
       currentDisplayedResults = cached;
@@ -1766,12 +1786,14 @@ function searchMovie() {
             <div class="big">🤔</div>
             <p style="margin-bottom:20px;">Couldn't find "<strong>${escapeAttr(query)}</strong>". Did you mean...</p>
             ${suggestionCards}
+            <div style="margin-top:14px;"><button class="pop-chip" onclick="renderHomepage()">🗂️ Browse free sites directory</button></div>
           </div>` : `
           <div class="empty">
             <div class="big">🔍</div>
             <p style="margin-bottom:6px;">No matches for "<strong>${escapeAttr(query)}</strong>".</p>
             <p style="color:var(--muted); font-size:.82rem; margin-bottom:20px;">Double-check the spelling, try the original (non-translated) title, or search a shorter keyword.</p>
             <button class="pop-chip" onclick="document.getElementById('search-input').value=''; document.getElementById('search-input').focus();">✏️ Edit search</button>
+            <button class="pop-chip" onclick="renderHomepage()" style="margin-left:8px;">🗂️ Browse directory</button>
           </div>`;
         return;
       }
@@ -1809,9 +1831,11 @@ function searchMovie() {
           <div class="big">${icon}</div>
           <p>Couldn't find results for "<strong>${query}</strong>".<br>${userMessage}</p>
           <button class="pop-chip" onclick="searchMovie()" style="margin-top:16px;">🔄 Try again</button>
+          <button class="pop-chip" onclick="renderHomepage()" style="margin-top:16px; margin-left:8px;">🗂️ Browse directory</button>
         </div>`;
     })
     .finally(() => {
+      clearTimeout(slowSearchTimer);
       isSearching = false;
       cooldownUntil = Date.now() + COOLDOWN_MS;
       startCooldownDisplay();
@@ -1896,8 +1920,11 @@ function renderResult(data, query) {
 
   // Show verified search-link sites first (more reliable — links straight to results)
   // before "search inside site" homepage links, so the most useful sites appear
-  // in the initial visible batch rather than at random.
-  const sortedSites = [...(data.sites || [])].sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0));
+  // in the initial visible batch rather than at random. Split into two named
+  // groups (rather than relying on the small per-card badge alone) so the
+  // distinction reads as an actual grouping, not just incidental sort order.
+  const freeSites = (data.sites || []).filter(s => s.free);
+  const otherSites = (data.sites || []).filter(s => !s.free);
   const SITES_VISIBLE_INITIAL = 4;
 
   // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
@@ -1921,13 +1948,36 @@ function renderResult(data, query) {
     </a>`;
   };
 
-  const visibleSites = sortedSites.slice(0, SITES_VISIBLE_INITIAL);
-  const hiddenSites = sortedSites.slice(SITES_VISIBLE_INITIAL);
+  // Build an ordered row list — a group header (only when both groups are
+  // actually present; a single-group result doesn't need a label) followed
+  // by that group's cards — then split by card count (not row count) so
+  // "show more" still reveals exactly N more sites, with each header riding
+  // along with whichever half its first card lands in.
+  const showGroupHeaders = freeSites.length > 0 && otherSites.length > 0;
+  const rows = [];
+  if (freeSites.length > 0) {
+    if (showGroupHeaders) rows.push({ card: false, html: `<div class="site-group-header">✅ Direct links</div>` });
+    freeSites.forEach(s => rows.push({ card: true, site: s }));
+  }
+  if (otherSites.length > 0) {
+    if (showGroupHeaders) rows.push({ card: false, html: `<div class="site-group-header">🔍 Search inside site</div>` });
+    otherSites.forEach(s => rows.push({ card: true, site: s }));
+  }
 
-  const siteCards = visibleSites.map(buildSiteCard).join('')
-    + (hiddenSites.length > 0
-        ? `<div id="hidden-sites" style="display:none;">${hiddenSites.map((s, i) => buildSiteCard(s, i + SITES_VISIBLE_INITIAL)).join('')}</div>
-           <button class="pop-chip" id="show-more-sites-btn" onclick="showMoreSites()" style="width:100%; margin-top:4px; grid-column:1/-1;">Show ${hiddenSites.length} more sites ↓</button>`
+  let cardIndex = 0;
+  const visibleParts = [];
+  const hiddenParts = [];
+  rows.forEach(r => {
+    const target = cardIndex < SITES_VISIBLE_INITIAL ? visibleParts : hiddenParts;
+    target.push(r.card ? buildSiteCard(r.site, cardIndex) : r.html);
+    if (r.card) cardIndex++;
+  });
+  const totalHiddenCards = Math.max(0, (freeSites.length + otherSites.length) - SITES_VISIBLE_INITIAL);
+
+  const siteCards = visibleParts.join('')
+    + (totalHiddenCards > 0
+        ? `<div id="hidden-sites" style="display:none;">${hiddenParts.join('')}</div>
+           <button class="pop-chip" id="show-more-sites-btn" onclick="showMoreSites()" style="width:100%; margin-top:4px; grid-column:1/-1;">Show ${totalHiddenCards} more sites ↓</button>`
         : '');
 
   const canGoBack = currentDisplayedResults && currentDisplayedResults.length > 1;
@@ -2495,7 +2545,11 @@ const SITES_DIRECTORY = [
   { name: 'Cinema One',    url: 'https://www.youtube.com/@CinemaOnePH/', domain: 'youtube.com',   categories: ['pinoy'], accent: '#e0a300',
     logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
   { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'], accent: '#059669',
-    logoHtml: `<span class="logo-word"><span class="lw-white">TBA</span><span style="color:#06d6a0;"> Studios</span></span>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:#06d6a0;">Studios</span></div>` },
+  { name: 'CineWhale',     url: 'https://cinewhale.cc/',        domain: 'cinewhale.cc',         categories: ['movie'], accent: '#1e9edb',
+    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:#1e9edb;">Whale</span></span>` },
+  { name: 'Dulo',          url: 'https://dulo.sx/',             domain: 'dulo.sx',              categories: ['movie'], accent: '#f4522b',
+    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span style="color:#f4522b;">Du</span><span class="lw-white">lo</span></span>` },
 ];
 
 let activeDirFilters = []; // multi-select: any combo of 'drama' / 'anime' / 'movie'
