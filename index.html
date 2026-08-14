@@ -805,6 +805,7 @@
       </span>
       <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
         <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
+        <button class="theme-toggle" id="help-btn" title="Help / what do the icons mean?" aria-label="Help" onclick="showHelpTip()" style="font-size:1rem; font-weight:700;">?</button>
         <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
@@ -826,6 +827,8 @@
   <div style="display:flex; justify-content:flex-end; margin:-6px 0 18px;">
     <button class="fav-quick-link" onclick="showFavorites()"><span class="fav-star-icon">★</span> My Favorites (<span id="fav-count">0</span>)</button>
   </div>
+
+  <div id="recently-viewed-section"></div>
 
   <!-- ADVANCED FILTERS SECTION — hidden until there's a results list to filter -->
   <div class="filters" id="filters-bar" style="display:none;">
@@ -862,6 +865,8 @@
   <div id="result-area">
     <!-- Filled in by renderHomepage() on page load -->
   </div>
+
+  <button id="back-to-top-btn" onclick="window.scrollTo({top:0, behavior:'smooth'})" aria-label="Back to top" style="display:none; position:fixed; right:16px; bottom:20px; z-index:50; width:44px; height:44px; border-radius:50%; background:var(--accent); color:#fff; border:none; box-shadow:0 4px 12px rgba(0,0,0,.35); cursor:pointer; align-items:center; justify-content:center; font-size:1.1rem;">↑</button>
 
   <footer>
     <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
@@ -1031,6 +1036,8 @@ function buildFavSiteCard(s) {
 
 function showFavorites(sortBy, siteSortBy) {
   hideFiltersBar();
+  const recentEl = document.getElementById('recently-viewed-section');
+  if (recentEl) recentEl.innerHTML = ''; // homepage-only widget
   sortBy = sortBy || 'date-desc';
   siteSortBy = siteSortBy || 'az';
   const favs = getFavorites();
@@ -1191,6 +1198,8 @@ let currentResultsRaw = null;   // original, unsorted order — kept so sorting 
 let currentSortBy = 'default';
 
 function renderResultsGrid(movies, label) {
+  const recentEl = document.getElementById('recently-viewed-section');
+  if (recentEl) recentEl.innerHTML = ''; // homepage-only widget
   currentResultsRaw = movies;
   currentDisplayedResults = movies;
   currentResultsLabel = label || null;
@@ -1420,10 +1429,7 @@ document.addEventListener('click', (e) => {
 // once via a localStorage flag — never re-shown after dismissal or on
 // repeat visits, so returning users aren't nagged by it.
 const ONBOARDING_SEEN_KEY = 'cinefind-onboarding-seen';
-function showOnboardingIfNeeded() {
-  let seen;
-  try { seen = localStorage.getItem(ONBOARDING_SEEN_KEY); } catch (e) { seen = null; }
-  if (seen) return;
+function renderOnboardingTip() {
   const el = document.getElementById('onboarding-banner');
   if (!el) return;
   el.innerHTML = `
@@ -1437,6 +1443,19 @@ function showOnboardingIfNeeded() {
       <button onclick="dismissOnboarding()" aria-label="Dismiss tip" style="background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; flex-shrink:0; line-height:1; padding:0;">✕</button>
     </div>`;
 }
+function showOnboardingIfNeeded() {
+  let seen;
+  try { seen = localStorage.getItem(ONBOARDING_SEEN_KEY); } catch (e) { seen = null; }
+  if (seen) return;
+  renderOnboardingTip();
+}
+// Persistent "?" header button — reopens the same tip on demand, any time,
+// without touching the "seen" flag (so it doesn't interfere with the
+// one-time auto-show behavior above for people who never asked for it again).
+function showHelpTip() {
+  renderOnboardingTip();
+  document.getElementById('onboarding-banner').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 function dismissOnboarding() {
   try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch (e) { /* storage full/unavailable */ }
   const el = document.getElementById('onboarding-banner');
@@ -1444,6 +1463,12 @@ function dismissOnboarding() {
 }
 
 // ========== SEARCH HISTORY ==========
+// Manually curated, not live analytics — a real "most searched site-wide"
+// feature needs a backend Worker aggregating queries across all visitors,
+// which isn't deployed. Edit this list by hand (same pattern as hot-sites
+// for websites) to keep it current; shown in the search dropdown below.
+const TRENDING_TITLES = ['Squid Game', 'Wednesday', 'One Piece'];
+
 const SEARCH_HISTORY_KEY = 'cinefind-search-history';
 const SEARCH_HISTORY_MAX = 8;
 
@@ -1471,12 +1496,24 @@ function clearSearchHistory() {
 function showSearchHistory() {
   const history = getSearchHistory();
   const box = document.getElementById('suggestions-box');
-  if (history.length === 0) {
+  if (history.length === 0 && TRENDING_TITLES.length === 0) {
     closeSuggestions();
     return;
   }
 
-  box.innerHTML = `
+  const trendingHtml = TRENDING_TITLES.length === 0 ? '' : `
+    <div style="padding:8px 14px; border-bottom:1px solid var(--border);">
+      <span style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🔥 Trending</span>
+    </div>
+    ${TRENDING_TITLES.map(t => `
+      <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(t)}')">
+        <div class="suggestion-poster">🔥</div>
+        <div class="suggestion-text">
+          <div class="suggestion-title">${escapeAttr(t)}</div>
+        </div>
+      </div>`).join('')}`;
+
+  const historyHtml = history.length === 0 ? '' : `
     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--border);">
       <span style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🕐 Recent searches</span>
       <button onmousedown="event.preventDefault(); clearSearchHistory()" style="background:none; border:none; color:var(--muted); font-size:.7rem; cursor:pointer; text-decoration:underline;">Clear</button>
@@ -1488,7 +1525,66 @@ function showSearchHistory() {
           <div class="suggestion-title">${escapeAttr(h)}</div>
         </div>
       </div>`).join('')}`;
+
+  box.innerHTML = trendingHtml + historyHtml;
   box.classList.add('open');
+}
+
+// ========== RECENTLY VIEWED ==========
+// Distinct from search history (text queries) — this tracks the actual
+// titles a person opened, with posters, so they can jump straight back into
+// a specific movie/show instead of re-typing a search. Shown as a poster
+// strip on the homepage itself (not tucked inside the search dropdown) so
+// it's visible without having to refocus the search bar first.
+const RECENTLY_VIEWED_KEY = 'cinefind-recently-viewed';
+const RECENTLY_VIEWED_MAX = 10;
+
+function getRecentlyViewed() {
+  try {
+    return JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveRecentlyViewed(movie) {
+  if (!movie || !movie.title) return;
+  let list = getRecentlyViewed();
+  list = list.filter(m => m.title !== movie.title); // no duplicates — re-viewing bumps it to front
+  list.unshift({ title: movie.title, poster: movie.poster || '', rating: movie.rating || '' });
+  list = list.slice(0, RECENTLY_VIEWED_MAX);
+  try { localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(list)); } catch (e) { /* storage full/unavailable */ }
+}
+
+function clearRecentlyViewed() {
+  try { localStorage.removeItem(RECENTLY_VIEWED_KEY); } catch (e) { /* storage unavailable */ }
+  renderRecentlyViewed();
+}
+
+function renderRecentlyViewed() {
+  const el = document.getElementById('recently-viewed-section');
+  if (!el) return; // not on the homepage right now
+  const list = getRecentlyViewed();
+  if (list.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `
+    <div style="margin:-6px 0 22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🕐 Recently Viewed</span>
+        <button onclick="clearRecentlyViewed()" style="background:none; border:none; color:var(--muted); font-size:.7rem; cursor:pointer; text-decoration:underline;">Clear</button>
+      </div>
+      <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
+        ${list.map(m => `
+          <button onclick="selectSuggestion('${escapeAttr(m.title)}')" style="flex-shrink:0; width:72px; background:none; border:none; padding:0; cursor:pointer; text-align:left;" aria-label="Open ${escapeAttr(m.title)}">
+            ${m.poster
+              ? `<img src="${escapeAttr(m.poster)}" alt="" loading="lazy" style="width:72px; height:104px; object-fit:cover; border-radius:8px; display:block;">`
+              : `<div style="width:72px; height:104px; border-radius:8px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:1.4rem;">🎬</div>`}
+            <div style="font-size:.68rem; color:var(--text); margin-top:4px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeAttr(m.title)}</div>
+          </button>`).join('')}
+      </div>
+    </div>`;
 }
 
 // ========== ORIGINAL CODE WITH MODIFICATIONS ==========
@@ -1949,6 +2045,9 @@ function injectMovieStructuredData(data) {
 
 function renderResult(data, query) {
   hideFiltersBar(); // filters apply to result lists, not a single detail view
+  saveRecentlyViewed(data);
+  const recentEl = document.getElementById('recently-viewed-section');
+  if (recentEl) recentEl.innerHTML = ''; // homepage-only widget — hide once viewing a detail page
   const area = document.getElementById('result-area');
   const favs = getFavorites();
   const isFavorited = favs.some(f => f.title === data.title);
@@ -2746,6 +2845,7 @@ function dismissDirTip() {
 
 function renderHomepage() {
   hideFiltersBar();
+  renderRecentlyViewed();
   let dirTipDismissed;
   try { dirTipDismissed = localStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
@@ -2863,6 +2963,20 @@ window.addEventListener('load', () => {
     }
   }
 });
+
+// Back to Top — appears once the person has scrolled a bit, so it doesn't
+// clutter the view near the top of the page. rAF-throttled so this doesn't
+// add its own jank to the very scroll performance we just optimized for.
+let backToTopTicking = false;
+window.addEventListener('scroll', () => {
+  if (backToTopTicking) return;
+  backToTopTicking = true;
+  requestAnimationFrame(() => {
+    const btn = document.getElementById('back-to-top-btn');
+    if (btn) btn.style.display = window.scrollY > 600 ? 'flex' : 'none';
+    backToTopTicking = false;
+  });
+}, { passive: true });
 
 // Event listeners
 document.getElementById('search-input').addEventListener('keydown', (e) => {
