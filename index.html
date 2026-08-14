@@ -59,16 +59,27 @@
   }
 
   /* Light Mode */
-  /* --muted darkened from the original #6c757d — that only hit ~4.45:1
-     contrast against --bg (#f8f9fa), just under the 4.5:1 WCAG AA minimum
-     for normal-size text. #5f6672 clears ~5.5:1. */
+  /* Rebuilt as a warm, dimmed "paper" palette instead of a bright cool-white
+     one. A near-white, blue-leaning background (the original #f8f9fa/#eef0f3
+     attempts) is high-luminance and reads as glary/harsh, especially on
+     phone screens — similar to why reading apps (Kindle "sepia", iOS
+     Reader) shift toward warm cream tones instead of stark white for
+     comfortable extended viewing. This palette lowers overall brightness
+     and adds warmth throughout, not just glow effects.
+     --muted/--text: warm near-black/warm gray instead of the cool navy
+     originals — softer against a warm background, still clears WCAG AA
+     (--text ~13:1, --muted ~4.7:1 against --bg).
+     --gold: kept from the earlier pass — dark amber still reads clearly
+     against this warmer, slightly dimmer background. */
   body.light-mode {
-    --bg: #f8f9fa;
-    --surface: #ffffff;
-    --card: #f0f2f5;
-    --border: #0000001a;
-    --text: #1a1a2e;
-    --muted: #5f6672;
+    --bg: #e9e5dd;
+    --surface: #f6f3ec;
+    --card: #f6f3ec;
+    --border: #00000020;
+    --text: #2b2a28;
+    --muted: #6b655c;
+    --gold: #96700a;
+    --green: #0b6b40;
   }
 
   /* ===== Color Themes ===== */
@@ -215,6 +226,82 @@
   .logo span { color: var(--accent); -webkit-text-fill-color: var(--accent); }
   body.theme-crimson .logo span {
     filter: drop-shadow(0 0 12px rgba(230,57,70,.6));
+  }
+  /* The wordmark's first half ("Cine") fades from white into the accent
+     color — built for a dark background. On Light Mode that white start
+     point is nearly invisible against the light page background, so it
+     needs a dark starting color instead. */
+  body.light-mode .logo {
+    background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+    -webkit-background-clip: text; background-clip: text;
+  }
+  /* Glow effects below (ambient background circle, button halos, text
+     drop-shadow) were all tuned for a near-black background, where a
+     saturated, low-opacity red haze reads as a subtle moody vignette. On a
+     light/white background the exact same glow shows up as a garish pink
+     "stain" and glaring halos instead — visibly uncomfortable rather than
+     atmospheric. These light-mode overrides tone them down rather than
+     removing them outright, so Light Mode still feels like the same brand,
+     just softened for a bright surface. */
+  body.light-mode .bg-glow {
+    opacity: 0;
+  }
+  body.light-mode .theme-toggle {
+    box-shadow: 0 0 6px rgba(var(--bg-glow-rgb),.4);
+  }
+  body.light-mode .theme-toggle:hover {
+    box-shadow: 0 0 10px rgba(var(--bg-glow-rgb),.5);
+  }
+  body.light-mode.theme-crimson .logo span {
+    filter: drop-shadow(0 0 4px rgba(230,57,70,.3));
+  }
+  /* Remaining spots that assumed a dark background and would otherwise be
+     hard to see or read on Light Mode: */
+  /* "1 online now" badge text was a pale mint (#b8ffcf) tuned for a dark
+     pill — nearly invisible against a light background. Darker green here
+     keeps the same "online/live" meaning at readable contrast. */
+  body.light-mode .online-badge {
+    color: #1a7a42;
+    -webkit-text-fill-color: #1a7a42;
+    background: rgba(34, 197, 94, .14);
+    border-color: rgba(34, 197, 94, .5);
+  }
+  /* Category filter pills (Movie/K-Drama/Anime/etc.) used a pale gray text
+     and dark border tuned for a dark background — both nearly disappear on
+     Light Mode. */
+  body.light-mode .filter-chip {
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  body.light-mode .filter-select {
+    border-color: var(--border);
+  }
+  /* "Popular searches" pill buttons — same pale-text-on-dark-border issue,
+     including the ones reused inside the Report/About popups. */
+  body.light-mode .pop-chip {
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  /* Loading skeletons (poster shimmer, year badge, copy-link button) added a
+     faint *white* highlight/overlay to stand out against a dark surface —
+     on a light card that highlight is invisible, so these use a dark
+     highlight instead so the loading state and controls stay visible. */
+  body.light-mode .poster-shimmer {
+    background: linear-gradient(90deg, var(--card) 25%, rgba(0,0,0,.06) 50%, var(--card) 75%);
+    background-size: 200% 100%;
+  }
+  body.light-mode .poster-loading {
+    background: linear-gradient(90deg, var(--surface) 25%, rgba(0,0,0,.08) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+  }
+  body.light-mode .badge-year {
+    background: rgba(0,0,0,.06);
+  }
+  body.light-mode .copy-link-btn {
+    background: rgba(0,0,0,.05);
+  }
+  body.light-mode .copy-link-btn:hover {
+    background: rgba(var(--bg-glow-rgb),.12);
   }
   .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
 
@@ -569,6 +656,16 @@
     position: relative;
     overflow: hidden;
   }
+  /* Keeping these tiles dark in Light Mode is intentional (see comment on
+     .lw-white below) — but pure near-black (#16161f) next to a warm cream
+     page reads as a jarring "cutout" rather than an intentional design
+     choice. A warm charcoal in the same color family as the light-mode
+     background makes the tile feel coordinated instead of mismatched, while
+     staying dark enough that the white logo text/icons (~12:1 contrast)
+     stay just as crisp as before. */
+  body.light-mode .card-content {
+    background-color: #332d26;
+  }
   .pin-icon {
     color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
     background: none; border: none; line-height: 1; padding: 0;
@@ -876,45 +973,71 @@
 </div>
 
 <script>
-// ========== THEME TOGGLE (Crimson -> Cyber Neon -> Galaxy, via moon button) ==========
+// ========== THEME TOGGLE (Crimson Dark -> Crimson Light -> Cyber -> Galaxy, via moon button) ==========
+// Cyber and Galaxy are purpose-built dark/neon aesthetics (their glow effects
+// need a near-black background to read correctly), so only Crimson gets a
+// light variant. Light mode lives inside the same single-button cycle rather
+// than a separate control, per how this site's UI is laid out.
 function initTheme() {
   loadColorTheme();
 }
 
 const THEME_KEY = 'cinefind-theme-mode';
-const THEME_CYCLE = ['theme-crimson', 'theme-cyber', 'theme-galaxy'];
-const THEME_LABELS = { 'theme-crimson': 'Crimson', 'theme-cyber': 'Cyber', 'theme-galaxy': 'Galaxy' };
+const THEME_CYCLE = [
+  { theme: 'theme-crimson', mode: 'dark-mode', label: 'Crimson' },
+  { theme: 'theme-crimson', mode: 'light-mode', label: 'Crimson Light' },
+  { theme: 'theme-cyber', mode: 'dark-mode', label: 'Cyber' },
+  { theme: 'theme-galaxy', mode: 'dark-mode', label: 'Galaxy' },
+];
+const THEME_CLASSES = THEME_CYCLE.map(s => s.theme).filter((v, i, a) => a.indexOf(v) === i);
+const MODE_CLASSES = ['dark-mode', 'light-mode'];
+
+function findThemeIndex() {
+  const i = THEME_CYCLE.findIndex(s =>
+    document.body.classList.contains(s.theme) && document.body.classList.contains(s.mode)
+  );
+  return i === -1 ? 0 : i;
+}
 
 function cycleTheme() {
-  const current = THEME_CYCLE.find(t => document.body.classList.contains(t)) || 'theme-crimson';
-  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+  const next = THEME_CYCLE[(findThemeIndex() + 1) % THEME_CYCLE.length];
   applyTheme(next, true);
 }
 
-function applyTheme(themeClass, announce) {
-  document.body.classList.remove(...THEME_CYCLE);
-  document.body.classList.add(themeClass);
+function applyTheme(state, announce) {
+  document.body.classList.remove(...THEME_CLASSES, ...MODE_CLASSES);
+  document.body.classList.add(state.theme, state.mode);
   try {
-    localStorage.setItem(THEME_KEY, themeClass);
+    localStorage.setItem(THEME_KEY, JSON.stringify({ theme: state.theme, mode: state.mode }));
   } catch (e) { /* storage unavailable — theme still applied to DOM */ }
   // No JS-driven color logic needed for the button itself — it reads
   // var(--accent), which the theme-* CSS classes already set, so the
   // icon color/glow follows automatically.
-  const label = THEME_LABELS[themeClass] || themeClass;
   const labelEl = document.getElementById('theme-name-label');
-  if (labelEl) labelEl.textContent = label;
+  if (labelEl) labelEl.textContent = state.label;
   const btn = document.getElementById('theme-picker-btn');
-  if (btn) btn.setAttribute('aria-label', `Change theme — currently ${label}`);
-  if (announce) showToast(`Switched to ${label} theme`);
+  if (btn) btn.setAttribute('aria-label', `Change theme — currently ${state.label}`);
+  if (announce) showToast(`Switched to ${state.label} theme`);
 }
 
 function loadColorTheme() {
   try {
-    const saved = localStorage.getItem(THEME_KEY);
-    applyTheme(THEME_CYCLE.includes(saved) ? saved : 'theme-crimson', false);
-  } catch (e) {
-    applyTheme('theme-crimson', false);
-  }
+    const raw = localStorage.getItem(THEME_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      const match = THEME_CYCLE.find(s => s.theme === saved.theme && s.mode === saved.mode);
+      if (match) { applyTheme(match, false); return; }
+    }
+  } catch (e) { /* fall through to OS-preference default below */ }
+
+  // No saved choice yet (first visit) — default to the OS-level light/dark
+  // preference instead of always starting dark. Still just a starting
+  // point: the very next manual toggle overrides it via localStorage above.
+  let prefersLight = false;
+  try {
+    prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  } catch (e) { /* matchMedia unsupported — fall back to dark default */ }
+  applyTheme(prefersLight ? THEME_CYCLE[1] : THEME_CYCLE[0], false);
 }
 
 // ========== TOAST / SHARE / COPY LINK ==========
@@ -2074,7 +2197,7 @@ function renderResult(data, query) {
       <div class="site-info">
         <div class="site-name">${s.name}</div>
         <div class="site-note">${s.note || 'Free streaming'}</div>
-        ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
+        ${s.free ? '<div style="font-size:.7rem;color:var(--green);margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:var(--gold);margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
       <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg><span class="report-label-text">Report</span></button>
       <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
