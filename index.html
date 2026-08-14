@@ -46,6 +46,14 @@
     --text: #f0f0f5;
     --muted: #9494b5;
     --green: #06d6a0;
+    /* Fixed bright pair for the status-dot badge icon only (see
+       statusDotColor()) — that icon always sits on the same near-black
+       circle (.status-dot-mini's background never changes with theme),
+       so unlike --green/--gold text it must NOT follow light-mode's
+       darkened-for-text-contrast values, or it reads as invisible/black
+       against that dark circle. */
+    --status-green: #06d6a0;
+    --status-gold: #ffd166;
   }
 
   /* Dark Mode (Default) */
@@ -77,9 +85,14 @@
     --card: #e8e2d3;
     --border: #00000024;
     --text: #262420;
-    --muted: #656055;
-    --gold: #96700a;
-    --green: #0b6b40;
+    /* Darkened slightly from the initial #656055/#96700a/#0b6b40 — those
+       measured 4.19:1, 3.05:1, and 4.41:1 against --bg, all under WCAG AA's
+       4.5:1 minimum for normal-size text (most usages here are .7–.9rem
+       labels, too small to qualify for the relaxed large-text threshold).
+       These land at 4.5:1+ with a barely-perceptible hue shift. */
+    --muted: #5f5a50;
+    --gold: #755708;
+    --green: #0b693f;
   }
 
   /* ===== Color Themes ===== */
@@ -886,6 +899,17 @@
   body.light-mode .hot-label-mini {
     filter: drop-shadow(0 0 2px rgba(255,255,255,.9)) drop-shadow(0 1px 3px rgba(200,80,0,.45));
   }
+  /* On the warm gold-pastel card variant specifically, the orange/yellow
+     flame gradient sits too close in hue to the card itself — the white
+     halo from the filter above isn't enough separation on its own. A
+     small opaque backing disc gives the icon a consistent "chip" to sit
+     on regardless of which pastel tone the card landed on. */
+  body.light-mode .hot-label-mini::before {
+    content: ''; position: absolute; inset: -3px; border-radius: 50%;
+    background: rgba(255,255,255,.65);
+    box-shadow: 0 1px 3px rgba(20,17,12,.18);
+    z-index: -1;
+  }
 
   /* Tap-to-visit affordance — the whole card is a link, but nothing on its
      face said so. A quiet corner icon (barely-there by default, so it
@@ -910,7 +934,8 @@
      Light Mode's pale card — flips to a light chip with dark ink so the
      "this opens a link" affordance still reads. */
   body.light-mode .visit-hint {
-    background: rgba(43,36,29,.10); color: var(--card-logo-ink);
+    background: rgba(43,36,29,.16); color: var(--card-logo-ink);
+    opacity: .8;
   }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
@@ -1121,7 +1146,7 @@ function initTheme() {
 const THEME_KEY = 'cinefind-theme-mode';
 const THEME_CYCLE = [
   { theme: 'theme-crimson', mode: 'dark-mode', label: 'Crimson' },
-  { theme: 'theme-crimson', mode: 'light-mode', label: 'Crimson Light' },
+  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode' },
   { theme: 'theme-cyber', mode: 'dark-mode', label: 'Cyber' },
   { theme: 'theme-galaxy', mode: 'dark-mode', label: 'Galaxy' },
 ];
@@ -2781,7 +2806,7 @@ function getSiteStatus(name) {
 }
 
 function statusDotColor(status) {
-  return status === 'up' ? 'var(--green)' : status === 'blocked' ? 'var(--gold)' : status === 'down' ? 'var(--accent2)' : null;
+  return status === 'up' ? 'var(--status-green)' : status === 'blocked' ? 'var(--status-gold)' : status === 'down' ? 'var(--accent2)' : null;
 }
 
 function statusDotLabel(status) {
