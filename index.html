@@ -527,6 +527,12 @@
     position: relative;
     border-radius: 16px;
     padding: 1px;
+    /* Skips layout/paint for cards currently off-screen — the main lever for
+       scroll jank on a long grid on lower-end phones. contain-intrinsic-size
+       reserves the card's known height so the page doesn't jump/reflow as
+       cards enter and exit the visible area. */
+    content-visibility: auto;
+    contain-intrinsic-size: 0 132px;
     /* Per-brand accent (--card-accent, set inline per card from the site's
        logo color) tints one corner of the border so cards stay scannable
        by brand at a glance, fading back to the neutral border color rather
@@ -571,8 +577,10 @@
   .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
   /* Not-yet-favorited star stays dim by default — it's a secondary, optional
      action, not something that needs equal visual weight to status or Hot.
+     .6 (not .4) keeps it visibly secondary while still clearing the ~3:1
+     WCAG 1.4.11 non-text contrast minimum for interactive UI components.
      Full opacity on hover/focus (discoverable) and once actually favorited. */
-  .pin-icon:not(.faved) { opacity: .4; }
+  .pin-icon:not(.faved) { opacity: .6; }
   .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
   .pin-icon.faved { opacity: 1; }
 
@@ -1021,13 +1029,14 @@ function buildFavSiteCard(s) {
     </div>`;
 }
 
-function showFavorites(sortBy) {
+function showFavorites(sortBy, siteSortBy) {
   hideFiltersBar();
   sortBy = sortBy || 'date-desc';
+  siteSortBy = siteSortBy || 'az';
   const favs = getFavorites();
   const dirFavNames = getDirFavs();
   const seenFavNames = new Set();
-  const favSites = [...SITES_DIRECTORY, ...customSites]
+  let favSites = [...SITES_DIRECTORY, ...customSites]
     .filter(s => {
       const key = normalizeSiteName(s.name);
       if (seenFavNames.has(key)) return false;
@@ -1035,6 +1044,16 @@ function showFavorites(sortBy) {
       return true;
     })
     .filter(s => dirFavNames.includes(s.name));
+
+  const statusRank = { up: 0, blocked: 1, down: 2 };
+  favSites = [...favSites].sort((a, b) => {
+    switch (siteSortBy) {
+      case 'za': return b.name.localeCompare(a.name);
+      case 'status': return (statusRank[getSiteStatus(a.name)] ?? 3) - (statusRank[getSiteStatus(b.name)] ?? 3);
+      case 'az':
+      default: return a.name.localeCompare(b.name);
+    }
+  });
 
   if (favs.length === 0 && favSites.length === 0) {
     document.getElementById('result-area').innerHTML = `
@@ -1050,7 +1069,7 @@ function showFavorites(sortBy) {
     <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <button class="pop-chip" onclick="resetSearch()">← Back to search</button>
       ${favs.length > 0 ? `
-      <select class="filter-select" onchange="showFavorites(this.value)" style="width:auto;">
+      <select class="filter-select" onchange="showFavorites(this.value, '${siteSortBy}')" style="width:auto;">
         <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>Newest added</option>
         <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>Oldest added</option>
         <option value="rating-desc" ${sortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
@@ -1059,7 +1078,15 @@ function showFavorites(sortBy) {
       </select>` : ''}
     </div>`;
 
-  html += `<h3 style="font-size:1rem; margin:0 0 12px;">🌐 Favorite Websites</h3>`;
+  html += `<div style="display:flex; justify-content:space-between; align-items:center; margin:0 0 12px;">
+    <h3 style="font-size:1rem; margin:0;">🌐 Favorite Websites</h3>
+    ${favSites.length > 1 ? `
+    <select class="filter-select" onchange="showFavorites('${sortBy}', this.value)" style="width:auto; font-size:.75rem;">
+      <option value="az" ${siteSortBy === 'az' ? 'selected' : ''}>Name A–Z</option>
+      <option value="za" ${siteSortBy === 'za' ? 'selected' : ''}>Name Z–A</option>
+      <option value="status" ${siteSortBy === 'status' ? 'selected' : ''}>Online first</option>
+    </select>` : ''}
+  </div>`;
   html += favSites.length > 0
     ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map(buildFavSiteCard).join('')}</div>`
     : `<p style="color:var(--muted); font-size:.85rem; margin-bottom:28px;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>`;
@@ -2991,7 +3018,7 @@ async function loadAdminPanel() {
       <div class="test-link-title">➕ Add New Website</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
         <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
-        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://...">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://..." onkeydown="if(event.key==='Enter') addNewWebsite(this.closest('.test-link-box').querySelector('.test-link-btn'))">
         <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
         <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
@@ -3166,7 +3193,7 @@ function renderAdminPanel(data) {
       <div class="test-link-title">➕ Add New Website</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
         <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
-        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://...">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://..." onkeydown="if(event.key==='Enter') addNewWebsite(this.closest('.test-link-box').querySelector('.test-link-btn'))">
         <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
         <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
