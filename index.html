@@ -318,6 +318,18 @@
   }
   .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
 
+  /* Returning-visitor hero: on repeat visits the full-size logo + tagline
+     eats a near-full screen before any content shows, which is pure
+     friction for people who already know what CineFind is. The
+     `hero-compact` class (added via a tiny inline script right after
+     <body>, based on a "have they been here before" localStorage flag)
+     shrinks the header so the site directory / search results are
+     reachable with less scrolling — first-time visitors still get the
+     full branded intro untouched. */
+  body.hero-compact header { padding: 10px 0 14px; }
+  body.hero-compact .logo { font-size: clamp(2rem, 6vw, 2.75rem); }
+  body.hero-compact .tagline { display: none; }
+
   /* Online-now live badge — a secondary trust signal, so it lives in the
      top corner (beside the theme toggle) rather than next to the wordmark.
      Keeping it out of the .logo row lets the brand mark stand alone as the
@@ -883,6 +895,11 @@
     100% { background-position: -200% 0; }
   }
 
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
   .status-label-mini .status-text-mini {
     flex: 1; text-align: center;
     font-size: .7rem; font-weight: 600; letter-spacing: .01em;
@@ -1069,6 +1086,17 @@
 </style>
 </head>
 <body class="dark-mode theme-crimson">
+<script>
+  // Runs immediately (before header markup paints) so returning visitors
+  // never see a flash of the full-size hero before it shrinks.
+  try {
+    if (localStorage.getItem('cinefind-visited')) {
+      document.body.classList.add('hero-compact');
+    } else {
+      localStorage.setItem('cinefind-visited', '1');
+    }
+  } catch (e) { /* storage unavailable — hero stays full-size, no harm */ }
+</script>
 <div class="starfield"></div>
 <div class="bg-glow"></div>
 <div class="wrapper">
@@ -2727,6 +2755,22 @@ async function loadSiteStatus() {
   }
 }
 
+// Manual "force refresh" for the status dots — status.json is only
+// regenerated once a day by the GitHub Action checker, so this doesn't
+// re-check sites in real time, but it does pull the latest committed
+// results immediately instead of making users wait for their next full
+// page reload to see an updated dot.
+async function refreshSiteStatus(btn) {
+  if (!btn) return;
+  const icon = btn.querySelector('.refresh-status-icon');
+  if (icon) icon.style.animation = 'spin .8s linear infinite';
+  btn.disabled = true;
+  await loadSiteStatus();
+  if (icon) icon.style.animation = '';
+  btn.disabled = false;
+  showToast('Status refreshed');
+}
+
 // ========== LIVE URL OVERRIDES ==========
 // overrides.json is written by the admin panel (via the GitHub API — see
 // updateLiveLink()) whenever a "down"/"blocked" site's link is replaced.
@@ -3187,7 +3231,12 @@ function renderHomepage() {
   let dirTipDismissed;
   try { dirTipDismissed = localStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
-    <div style="margin-bottom:12px" class="popular-label">🌐 Free Websites</div>
+    <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;" class="popular-label">
+      <span>🌐 Free Websites</span>
+      <button onclick="refreshSiteStatus(this)" title="Refresh site status" aria-label="Refresh site status" style="background:none; border:1px solid var(--border); border-radius:8px; padding:6px 8px; cursor:pointer; color:var(--muted); display:inline-flex; align-items:center; text-transform:none; letter-spacing:normal; font-weight:400;">
+        <svg class="refresh-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+    </div>
     <div class="pill-container" id="dir-filter-chips">
       <button class="genre-pill dual-gradient-pill active" onclick="clearDirFilters(this)">All</button>
       <button class="genre-pill dual-gradient-pill" data-cat="movie" onclick="toggleDirFilter('movie', this)">Movie</button>
