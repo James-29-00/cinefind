@@ -1026,7 +1026,15 @@ function showFavorites(sortBy) {
   sortBy = sortBy || 'date-desc';
   const favs = getFavorites();
   const dirFavNames = getDirFavs();
-  const favSites = [...SITES_DIRECTORY, ...customSites].filter(s => dirFavNames.includes(s.name));
+  const seenFavNames = new Set();
+  const favSites = [...SITES_DIRECTORY, ...customSites]
+    .filter(s => {
+      const key = normalizeSiteName(s.name);
+      if (seenFavNames.has(key)) return false;
+      seenFavNames.add(key);
+      return true;
+    })
+    .filter(s => dirFavNames.includes(s.name));
 
   if (favs.length === 0 && favSites.length === 0) {
     document.getElementById('result-area').innerHTML = `
@@ -2575,7 +2583,14 @@ function renderSitesDirectory() {
   if (!wrap) return; // user may have navigated away already
 
   const favs = getDirFavs();
+  const seenNames = new Set();
   const allSites = [...SITES_DIRECTORY, ...customSites] // built-in + admin-added, rendered identically
+    .filter(s => {
+      const key = normalizeSiteName(s.name);
+      if (seenNames.has(key)) return false; // duplicate name — built-in (listed first) wins
+      seenNames.add(key);
+      return true;
+    })
     .filter(s => !removedSiteNames.includes(normalizeSiteName(s.name)));
 
   // "pinned" isn't a real category on the site data — it's derived from favs —
