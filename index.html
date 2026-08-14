@@ -782,6 +782,22 @@
   body.light-mode .status-label-mini {
     background: linear-gradient(0deg, rgba(43,36,29,.16), rgba(43,36,29,.02));
   }
+  /* Without body.light-mode scoping here, the rule above (which has higher
+     specificity: element+2 classes vs. just 2 classes) always won over
+     .status-label-mini.status-up/.blocked/.down — so status colors never
+     actually showed in Light Mode, always falling back to the plain dark
+     wash regardless of real status. Scoping these to body.light-mode too
+     gives them equal specificity, so source order (they come after) lets
+     the real status color apply. */
+  body.light-mode .status-label-mini.status-up {
+    background: linear-gradient(0deg, rgba(6,214,160,.32), rgba(6,214,160,.06));
+  }
+  body.light-mode .status-label-mini.status-blocked {
+    background: linear-gradient(0deg, rgba(240,180,40,.32), rgba(240,180,40,.06));
+  }
+  body.light-mode .status-label-mini.status-down {
+    background: linear-gradient(0deg, rgba(230,57,70,.32), rgba(230,57,70,.06));
+  }
   /* Color-coded tint once status resolves — green/gold/red wash across the
      whole bar (not just the dot) so status reads at a glance without
      needing to focus on the small icon. */
