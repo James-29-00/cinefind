@@ -46,6 +46,14 @@
     --text: #f0f0f5;
     --muted: #9494b5;
     --green: #06d6a0;
+    /* Fixed bright pair for the status-dot badge icon only (see
+       statusDotColor()) — that icon always sits on the same near-black
+       circle (.status-dot-mini's background never changes with theme),
+       so unlike --green/--gold text it must NOT follow light-mode's
+       darkened-for-text-contrast values, or it reads as invisible/black
+       against that dark circle. */
+    --status-green: #06d6a0;
+    --status-gold: #ffd166;
   }
 
   /* Dark Mode (Default) */
@@ -59,16 +67,32 @@
   }
 
   /* Light Mode */
-  /* --muted darkened from the original #6c757d — that only hit ~4.45:1
-     contrast against --bg (#f8f9fa), just under the 4.5:1 WCAG AA minimum
-     for normal-size text. #5f6672 clears ~5.5:1. */
+  /* Rebuilt as a warm, dimmed "paper" palette instead of a bright cool-white
+     one. A near-white, blue-leaning background (the original #f8f9fa/#eef0f3
+     attempts) is high-luminance and reads as glary/harsh, especially on
+     phone screens — similar to why reading apps (Kindle "sepia", iOS
+     Reader) shift toward warm cream tones instead of stark white for
+     comfortable extended viewing. This palette lowers overall brightness
+     and adds warmth throughout, not just glow effects.
+     --muted/--text: warm near-black/warm gray instead of the cool navy
+     originals — softer against a warm background, still clears WCAG AA
+     (--text ~13:1, --muted ~4.7:1 against --bg).
+     --gold: kept from the earlier pass — dark amber still reads clearly
+     against this warmer, slightly dimmer background. */
   body.light-mode {
-    --bg: #f8f9fa;
-    --surface: #ffffff;
-    --card: #f0f2f5;
-    --border: #0000001a;
-    --text: #1a1a2e;
-    --muted: #5f6672;
+    --bg: #d9d3c5;
+    --surface: #e8e2d3;
+    --card: #e8e2d3;
+    --border: #00000024;
+    --text: #262420;
+    /* Darkened slightly from the initial #656055/#96700a/#0b6b40 — those
+       measured 4.19:1, 3.05:1, and 4.41:1 against --bg, all under WCAG AA's
+       4.5:1 minimum for normal-size text (most usages here are .7–.9rem
+       labels, too small to qualify for the relaxed large-text threshold).
+       These land at 4.5:1+ with a barely-perceptible hue shift. */
+    --muted: #5f5a50;
+    --gold: #755708;
+    --green: #0b693f;
   }
 
   /* ===== Color Themes ===== */
@@ -216,7 +240,95 @@
   body.theme-crimson .logo span {
     filter: drop-shadow(0 0 12px rgba(230,57,70,.6));
   }
+  /* The wordmark's first half ("Cine") fades from white into the accent
+     color — built for a dark background. On Light Mode that white start
+     point is nearly invisible against the light page background, so it
+     needs a dark starting color instead. */
+  body.light-mode .logo {
+    background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+    -webkit-background-clip: text; background-clip: text;
+  }
+  /* Glow effects below (ambient background circle, button halos, text
+     drop-shadow) were all tuned for a near-black background, where a
+     saturated, low-opacity red haze reads as a subtle moody vignette. On a
+     light/white background the exact same glow shows up as a garish pink
+     "stain" and glaring halos instead — visibly uncomfortable rather than
+     atmospheric. These light-mode overrides tone them down rather than
+     removing them outright, so Light Mode still feels like the same brand,
+     just softened for a bright surface. */
+  body.light-mode .bg-glow {
+    opacity: 0;
+  }
+  body.light-mode .theme-toggle {
+    box-shadow: 0 0 6px rgba(var(--bg-glow-rgb),.4);
+  }
+  body.light-mode .theme-toggle:hover {
+    box-shadow: 0 0 10px rgba(var(--bg-glow-rgb),.5);
+  }
+  body.light-mode.theme-crimson .logo span {
+    filter: drop-shadow(0 0 4px rgba(230,57,70,.3));
+  }
+  /* Remaining spots that assumed a dark background and would otherwise be
+     hard to see or read on Light Mode: */
+  /* "1 online now" badge text was a pale mint (#b8ffcf) tuned for a dark
+     pill — nearly invisible against a light background. Darker green here
+     keeps the same "online/live" meaning at readable contrast. */
+  body.light-mode .online-badge {
+    color: #1a7a42;
+    -webkit-text-fill-color: #1a7a42;
+    background: rgba(34, 197, 94, .14);
+    border-color: rgba(34, 197, 94, .5);
+  }
+  /* Category filter pills (Movie/K-Drama/Anime/etc.) used a pale gray text
+     and dark border tuned for a dark background — both nearly disappear on
+     Light Mode. */
+  body.light-mode .filter-chip {
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  body.light-mode .filter-select {
+    border-color: var(--border);
+  }
+  /* "Popular searches" pill buttons — same pale-text-on-dark-border issue,
+     including the ones reused inside the Report/About popups. */
+  body.light-mode .pop-chip {
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  /* Loading skeletons (poster shimmer, year badge, copy-link button) added a
+     faint *white* highlight/overlay to stand out against a dark surface —
+     on a light card that highlight is invisible, so these use a dark
+     highlight instead so the loading state and controls stay visible. */
+  body.light-mode .poster-shimmer {
+    background: linear-gradient(90deg, var(--card) 25%, rgba(0,0,0,.06) 50%, var(--card) 75%);
+    background-size: 200% 100%;
+  }
+  body.light-mode .poster-loading {
+    background: linear-gradient(90deg, var(--surface) 25%, rgba(0,0,0,.08) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+  }
+  body.light-mode .badge-year {
+    background: rgba(0,0,0,.06);
+  }
+  body.light-mode .copy-link-btn {
+    background: rgba(0,0,0,.05);
+  }
+  body.light-mode .copy-link-btn:hover {
+    background: rgba(var(--bg-glow-rgb),.12);
+  }
   .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
+
+  /* Returning-visitor hero: on repeat visits the full-size logo + tagline
+     eats a near-full screen before any content shows, which is pure
+     friction for people who already know what CineFind is. The
+     `hero-compact` class (added via a tiny inline script right after
+     <body>, based on a "have they been here before" localStorage flag)
+     shrinks the header so the site directory / search results are
+     reachable with less scrolling — first-time visitors still get the
+     full branded intro untouched. */
+  body.hero-compact header { padding: 10px 0 14px; }
+  body.hero-compact .logo { font-size: clamp(2rem, 6vw, 2.75rem); }
+  body.hero-compact .tagline { display: none; }
 
   /* Online-now live badge — a secondary trust signal, so it lives in the
      top corner (beside the theme toggle) rather than next to the wordmark.
@@ -265,6 +377,26 @@
   }
   .safety-tip .tip-close:hover { opacity: 1; color: var(--text); }
 
+  /* iOS "Add to Home Screen" fallback banner — see showIosInstallBannerIfNeeded() */
+  #ios-install-banner {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 500;
+    max-width: 460px; margin: 0 auto;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px 14px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.45);
+    animation: slideUpFade .3s ease;
+  }
+  #ios-install-banner .ios-banner-icon { font-size: 1.2rem; flex-shrink: 0; }
+  #ios-install-banner .ios-banner-text { font-size: .78rem; color: var(--text); line-height: 1.4; flex: 1; }
+  #ios-install-banner .ios-banner-text strong { color: var(--accent2); }
+  #ios-install-banner .ios-banner-close {
+    background: none; border: none; color: var(--muted); opacity: .7;
+    cursor: pointer; font-size: 1rem; line-height: 1; padding: 4px; flex-shrink: 0;
+  }
+  #ios-install-banner .ios-banner-close:hover { opacity: 1; color: var(--text); }
+  @keyframes slideUpFade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
   /* Moon Button — icon color/glow matches the active theme's accent:
      crimson red on the default theme, cyan on Cyber Neon. Uses `color` so
      the inline SVG moon (fill="currentColor") follows it automatically. */
@@ -278,6 +410,17 @@
     box-shadow: 0 0 10px var(--accent);
   }
   .theme-toggle:hover { transform: scale(1.1); box-shadow: 0 0 18px var(--accent), 0 0 6px var(--accent); }
+  /* Help "?" button previously reused the exact same size/glow as the
+     primary theme-toggle circle, making two visually-equal buttons compete
+     for attention in a cramped row. Sized down and de-glowed so it reads
+     as the secondary, occasional-use action it actually is. */
+  .theme-toggle.help-toggle {
+    width: 32px; height: 32px; font-size: .85rem !important;
+    box-shadow: none; opacity: .75;
+  }
+  .theme-toggle.help-toggle:hover {
+    transform: none; opacity: 1; box-shadow: 0 0 8px var(--accent);
+  }
 
   .search-wrap { position: relative; margin: 20px 0 12px; }
   .search-wrap input {
@@ -514,6 +657,20 @@
     background: #14141c; border: 1px solid rgba(255,255,255,.07);
     display: flex; align-items: center; justify-content: center; overflow: hidden;
   }
+  /* Search-results mini logo holder stays dark-toned for the same reason
+     the homepage cards do (white logo text needs a dark surface) — but a
+     stark pure-black #14141c box floating inside an otherwise light
+     .site-card reads as a leftover dark-mode artifact. Coordinates it to
+     the same dark-ink family used elsewhere in Light Mode instead. */
+  body.light-mode .site-logo-box {
+    background: #262420; border-color: rgba(0,0,0,.12);
+    /* This box stays dark even in Light Mode (see comment above), so the
+       logo text/icons inside it must stay white/light too — otherwise
+       they'd inherit Light Mode's dark ink (meant for the light pastel
+       homepage cards) and become invisible against this dark box. */
+    --card-logo-ink: #fff;
+    --card-logo-outline: #5b8def;
+  }
   .site-logo-box > * { transform: scale(.62); transform-origin: center; }
   .site-info { flex: 1; min-width: 0; }
   .site-name { font-weight: 600; font-size: .95rem; overflow-wrap: break-word; }
@@ -527,6 +684,12 @@
     position: relative;
     border-radius: 16px;
     padding: 1px;
+    /* Skips layout/paint for cards currently off-screen — the main lever for
+       scroll jank on a long grid on lower-end phones. contain-intrinsic-size
+       reserves the card's known height so the page doesn't jump/reflow as
+       cards enter and exit the visible area. */
+    content-visibility: auto;
+    contain-intrinsic-size: 0 132px;
     /* Per-brand accent (--card-accent, set inline per card from the site's
        logo color) tints one corner of the border so cards stay scannable
        by brand at a glance, fading back to the neutral border color rather
@@ -563,16 +726,75 @@
     position: relative;
     overflow: hidden;
   }
+  /* Light Mode: genuinely light pastel cards (not a dark tile carried over
+     from Dark Mode). This requires flipping logo text from light/white to
+     dark ink — see --card-logo-ink below, referenced by .lw-white and the
+     per-brand inline logoHtml colors — otherwise white-on-pastel text would
+     be unreadable. Three pastel tones cycle across the grid (assigned via
+     .card-pastel-blue/gold/rose in buildCard) purely for visual variety;
+     Dark Mode's flat .card-content rule above is completely untouched. */
+  body.light-mode {
+    --card-logo-ink: #2b241d;
+    --card-logo-outline: #2f5fb8;
+  }
+  body.light-mode .card-pastel-blue {
+    background: linear-gradient(155deg, #e4e9ee 0%, #d9e0e7 100%);
+    box-shadow: 0 8px 20px rgba(20,17,12,.20), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  body.light-mode .card-pastel-gold {
+    background: linear-gradient(155deg, #e9e4d5 0%, #ded5bf 100%);
+    box-shadow: 0 8px 20px rgba(20,17,12,.20), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  body.light-mode .card-pastel-rose {
+    background: linear-gradient(155deg, #e9e0de 0%, #ddd0ce 100%);
+    box-shadow: 0 8px 20px rgba(20,17,12,.20), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  /* Border opacity bumped from .14 → .28: against a page background this
+     close in lightness to the card tints, a faint border reads as no
+     border at all — cards need a visibly darker edge (plus the shadow
+     above) to actually look "lifted" rather than blending into the page. */
+  body.light-mode .gradient-card-wrapper {
+    background: rgba(43,36,29,.28);
+  }
+  body.light-mode .gradient-card-wrapper:hover {
+    background: rgba(43,36,29,.42);
+    /* Colored glow (color-mix with the theme accent) was tuned to pop
+       against a near-black card — against a light pastel card it just
+       looks muddy/washed out instead of reading as "lifted." A neutral
+       dark shadow works as an elevation cue regardless of theme color. */
+    box-shadow: 0 10px 24px rgba(20,17,12,.22);
+  }
+  body.light-mode .gradient-card-wrapper.is-hot {
+    box-shadow: 0 6px 18px rgba(20,17,12,.18);
+  }
+  body.light-mode .gradient-card-wrapper.is-hot:hover {
+    box-shadow: 0 12px 28px rgba(20,17,12,.28);
+  }
   .pin-icon {
     color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
     background: none; border: none; line-height: 1; padding: 0;
     display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  /* Invisible tap-area expansion — same reasoning as .report-icon::before. */
+  .pin-icon::before {
+    content: ''; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 44px; height: 44px;
   }
   .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
+  /* Light Mode fix: the default white-ish star (tuned for dark cards) has
+     near-zero contrast against the new light pastel cards. Uses the same
+     dark ink as the logo text so it reads clearly without a separate
+     one-off color. */
+  body.light-mode .pin-icon { color: var(--card-logo-ink); }
+  body.light-mode .pin-icon:hover, body.light-mode .pin-icon.faved { color: var(--gold); }
   /* Not-yet-favorited star stays dim by default — it's a secondary, optional
      action, not something that needs equal visual weight to status or Hot.
+     .6 (not .4) keeps it visibly secondary while still clearing the ~3:1
+     WCAG 1.4.11 non-text contrast minimum for interactive UI components.
      Full opacity on hover/focus (discoverable) and once actually favorited. */
-  .pin-icon:not(.faved) { opacity: .4; }
+  .pin-icon:not(.faved) { opacity: .6; }
   .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
   .pin-icon.faved { opacity: 1; }
 
@@ -584,8 +806,17 @@
     display: inline-flex; align-items: center; justify-content: center;
     flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
     color: rgba(255,255,255,.5); background: rgba(0,0,0,.25);
+    position: relative;
   }
   .report-icon:hover, .report-icon:focus-visible { color: var(--accent); background: rgba(var(--bg-glow-rgb),.2); }
+  /* Invisible tap-area expansion to meet the ~44px mobile touch target
+     minimum, without changing the icon's visible 22px footprint or any
+     theme color — purely an interaction-area fix. */
+  .report-icon::before {
+    content: ''; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 44px; height: 44px;
+  }
 
   /* Site status dot — filled in after status.json loads (see applyStatusDots()).
      Deliberately small and quiet (just enough contrast to read at a glance
@@ -595,11 +826,11 @@
   .status-dot-mini {
     display: none; align-items: center; justify-content: center;
     position: absolute; top: 8px; left: 8px; z-index: 2;
-    width: 16px; height: 16px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     background: rgba(8,8,16,.75);
   }
-  .status-dot-mini svg { width: 62%; height: 62%; display: block; }
+  .status-dot-mini svg { width: 68%; height: 68%; display: block; }
   /* Inline variant — used when the dot sits inside the bottom label bar
      (next to the ONLINE text) instead of floating top-left on its own. */
   .status-label-mini .status-dot-mini {
@@ -616,6 +847,32 @@
     color: #fff;
     background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
     transition: background .3s ease;
+  }
+  /* Light Mode: the dark gradient bar (needed on Dark Mode's near-black
+     card for the white status text to read) looks like a jarring smudge
+     dropped onto the new light pastel cards. A soft dark-ink wash at much
+     lower opacity keeps just enough of a footer "shelf" for the status
+     text without breaking the light, airy feel of the card. Status text
+     switches to dark ink too (see .status-text-mini override below) since
+     white-on-light-wash would no longer have enough contrast. */
+  body.light-mode .status-label-mini {
+    background: linear-gradient(0deg, rgba(43,36,29,.16), rgba(43,36,29,.02));
+  }
+  /* Without body.light-mode scoping here, the rule above (which has higher
+     specificity: element+2 classes vs. just 2 classes) always won over
+     .status-label-mini.status-up/.blocked/.down — so status colors never
+     actually showed in Light Mode, always falling back to the plain dark
+     wash regardless of real status. Scoping these to body.light-mode too
+     gives them equal specificity, so source order (they come after) lets
+     the real status color apply. */
+  body.light-mode .status-label-mini.status-up {
+    background: linear-gradient(0deg, rgba(6,214,160,.55), rgba(6,214,160,.18));
+  }
+  body.light-mode .status-label-mini.status-blocked {
+    background: linear-gradient(0deg, rgba(240,180,40,.55), rgba(240,180,40,.18));
+  }
+  body.light-mode .status-label-mini.status-down {
+    background: linear-gradient(0deg, rgba(230,57,70,.55), rgba(230,57,70,.18));
   }
   /* Color-coded tint once status resolves — green/gold/red wash across the
      whole bar (not just the dot) so status reads at a glance without
@@ -643,9 +900,24 @@
     background: rgba(255,255,255,.08);
     animation: skeleton-shimmer 1.4s ease-in-out infinite;
   }
+  /* White-based shimmer (tuned for the dark status bar) is invisible
+     against Light Mode's now-light status bar wash — swap to a dark-ink
+     based shimmer so the "checking..." loading state is still visible. */
+  body.light-mode .status-label-mini.status-loading .status-text-mini {
+    background: linear-gradient(90deg, rgba(38,36,32,.10) 25%, rgba(38,36,32,.22) 50%, rgba(38,36,32,.10) 75%);
+    background-size: 200% 100%;
+  }
+  body.light-mode .status-label-mini.status-loading .status-dot-mini {
+    background: rgba(38,36,32,.10);
+  }
   @keyframes skeleton-shimmer {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .status-label-mini .status-text-mini {
@@ -654,6 +926,13 @@
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  body.light-mode .status-label-mini .status-text-mini {
+    color: var(--card-logo-ink); text-shadow: none; opacity: .75;
+  }
+  body.light-mode .status-label-mini .report-icon {
+    color: var(--card-logo-ink); opacity: .55; background: rgba(43,36,29,.08);
+  }
+  body.light-mode .status-label-mini .report-icon:hover { opacity: 1; background: rgba(var(--bg-glow-rgb),.15); }
   /* Small "HOT" badge — top-right, next to the favorite star. Only Hot
      cards get any glow at all now (matches the card border treatment
      above), so it still reads as genuinely special instead of one badge
@@ -665,6 +944,25 @@
     filter: drop-shadow(0 0 4px rgba(255,140,20,.85)) drop-shadow(0 0 8px rgba(255,90,0,.5));
   }
   .hot-label-mini svg { width: 100%; height: 100%; display: block; }
+  /* Dark Mode's glow (tuned to bloom against a near-black card) just reads
+     as a hazy orange smudge on Light Mode's pale cards — there's no dark
+     backdrop for the glow to pop against. A tighter, lower-opacity shadow
+     plus a soft white halo behind the flame keeps it crisp instead of
+     blurry on light backgrounds. */
+  body.light-mode .hot-label-mini {
+    filter: drop-shadow(0 0 2px rgba(255,255,255,.9)) drop-shadow(0 1px 3px rgba(200,80,0,.45));
+  }
+  /* On the warm gold-pastel card variant specifically, the orange/yellow
+     flame gradient sits too close in hue to the card itself — the white
+     halo from the filter above isn't enough separation on its own. A
+     small opaque backing disc gives the icon a consistent "chip" to sit
+     on regardless of which pastel tone the card landed on. */
+  body.light-mode .hot-label-mini::before {
+    content: ''; position: absolute; inset: -3px; border-radius: 50%;
+    background: rgba(255,255,255,.65);
+    box-shadow: 0 1px 3px rgba(20,17,12,.18);
+    z-index: -1;
+  }
 
   /* Tap-to-visit affordance — the whole card is a link, but nothing on its
      face said so. A quiet corner icon (barely-there by default, so it
@@ -684,6 +982,14 @@
     opacity: 1; color: var(--card-accent, var(--accent));
     transform: translate(1px,-1px);
   }
+  /* Same fix as the HOT flame above: a black circle + faint white arrow
+     (right for Dark Mode's near-black card) is nearly invisible against
+     Light Mode's pale card — flips to a light chip with dark ink so the
+     "this opens a link" affordance still reads. */
+  body.light-mode .visit-hint {
+    background: rgba(43,36,29,.16); color: var(--card-logo-ink);
+    opacity: .8;
+  }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
   .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; position: relative; z-index: 1; }
@@ -698,9 +1004,9 @@
   }
   .card-logo svg { width: 38px; height: 26px; display: block; }
   .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.65rem; letter-spacing: -.01em; line-height: 1; }
-  .lw-white { color: #fff; }
+  .lw-white { color: var(--card-logo-ink, #fff); }
   .lw-accent { color: var(--accent); }
-  .lw-outline { color: transparent; -webkit-text-stroke: 1.7px #5b8def; font-weight: 800; margin-right: 1px; }
+  .lw-outline { color: transparent; -webkit-text-stroke: 1.7px var(--card-logo-outline, #5b8def); font-weight: 800; margin-right: 1px; }
   .logo-mtn, .logo-clapper { display: inline-flex; align-items: center; }
   .logo-tubi { color: #ff5b3a; font-style: italic; font-weight: 800; letter-spacing: -.02em; background: linear-gradient(120deg, #ff7a3d, #ff3d6e); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   .logo-pluto { display: inline-flex; align-items: center; gap: 6px; }
@@ -723,6 +1029,19 @@
     width: auto; height: auto; flex-shrink: 0;
     padding: 5px 9px 5px 7px; border-radius: 20px;
   }
+
+  /* Base styling for .quick-test-btn used in user-facing contexts (Report
+     modal reason chips, "Test This Link", "Dismiss", etc.) — previously
+     only styled inside #admin-overlay, so these rendered as unstyled
+     browser-default buttons everywhere else. Uses theme variables so it
+     adapts across Light Mode and all three color themes automatically. */
+  .quick-test-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 6px 12px; font-size: .78rem; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .quick-test-btn:hover { border-color: var(--accent); }
+  .quick-test-btn[data-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -787,6 +1106,17 @@
 </style>
 </head>
 <body class="dark-mode theme-crimson">
+<script>
+  // Runs immediately (before header markup paints) so returning visitors
+  // never see a flash of the full-size hero before it shrinks.
+  try {
+    if (localStorage.getItem('cinefind-visited')) {
+      document.body.classList.add('hero-compact');
+    } else {
+      localStorage.setItem('cinefind-visited', '1');
+    }
+  } catch (e) { /* storage unavailable — hero stays full-size, no harm */ }
+</script>
 <div class="starfield"></div>
 <div class="bg-glow"></div>
 <div class="wrapper">
@@ -797,8 +1127,10 @@
       </span>
       <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
         <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
+        <button class="theme-toggle" id="install-app-btn" title="Install app" aria-label="Install app" onclick="triggerInstallPrompt()" style="display:none; font-size:1.05rem;">📲</button>
+        <button class="theme-toggle help-toggle" id="help-btn" title="Help / what do the icons mean?" aria-label="Help" onclick="showHelpTip()" style="font-weight:700;">?</button>
         <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </div>
     </div>
@@ -818,6 +1150,8 @@
   <div style="display:flex; justify-content:flex-end; margin:-6px 0 18px;">
     <button class="fav-quick-link" onclick="showFavorites()"><span class="fav-star-icon">★</span> My Favorites (<span id="fav-count">0</span>)</button>
   </div>
+
+  <div id="recently-viewed-section"></div>
 
   <!-- ADVANCED FILTERS SECTION — hidden until there's a results list to filter -->
   <div class="filters" id="filters-bar" style="display:none;">
@@ -855,6 +1189,8 @@
     <!-- Filled in by renderHomepage() on page load -->
   </div>
 
+  <button id="back-to-top-btn" onclick="window.scrollTo({top:0, behavior:'smooth'})" aria-label="Back to top" style="display:none; position:fixed; right:16px; bottom:20px; z-index:50; width:44px; height:44px; border-radius:50%; background:var(--accent); color:#fff; border:none; box-shadow:0 4px 12px rgba(0,0,0,.35); cursor:pointer; align-items:center; justify-content:center; font-size:1.1rem;">↑</button>
+
   <footer>
     <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
     <p style="margin-top:6px;"><button onclick="openAboutModal()" style="background:none; border:none; color:var(--muted); text-decoration:underline; font-size:.78rem; cursor:pointer; padding:0;">ℹ️ About & Disclaimer</button></p>
@@ -863,45 +1199,163 @@
 </div>
 
 <script>
-// ========== THEME TOGGLE (Crimson -> Cyber Neon -> Galaxy, via moon button) ==========
+// ========== PWA INSTALL PROMPT ==========
+// Chrome/Edge/Android fire this event once the site meets installability
+// criteria (manifest.json + icons + served over https). We intercept it and
+// stash it instead of letting the browser show its own mini-infobar, so we
+// can reveal a branded "📲 Install app" button in the header — no need for
+// users to dig through the browser's overflow menu to find "Add to Home
+// screen". iOS Safari never fires this event (no such API there), so the
+// button simply never appears there — iOS users still add via native
+// Share -> "Add to Home Screen", unchanged.
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const btn = document.getElementById('install-app-btn');
+  if (btn) btn.style.display = 'flex';
+});
+
+async function triggerInstallPrompt() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice; // resolves once the user accepts/dismisses
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('install-app-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+// Covers the case where the user installs via the browser's own UI instead
+// of our button (e.g. they'd already dismissed ours) — keeps state in sync.
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('install-app-btn');
+  if (btn) btn.style.display = 'none';
+});
+
+// Registering a service worker (even one that does no caching yet) is what
+// makes Chrome/Edge/Brave on Android reliably fire beforeinstallprompt —
+// on some versions it's a hard installability requirement, not just a nice-
+// to-have. sw.js currently just passes requests straight through to the
+// network; offline caching can be layered in later without touching this
+// registration code.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+
+// ========== iOS "ADD TO HOME SCREEN" FALLBACK ==========
+// iOS Safari never fires beforeinstallprompt (Apple provides no such API),
+// so our install button above never appears there. This shows a small,
+// dismissible banner with manual instructions instead — otherwise iOS
+// users (a large share of mobile visitors) never learn the app is
+// installable at all. Dismissal is remembered per-device via localStorage,
+// same pattern as the homepage safety tip.
+function isIosDevice() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+function isInStandaloneMode() {
+  return ('standalone' in window.navigator) && window.navigator.standalone;
+}
+
+function showIosInstallBannerIfNeeded() {
+  if (!isIosDevice() || isInStandaloneMode()) return; // not iOS, or already installed
+  if (localStorage.getItem('cinefind-ios-install-dismissed')) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'ios-install-banner';
+  banner.innerHTML = `
+    <span class="ios-banner-icon">📲</span>
+    <span class="ios-banner-text">Install this app: tap <strong>Share</strong> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg> then <strong>Add to Home Screen</strong></span>
+    <button class="ios-banner-close" onclick="dismissIosInstallBanner()" aria-label="Dismiss">✕</button>
+  `;
+  document.body.appendChild(banner);
+}
+
+function dismissIosInstallBanner() {
+  localStorage.setItem('cinefind-ios-install-dismissed', '1');
+  const el = document.getElementById('ios-install-banner');
+  if (el) el.remove();
+}
+
+// ========== THEME TOGGLE (Crimson Dark -> Crimson Light -> Cyber -> Galaxy, via moon button) ==========
+// Cyber and Galaxy are purpose-built dark/neon aesthetics (their glow effects
+// need a near-black background to read correctly), so only Crimson gets a
+// light variant. Light mode lives inside the same single-button cycle rather
+// than a separate control, per how this site's UI is laid out.
 function initTheme() {
   loadColorTheme();
 }
 
 const THEME_KEY = 'cinefind-theme-mode';
-const THEME_CYCLE = ['theme-crimson', 'theme-cyber', 'theme-galaxy'];
-const THEME_LABELS = { 'theme-crimson': 'Crimson', 'theme-cyber': 'Cyber', 'theme-galaxy': 'Galaxy' };
+const THEME_CYCLE = [
+  { theme: 'theme-crimson', mode: 'dark-mode', label: 'Crimson' },
+  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode' },
+  { theme: 'theme-cyber', mode: 'dark-mode', label: 'Cyber' },
+  { theme: 'theme-galaxy', mode: 'dark-mode', label: 'Galaxy' },
+];
+const THEME_CLASSES = THEME_CYCLE.map(s => s.theme).filter((v, i, a) => a.indexOf(v) === i);
+const MODE_CLASSES = ['dark-mode', 'light-mode'];
+
+function findThemeIndex() {
+  const i = THEME_CYCLE.findIndex(s =>
+    document.body.classList.contains(s.theme) && document.body.classList.contains(s.mode)
+  );
+  return i === -1 ? 0 : i;
+}
 
 function cycleTheme() {
-  const current = THEME_CYCLE.find(t => document.body.classList.contains(t)) || 'theme-crimson';
-  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+  const next = THEME_CYCLE[(findThemeIndex() + 1) % THEME_CYCLE.length];
   applyTheme(next, true);
 }
 
-function applyTheme(themeClass, announce) {
-  document.body.classList.remove(...THEME_CYCLE);
-  document.body.classList.add(themeClass);
+function applyTheme(state, announce) {
+  document.body.classList.remove(...THEME_CLASSES, ...MODE_CLASSES);
+  document.body.classList.add(state.theme, state.mode);
   try {
-    localStorage.setItem(THEME_KEY, themeClass);
+    localStorage.setItem(THEME_KEY, JSON.stringify({ theme: state.theme, mode: state.mode }));
   } catch (e) { /* storage unavailable — theme still applied to DOM */ }
   // No JS-driven color logic needed for the button itself — it reads
   // var(--accent), which the theme-* CSS classes already set, so the
   // icon color/glow follows automatically.
-  const label = THEME_LABELS[themeClass] || themeClass;
   const labelEl = document.getElementById('theme-name-label');
-  if (labelEl) labelEl.textContent = label;
+  if (labelEl) labelEl.textContent = state.label;
   const btn = document.getElementById('theme-picker-btn');
-  if (btn) btn.setAttribute('aria-label', `Change theme — currently ${label}`);
-  if (announce) showToast(`Switched to ${label} theme`);
+  if (btn) btn.setAttribute('aria-label', `Change theme — currently ${state.label}`);
+  // Moon = "tap to go dark", sun = "tap to go light" — standard convention.
+  // The button used to show a moon icon even while already in Light Mode,
+  // which reads backwards (looks like "currently dark", not "tap for dark").
+  const iconEl = document.getElementById('theme-toggle-icon');
+  if (iconEl) {
+    iconEl.innerHTML = state.mode === 'light-mode'
+      ? '<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2.2M12 18.8V21M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M3 12h2.2M18.8 12H21M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>'
+      : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  }
+  if (announce) showToast(`Switched to ${state.label} theme`);
 }
 
 function loadColorTheme() {
   try {
-    const saved = localStorage.getItem(THEME_KEY);
-    applyTheme(THEME_CYCLE.includes(saved) ? saved : 'theme-crimson', false);
-  } catch (e) {
-    applyTheme('theme-crimson', false);
-  }
+    const raw = localStorage.getItem(THEME_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      const match = THEME_CYCLE.find(s => s.theme === saved.theme && s.mode === saved.mode);
+      if (match) { applyTheme(match, false); return; }
+    }
+  } catch (e) { /* fall through to OS-preference default below */ }
+
+  // No saved choice yet (first visit) — default to the OS-level light/dark
+  // preference instead of always starting dark. Still just a starting
+  // point: the very next manual toggle overrides it via localStorage above.
+  let prefersLight = false;
+  try {
+    prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  } catch (e) { /* matchMedia unsupported — fall back to dark default */ }
+  applyTheme(prefersLight ? THEME_CYCLE[1] : THEME_CYCLE[0], false);
 }
 
 // ========== TOAST / SHARE / COPY LINK ==========
@@ -1021,12 +1475,33 @@ function buildFavSiteCard(s) {
     </div>`;
 }
 
-function showFavorites(sortBy) {
+function showFavorites(sortBy, siteSortBy) {
   hideFiltersBar();
+  const recentEl = document.getElementById('recently-viewed-section');
+  if (recentEl) recentEl.innerHTML = ''; // homepage-only widget
   sortBy = sortBy || 'date-desc';
+  siteSortBy = siteSortBy || 'az';
   const favs = getFavorites();
   const dirFavNames = getDirFavs();
-  const favSites = [...SITES_DIRECTORY, ...customSites].filter(s => dirFavNames.includes(s.name));
+  const seenFavNames = new Set();
+  let favSites = [...SITES_DIRECTORY, ...customSites]
+    .filter(s => {
+      const key = normalizeSiteName(s.name);
+      if (seenFavNames.has(key)) return false;
+      seenFavNames.add(key);
+      return true;
+    })
+    .filter(s => dirFavNames.includes(s.name));
+
+  const statusRank = { up: 0, blocked: 1, down: 2 };
+  favSites = [...favSites].sort((a, b) => {
+    switch (siteSortBy) {
+      case 'za': return b.name.localeCompare(a.name);
+      case 'status': return (statusRank[getSiteStatus(a.name)] ?? 3) - (statusRank[getSiteStatus(b.name)] ?? 3);
+      case 'az':
+      default: return a.name.localeCompare(b.name);
+    }
+  });
 
   if (favs.length === 0 && favSites.length === 0) {
     document.getElementById('result-area').innerHTML = `
@@ -1042,7 +1517,7 @@ function showFavorites(sortBy) {
     <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <button class="pop-chip" onclick="resetSearch()">← Back to search</button>
       ${favs.length > 0 ? `
-      <select class="filter-select" onchange="showFavorites(this.value)" style="width:auto;">
+      <select class="filter-select" onchange="showFavorites(this.value, '${siteSortBy}')" style="width:auto;">
         <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>Newest added</option>
         <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>Oldest added</option>
         <option value="rating-desc" ${sortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
@@ -1051,7 +1526,15 @@ function showFavorites(sortBy) {
       </select>` : ''}
     </div>`;
 
-  html += `<h3 style="font-size:1rem; margin:0 0 12px;">🌐 Favorite Websites</h3>`;
+  html += `<div style="display:flex; justify-content:space-between; align-items:center; margin:0 0 12px;">
+    <h3 style="font-size:1rem; margin:0;">🌐 Favorite Websites</h3>
+    ${favSites.length > 1 ? `
+    <select class="filter-select" onchange="showFavorites('${sortBy}', this.value)" style="width:auto; font-size:.75rem;">
+      <option value="az" ${siteSortBy === 'az' ? 'selected' : ''}>Name A–Z</option>
+      <option value="za" ${siteSortBy === 'za' ? 'selected' : ''}>Name Z–A</option>
+      <option value="status" ${siteSortBy === 'status' ? 'selected' : ''}>Online first</option>
+    </select>` : ''}
+  </div>`;
   html += favSites.length > 0
     ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map(buildFavSiteCard).join('')}</div>`
     : `<p style="color:var(--muted); font-size:.85rem; margin-bottom:28px;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>`;
@@ -1155,12 +1638,42 @@ let currentResultsLabel = null; // optional custom header, e.g. "🎭 Comedy"
 let currentResultsRaw = null;   // original, unsorted order — kept so sorting can always start fresh
 let currentSortBy = 'default';
 
+// ========== BACK-BUTTON / HISTORY INTEGRATION ==========
+// Android's hardware/gesture back button normally exits the page entirely
+// once there's no browser history to fall back on. Pushing a state entry
+// whenever the view changes (search results, home) lets popstate catch the
+// back gesture and restore the previous view in-app instead of leaving.
+function pushViewState(view) {
+  const state = { cfView: view };
+  if (history.state && history.state.cfView === view) {
+    history.replaceState(state, '');
+  } else {
+    history.pushState(state, '');
+  }
+}
+window.addEventListener('popstate', (e) => {
+  const view = e.state && e.state.cfView;
+  if (view === 'results' && currentDisplayedResults) {
+    renderVisibleResults();
+  } else {
+    document.getElementById('search-input').value = '';
+    renderHomepage();
+    lastSearchResult = null;
+    currentDisplayedResults = null;
+    currentResultsRaw = null;
+    currentSortBy = 'default';
+  }
+});
+
 function renderResultsGrid(movies, label) {
+  const recentEl = document.getElementById('recently-viewed-section');
+  if (recentEl) recentEl.innerHTML = ''; // homepage-only widget
   currentResultsRaw = movies;
   currentDisplayedResults = movies;
   currentResultsLabel = label || null;
   currentSortBy = 'default';
   visibleResultsCount = RESULTS_PER_PAGE; // reset to first page whenever a new list is shown
+  pushViewState('results');
   showFiltersBar();
   renderVisibleResults();
 }
@@ -1195,7 +1708,7 @@ function renderVisibleResults() {
   const visible = movies.slice(0, visibleResultsCount);
 
   const cards = visible.map((m, i) => `
-    <div class="result-card" tabindex="0" role="button" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''} — view streaming links" onclick="selectMovie(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectMovie(${i});}" style="animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
+    <div class="result-card" onclick="selectMovie(${i})" style="animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
       <div class="result-poster${m.poster ? ' poster-loading' : ''}">
         ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
       </div>
@@ -1343,13 +1856,13 @@ function renderSuggestions(results, currentQuery) {
     return;
   }
 
-  box.innerHTML = results.map((r, idx) => {
+  box.innerHTML = results.map(r => {
     const title = r.title || r.name;
     const year = (r.release_date || r.first_air_date || '').split('-')[0];
     const type = r.media_type === 'tv' ? 'Series' : 'Movie';
     const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : null;
     return `
-      <div class="suggestion-item" data-index="${idx}" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(title)}')">
+      <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(title)}')">
         <div class="suggestion-poster">${poster ? `<img class="poster-img" src="${poster}" alt="" loading="lazy" onload="this.style.opacity=1">` : (r.media_type === 'tv' ? '📺' : '🎬')}</div>
         <div class="suggestion-text">
           <div class="suggestion-title">${escapeAttr(title)}</div>
@@ -1359,7 +1872,6 @@ function renderSuggestions(results, currentQuery) {
   }).join('');
 
   box.classList.add('open');
-  suggestionActiveIndex = -1; // reset keyboard highlight whenever the list is (re)rendered
 }
 
 function selectSuggestion(title) {
@@ -1368,13 +1880,10 @@ function selectSuggestion(title) {
   searchMovie();
 }
 
-let suggestionActiveIndex = -1; // -1 = none highlighted; used for ArrowUp/ArrowDown navigation
-
 function closeSuggestions() {
   const box = document.getElementById('suggestions-box');
   box.classList.remove('open');
   box.innerHTML = '';
-  suggestionActiveIndex = -1;
 }
 
 // Close the dropdown when tapping/clicking outside the search box
@@ -1389,23 +1898,31 @@ document.addEventListener('click', (e) => {
 // once via a localStorage flag — never re-shown after dismissal or on
 // repeat visits, so returning users aren't nagged by it.
 const ONBOARDING_SEEN_KEY = 'cinefind-onboarding-seen';
+function renderOnboardingTip() {
+  const el = document.getElementById('onboarding-banner');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="background:color-mix(in srgb, var(--gold) 10%, transparent); border:1px solid color-mix(in srgb, var(--gold) 30%, transparent); border-radius:12px; padding:12px 14px; margin:-4px 0 18px; font-size:.78rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;">
+      <span style="flex-shrink:0; color:var(--gold); display:inline-flex; margin-top:1px;" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span>
+      <span style="flex:1;">
+        <strong style="color:var(--text);">Good to know:</strong>
+        ✅ = direct link, ⚠️ = search inside the site, and the <span style="display:inline-flex; align-items:center; gap:3px; white-space:nowrap;"><span style="display:inline-flex; gap:3px;"><span style="width:9px;height:9px;border-radius:50%;background:#06d6a0;display:inline-block;"></span><span style="width:9px;height:9px;border-radius:50%;background:#f0b428;display:inline-block;"></span><span style="width:9px;height:9px;border-radius:50%;background:#e63946;display:inline-block;"></span></span> dot</span> shows if a site's online.
+      </span>
+      <button onclick="dismissOnboarding()" aria-label="Dismiss tip" style="background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; flex-shrink:0; line-height:1; padding:8px; margin:-8px -6px -8px 0;">✕</button>
+    </div>`;
+}
 function showOnboardingIfNeeded() {
   let seen;
   try { seen = localStorage.getItem(ONBOARDING_SEEN_KEY); } catch (e) { seen = null; }
   if (seen) return;
-  const el = document.getElementById('onboarding-banner');
-  if (!el) return;
-  el.innerHTML = `
-    <div style="background:rgba(230,57,70,.08); border:1px solid rgba(230,57,70,.25); border-radius:12px; padding:12px 14px; margin:-4px 0 18px; font-size:.78rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;">
-      <span style="font-size:1.1rem; flex-shrink:0;">💡</span>
-      <span style="flex:1; display:flex; flex-direction:column; gap:3px;">
-        <strong style="color:var(--text);">Quick tips:</strong>
-        <span>✅ = direct link to that title, ⚠️ = you'll search once you're on the site.</span>
-        <span>🟢🟡🔴 dot = site status — tap it for details.</span>
-        <span>⭐ any card to save it to your Favorites.</span>
-      </span>
-      <button onclick="dismissOnboarding()" aria-label="Dismiss tip" style="background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; flex-shrink:0; line-height:1; padding:0;">✕</button>
-    </div>`;
+  renderOnboardingTip();
+}
+// Persistent "?" header button — reopens the same tip on demand, any time,
+// without touching the "seen" flag (so it doesn't interfere with the
+// one-time auto-show behavior above for people who never asked for it again).
+function showHelpTip() {
+  renderOnboardingTip();
+  document.getElementById('onboarding-banner').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 function dismissOnboarding() {
   try { localStorage.setItem(ONBOARDING_SEEN_KEY, '1'); } catch (e) { /* storage full/unavailable */ }
@@ -1414,6 +1931,12 @@ function dismissOnboarding() {
 }
 
 // ========== SEARCH HISTORY ==========
+// Manually curated, not live analytics — a real "most searched site-wide"
+// feature needs a backend Worker aggregating queries across all visitors,
+// which isn't deployed. Edit this list by hand (same pattern as hot-sites
+// for websites) to keep it current; shown in the search dropdown below.
+const TRENDING_TITLES = ['Squid Game', 'Wednesday', 'One Piece'];
+
 const SEARCH_HISTORY_KEY = 'cinefind-search-history';
 const SEARCH_HISTORY_MAX = 8;
 
@@ -1441,25 +1964,95 @@ function clearSearchHistory() {
 function showSearchHistory() {
   const history = getSearchHistory();
   const box = document.getElementById('suggestions-box');
-  if (history.length === 0) {
+  if (history.length === 0 && TRENDING_TITLES.length === 0) {
     closeSuggestions();
     return;
   }
 
-  box.innerHTML = `
+  const trendingHtml = TRENDING_TITLES.length === 0 ? '' : `
+    <div style="padding:8px 14px; border-bottom:1px solid var(--border);">
+      <span style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🔥 Trending</span>
+    </div>
+    ${TRENDING_TITLES.map(t => `
+      <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(t)}')">
+        <div class="suggestion-poster">🔥</div>
+        <div class="suggestion-text">
+          <div class="suggestion-title">${escapeAttr(t)}</div>
+        </div>
+      </div>`).join('')}`;
+
+  const historyHtml = history.length === 0 ? '' : `
     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--border);">
       <span style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🕐 Recent searches</span>
       <button onmousedown="event.preventDefault(); clearSearchHistory()" style="background:none; border:none; color:var(--muted); font-size:.7rem; cursor:pointer; text-decoration:underline;">Clear</button>
     </div>
-    ${history.map((h, idx) => `
-      <div class="suggestion-item" data-index="${idx}" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(h)}')">
+    ${history.map(h => `
+      <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(h)}')">
         <div class="suggestion-poster">🕐</div>
         <div class="suggestion-text">
           <div class="suggestion-title">${escapeAttr(h)}</div>
         </div>
       </div>`).join('')}`;
+
+  box.innerHTML = trendingHtml + historyHtml;
   box.classList.add('open');
-  suggestionActiveIndex = -1;
+}
+
+// ========== RECENTLY VIEWED ==========
+// Distinct from search history (text queries) — this tracks the actual
+// titles a person opened, with posters, so they can jump straight back into
+// a specific movie/show instead of re-typing a search. Shown as a poster
+// strip on the homepage itself (not tucked inside the search dropdown) so
+// it's visible without having to refocus the search bar first.
+const RECENTLY_VIEWED_KEY = 'cinefind-recently-viewed';
+const RECENTLY_VIEWED_MAX = 10;
+
+function getRecentlyViewed() {
+  try {
+    return JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveRecentlyViewed(movie) {
+  if (!movie || !movie.title) return;
+  let list = getRecentlyViewed();
+  list = list.filter(m => m.title !== movie.title); // no duplicates — re-viewing bumps it to front
+  list.unshift({ title: movie.title, poster: movie.poster || '', rating: movie.rating || '' });
+  list = list.slice(0, RECENTLY_VIEWED_MAX);
+  try { localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(list)); } catch (e) { /* storage full/unavailable */ }
+}
+
+function clearRecentlyViewed() {
+  try { localStorage.removeItem(RECENTLY_VIEWED_KEY); } catch (e) { /* storage unavailable */ }
+  renderRecentlyViewed();
+}
+
+function renderRecentlyViewed() {
+  const el = document.getElementById('recently-viewed-section');
+  if (!el) return; // not on the homepage right now
+  const list = getRecentlyViewed();
+  if (list.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `
+    <div style="margin:-6px 0 22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🕐 Recently Viewed</span>
+        <button onclick="clearRecentlyViewed()" style="background:none; border:none; color:var(--muted); font-size:.7rem; cursor:pointer; text-decoration:underline;">Clear</button>
+      </div>
+      <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
+        ${list.map(m => `
+          <button onclick="selectSuggestion('${escapeAttr(m.title)}')" style="flex-shrink:0; width:72px; background:none; border:none; padding:0; cursor:pointer; text-align:left;" aria-label="Open ${escapeAttr(m.title)}">
+            ${m.poster
+              ? `<img src="${escapeAttr(m.poster)}" alt="" loading="lazy" style="width:72px; height:104px; object-fit:cover; border-radius:8px; display:block;">`
+              : `<div style="width:72px; height:104px; border-radius:8px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:1.4rem;">🎬</div>`}
+            <div style="font-size:.68rem; color:var(--text); margin-top:4px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeAttr(m.title)}</div>
+          </button>`).join('')}
+      </div>
+    </div>`;
 }
 
 // ========== ORIGINAL CODE WITH MODIFICATIONS ==========
@@ -1920,6 +2513,9 @@ function injectMovieStructuredData(data) {
 
 function renderResult(data, query) {
   hideFiltersBar(); // filters apply to result lists, not a single detail view
+  saveRecentlyViewed(data);
+  const recentEl = document.getElementById('recently-viewed-section');
+  if (recentEl) recentEl.innerHTML = ''; // homepage-only widget — hide once viewing a detail page
   const area = document.getElementById('result-area');
   const favs = getFavorites();
   const isFavorited = favs.some(f => f.title === data.title);
@@ -1946,7 +2542,7 @@ function renderResult(data, query) {
       <div class="site-info">
         <div class="site-name">${s.name}</div>
         <div class="site-note">${s.note || 'Free streaming'}</div>
-        ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
+        ${s.free ? '<div style="font-size:.7rem;color:var(--green);margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:var(--gold);margin-top:3px;">⚠️ Search inside site</div>'}
       </div>
       <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg><span class="report-label-text">Report</span></button>
       <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
@@ -2012,7 +2608,7 @@ function renderResult(data, query) {
     <div id="sites-section">
       <div class="section-label">🌐 Free streaming sites</div>
       <div class="sites-grid">${siteCards}</div>
-      ${data.tip ? `<div class="tips-box">💡 <strong>Tip:</strong> ${data.tip}</div>` : ''}
+      ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
     </div>
 
     <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -2121,6 +2717,7 @@ function resetSearch() {
   document.getElementById('year-filter').value = '';
   document.getElementById('rating-filter').value = '';
   document.getElementById('type-filter').value = '';
+  pushViewState('home');
   renderHomepage();
   lastSearchResult = null;
   currentDisplayedResults = null;
@@ -2158,15 +2755,15 @@ function openReportModal(siteName, url) {
   overlay.id = 'report-modal-overlay';
   overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
   overlay.innerHTML = `
-    <div style="background:#1a1a2e; border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:20px; max-width:340px; width:100%;">
-      <div style="font-weight:700; color:#f0f0f5; margin-bottom:4px;">🚩 Report "${escapeAttr(siteName)}"</div>
-      <div style="font-size:.75rem; color:#9494b5; margin-bottom:14px;">What's wrong with this site?</div>
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; max-width:340px; width:100%;">
+      <div style="font-weight:700; color:var(--text); margin-bottom:4px;">🚩 Report "${escapeAttr(siteName)}"</div>
+      <div style="font-size:.75rem; color:var(--muted); margin-bottom:14px;">What's wrong with this site?</div>
       <div id="report-reason-buttons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
         ${['Broken / dead link', 'Too many ads/popups', 'Wrong movie/title', 'Other'].map(r => `
           <button class="quick-test-btn" onclick="selectReportReason(this)" data-reason="${escapeAttr(r)}" style="flex:1 1 auto;">${r}</button>
         `).join('')}
       </div>
-      <div id="report-modal-status" style="font-size:.72rem; color:#9494b5; margin-bottom:10px; min-height:16px;"></div>
+      <div id="report-modal-status" style="font-size:.72rem; color:var(--muted); margin-bottom:10px; min-height:16px;"></div>
       <div style="display:flex; gap:8px;">
         <button class="pop-chip" style="flex:1;" onclick="document.getElementById('report-modal-overlay').remove()">Cancel</button>
         <button class="pop-chip" id="report-submit-btn" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent);" disabled onclick="submitReport('${escapeAttr(siteName)}', '${escapeAttr(url)}', '${escapeAttr(movieTitle)}')">Submit</button>
@@ -2189,12 +2786,12 @@ function openAboutModal() {
   overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
   overlay.innerHTML = `
-    <div style="background:#1a1a2e; border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:20px; max-width:380px; width:100%; max-height:80vh; overflow-y:auto;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; max-width:380px; width:100%; max-height:80vh; overflow-y:auto;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="font-weight:700; color:#f0f0f5;">ℹ️ About & Disclaimer</div>
-        <button onclick="document.getElementById('about-modal-overlay').remove()" style="background:none; border:none; color:#9494b5; font-size:1.1rem; cursor:pointer;">✕</button>
+        <div style="font-weight:700; color:var(--text);">ℹ️ About & Disclaimer</div>
+        <button onclick="document.getElementById('about-modal-overlay').remove()" style="background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer;">✕</button>
       </div>
-      <div style="font-size:.8rem; color:#c3c3d6; line-height:1.6;">
+      <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.6;">
         <p style="margin-bottom:10px;"><strong>CineFind is a search &amp; directory tool only.</strong> We don't host, upload, or store any video content ourselves — we help you find where a title might be available on other, independent websites.</p>
         <p style="margin-bottom:10px;">We're not affiliated with any of the third-party sites listed. Their availability, legality, and content are entirely outside our control, and can change at any time.</p>
         <p style="margin-bottom:10px;">Streaming laws vary by country. Please check what's legal to access in your own region before using any listed site.</p>
@@ -2260,6 +2857,22 @@ async function loadSiteStatus() {
     // Silent fail — dots just stay hidden. Not worth bothering the user
     // with an error over a nice-to-have indicator.
   }
+}
+
+// Manual "force refresh" for the status dots — status.json is only
+// regenerated once a day by the GitHub Action checker, so this doesn't
+// re-check sites in real time, but it does pull the latest committed
+// results immediately instead of making users wait for their next full
+// page reload to see an updated dot.
+async function refreshSiteStatus(btn) {
+  if (!btn) return;
+  const icon = btn.querySelector('.refresh-status-icon');
+  if (icon) icon.style.animation = 'spin .8s linear infinite';
+  btn.disabled = true;
+  await loadSiteStatus();
+  if (icon) icon.style.animation = '';
+  btn.disabled = false;
+  showToast('Status refreshed');
 }
 
 // ========== LIVE URL OVERRIDES ==========
@@ -2386,7 +2999,7 @@ function getSiteStatus(name) {
 }
 
 function statusDotColor(status) {
-  return status === 'up' ? 'var(--green)' : status === 'blocked' ? 'var(--gold)' : status === 'down' ? 'var(--accent2)' : null;
+  return status === 'up' ? 'var(--status-green)' : status === 'blocked' ? 'var(--status-gold)' : status === 'down' ? 'var(--accent2)' : null;
 }
 
 function statusDotLabel(status) {
@@ -2492,13 +3105,13 @@ function applyStatusDots() {
 
 const SITES_DIRECTORY = [
   { name: 'MyAsianTV', url: 'https://myasiantv.com.lv/', domain: 'myasiantv.com.lv', categories: ['drama'], icon: '🏔️', accent: '#e63946',
-    logoHtml: `<span class="logo-mtn" aria-hidden="true"><svg viewBox="0 0 40 26" width="34" height="22"><path d="M2 24 L14 6 L20 15 L24 9 L38 24 Z" fill="#fff"/><path d="M20 15 L24 9 L38 24 L22 24 Z" fill="#e63946"/><path d="M13 8 L15 6 L17 9" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-word"><span class="lw-white">M</span><span class="lw-accent">A</span></span>` },
+    logoHtml: `<span class="logo-mtn" aria-hidden="true"><svg viewBox="0 0 40 26" width="34" height="22"><path d="M2 24 L14 6 L20 15 L24 9 L38 24 Z" fill="var(--card-logo-ink,#fff)"/><path d="M20 15 L24 9 L38 24 L22 24 Z" fill="#e63946"/><path d="M13 8 L15 6 L17 9" fill="none" stroke="var(--card-logo-ink,#fff)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-word"><span class="lw-white">M</span><span class="lw-accent">A</span></span>` },
   { name: 'DramaCool',  url: 'https://dramacool.com.tw/', domain: 'dramacool.com.tw', categories: ['drama'], icon: '🎬', accent: '#5b8def',
     logoHtml: `<span class="logo-clapper" aria-hidden="true"><svg viewBox="0 0 40 30" width="30" height="22"><rect x="4" y="12" width="32" height="16" rx="2" fill="none" stroke="#5b8def" stroke-width="2.4"/><path d="M4 12 L10 4 L16 4 L11 12 Z" fill="#5b8def"/><path d="M15 12 L21 4 L27 4 L22 12 Z" fill="#5b8def"/><path d="M26 12 L32 4 L36 4 L36 12 Z" fill="#5b8def"/></svg></span><span class="logo-word"><span class="lw-outline">D</span><span class="lw-white">C</span></span>` },
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'], accent: '#ff4d8f',
     logoHtml: `<span class="logo-word"><span style="color:#ff4d8f;">Kiss</span><span class="lw-white">KH</span></span>` },
   { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'], accent: '#8b5cf6',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:#fff;">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
   { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'], accent: '#00c2b8',
     logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:#00c2b8;">ki</span></span>` },
   { name: 'Viu',           url: 'https://www.viu.com/',         domain: 'viu.com',              categories: ['drama'], accent: '#00b8a9',
@@ -2510,13 +3123,13 @@ const SITES_DIRECTORY = [
   { name: 'WeTV',          url: 'https://wetv.vip/',            domain: 'wetv.vip',             categories: ['drama'], accent: '#06d6a0',
     logoHtml: `<span class="logo-word"><span class="lw-white">We</span><span style="color:#06d6a0;">TV</span></span>` },
   { name: 'Amasian TV',    url: 'https://amasiantv.com/',       domain: 'amasiantv.com',        categories: ['drama'], accent: '#f5a623',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.15rem;line-height:1.05;color:#fff;">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.15rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
   { name: '1Shows',        url: 'https://1shows.org/',          domain: '1shows.org',           categories: ['movie'], accent: '#4da6ff',
     logoHtml: `<span class="logo-word"><span style="color:#4da6ff;">1</span><span class="lw-white">Shows</span></span>` },
   { name: 'FlickyStream',  url: 'https://flickystream.dad/',    domain: 'flickystream.dad',     categories: ['movie'], accent: '#c084fc',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.35rem;line-height:1.05;background:linear-gradient(90deg,#5b8def,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">flicky</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.1rem;line-height:1.05;background:linear-gradient(90deg,#c084fc,#ff6b9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">stream</span></div>` },
   { name: 'MovieBox',      url: 'https://movie-box.co/',        domain: 'movie-box.co',         categories: ['movie'], accent: '#f4c430',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
   { name: '1Flex',         url: 'https://1flex.org/',           domain: '1flex.org',            categories: ['movie'], accent: '#ef4444',
     logoHtml: `<span class="logo-word" style="font-style:italic;transform:skewX(-6deg);display:inline-block;color:#ef4444;">1FLEX</span>` },
   { name: '1Tube',         url: 'https://1tube.org/',           domain: '1tube.org',            categories: ['movie'], accent: '#a855f7',
@@ -2528,11 +3141,11 @@ const SITES_DIRECTORY = [
   { name: 'ReAnime',       url: 'https://reanime.to/',          domain: 'reanime.to',           categories: ['anime'], accent: '#10b981',
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#06d6a0;">Re</span><span class="lw-white">Anime</span></span>` },
   { name: 'Animepahe',     url: 'https://animepahe.pw/',        domain: 'animepahe.pw',         categories: ['anime'], accent: '#e6b800',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">pahe</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">pahe</span></div>` },
   { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'], accent: '#9333ea',
     logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:#a855f7;">ro</span></span>` },
   { name: 'Anikoto',       url: 'https://anikototv.to/',        domain: 'anikototv.to',         categories: ['anime'], accent: '#22d3ee',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;line-height:1.05;color:#fff;">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'], accent: '#ff8a3d',
     logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:#ff8a3d;">ma</span></span>` },
   // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
@@ -2543,15 +3156,15 @@ const SITES_DIRECTORY = [
   { name: 'iWantTFC',      url: 'https://www.iwanttfc.com/',    domain: 'iwanttfc.com',         categories: ['pinoy'], accent: '#d0021b',
     logoHtml: `<span class="logo-word"><span class="lw-white">iWant</span><span style="color:var(--accent);">TFC</span></span>` },
   { name: 'Star Cinema',   url: 'https://www.youtube.com/@ABSstarcinema', domain: 'youtube.com', categories: ['pinoy'], accent: '#ffd166',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:#fff;text-transform:uppercase;">Cinema</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:var(--card-logo-ink,#fff);text-transform:uppercase;">Cinema</span></div>` },
   { name: 'Viva Films',    url: 'https://www.youtube.com/@VIVAFilms/videos', domain: 'youtube.com', categories: ['pinoy'], accent: '#dc2626',
     logoHtml: `<span class="logo-word"><span style="color:#ef4444;">VIVA</span><span class="lw-white" style="font-size:1rem;"> Films</span></span>` },
   { name: 'Regal Entertainment', url: 'https://www.youtube.com/@RegalEntertainmentInc/', domain: 'youtube.com', categories: ['pinoy'], accent: '#b91c1c',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:#fff;">Regal</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Regal</span></div>` },
   { name: 'Cinema One',    url: 'https://www.youtube.com/@CinemaOnePH/', domain: 'youtube.com',   categories: ['pinoy'], accent: '#e0a300',
     logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
   { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'], accent: '#059669',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:#06d6a0;">Studios</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:#06d6a0;">Studios</span></div>` },
   { name: 'CineWhale',     url: 'https://cinewhale.cc/',        domain: 'cinewhale.cc',         categories: ['movie'], accent: '#1e9edb',
     logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:#1e9edb;">Whale</span></span>` },
   { name: 'Dulo',          url: 'https://dulo.sx/',             domain: 'dulo.sx',              categories: ['movie'], accent: '#f4522b',
@@ -2581,7 +3194,14 @@ function renderSitesDirectory() {
   if (!wrap) return; // user may have navigated away already
 
   const favs = getDirFavs();
+  const seenNames = new Set();
   const allSites = [...SITES_DIRECTORY, ...customSites] // built-in + admin-added, rendered identically
+    .filter(s => {
+      const key = normalizeSiteName(s.name);
+      if (seenNames.has(key)) return false; // duplicate name — built-in (listed first) wins
+      seenNames.add(key);
+      return true;
+    })
     .filter(s => !removedSiteNames.includes(normalizeSiteName(s.name)));
 
   // "pinned" isn't a real category on the site data — it's derived from favs —
@@ -2625,9 +3245,10 @@ function renderSitesDirectory() {
     const pinIcon = isFav
       ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
       : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
+    const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][i % 3];
     return `
     <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
-      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
@@ -2710,10 +3331,16 @@ function dismissDirTip() {
 
 function renderHomepage() {
   hideFiltersBar();
+  renderRecentlyViewed();
   let dirTipDismissed;
   try { dirTipDismissed = localStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
-    <div style="margin-bottom:12px" class="popular-label">🌐 Free Websites</div>
+    <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;" class="popular-label">
+      <span>🌐 Free Websites</span>
+      <button onclick="refreshSiteStatus(this)" title="Refresh site status" aria-label="Refresh site status" style="background:none; border:1px solid var(--border); border-radius:8px; padding:6px 8px; cursor:pointer; color:var(--muted); display:inline-flex; align-items:center; text-transform:none; letter-spacing:normal; font-weight:400;">
+        <svg class="refresh-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+    </div>
     <div class="pill-container" id="dir-filter-chips">
       <button class="genre-pill dual-gradient-pill active" onclick="clearDirFilters(this)">All</button>
       <button class="genre-pill dual-gradient-pill" data-cat="movie" onclick="toggleDirFilter('movie', this)">Movie</button>
@@ -2811,6 +3438,7 @@ window.addEventListener('load', () => {
   loadHotSites();
   checkAdminAccess();
   showOnboardingIfNeeded();
+  showIosInstallBannerIfNeeded();
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
@@ -2828,32 +3456,25 @@ window.addEventListener('load', () => {
   }
 });
 
+// Back to Top — appears once the person has scrolled a bit, so it doesn't
+// clutter the view near the top of the page. rAF-throttled so this doesn't
+// add its own jank to the very scroll performance we just optimized for.
+let backToTopTicking = false;
+window.addEventListener('scroll', () => {
+  if (backToTopTicking) return;
+  backToTopTicking = true;
+  requestAnimationFrame(() => {
+    const btn = document.getElementById('back-to-top-btn');
+    if (btn) btn.style.display = window.scrollY > 600 ? 'flex' : 'none';
+    backToTopTicking = false;
+  });
+}, { passive: true });
+
 // Event listeners
 document.getElementById('search-input').addEventListener('keydown', (e) => {
-  const box = document.getElementById('suggestions-box');
-  const items = box.classList.contains('open') ? [...box.querySelectorAll('.suggestion-item')] : [];
-
-  if (items.length > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-    e.preventDefault(); // stop cursor from jumping to start/end of the input text
-    suggestionActiveIndex = e.key === 'ArrowDown'
-      ? (suggestionActiveIndex + 1) % items.length
-      : (suggestionActiveIndex - 1 + items.length) % items.length;
-    items.forEach((el, i) => el.classList.toggle('active', i === suggestionActiveIndex));
-    items[suggestionActiveIndex].scrollIntoView({ block: 'nearest' });
-    return;
-  }
-
   if (e.key === 'Enter') {
-    if (items.length > 0 && suggestionActiveIndex >= 0) {
-      e.preventDefault();
-      const titleEl = items[suggestionActiveIndex].querySelector('.suggestion-title');
-      selectSuggestion(titleEl.textContent);
-      return;
-    }
     closeSuggestions();
     searchMovie();
-  } else if (e.key === 'Escape') {
-    closeSuggestions();
   }
 });
 document.getElementById('search-input').addEventListener('input', handleSuggestInput);
@@ -3003,7 +3624,7 @@ async function loadAdminPanel() {
       <div class="test-link-title">➕ Add New Website</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
         <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
-        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://...">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://..." onkeydown="if(event.key==='Enter') addNewWebsite(this.closest('.test-link-box').querySelector('.test-link-btn'))">
         <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
         <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
@@ -3178,7 +3799,7 @@ function renderAdminPanel(data) {
       <div class="test-link-title">➕ Add New Website</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
         <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
-        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://...">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://..." onkeydown="if(event.key==='Enter') addNewWebsite(this.closest('.test-link-box').querySelector('.test-link-btn'))">
         <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
         <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
