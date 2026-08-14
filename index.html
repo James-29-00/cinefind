@@ -742,6 +742,13 @@
     color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
     background: none; border: none; line-height: 1; padding: 0;
     display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  /* Invisible tap-area expansion — same reasoning as .report-icon::before. */
+  .pin-icon::before {
+    content: ''; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 44px; height: 44px;
   }
   .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
   /* Light Mode fix: the default white-ish star (tuned for dark cards) has
@@ -767,8 +774,17 @@
     display: inline-flex; align-items: center; justify-content: center;
     flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
     color: rgba(255,255,255,.5); background: rgba(0,0,0,.25);
+    position: relative;
   }
   .report-icon:hover, .report-icon:focus-visible { color: var(--accent); background: rgba(var(--bg-glow-rgb),.2); }
+  /* Invisible tap-area expansion to meet the ~44px mobile touch target
+     minimum, without changing the icon's visible 22px footprint or any
+     theme color — purely an interaction-area fix. */
+  .report-icon::before {
+    content: ''; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 44px; height: 44px;
+  }
 
   /* Site status dot — filled in after status.json loads (see applyStatusDots()).
      Deliberately small and quiet (just enough contrast to read at a glance
@@ -1490,6 +1506,33 @@ let currentResultsLabel = null; // optional custom header, e.g. "🎭 Comedy"
 let currentResultsRaw = null;   // original, unsorted order — kept so sorting can always start fresh
 let currentSortBy = 'default';
 
+// ========== BACK-BUTTON / HISTORY INTEGRATION ==========
+// Android's hardware/gesture back button normally exits the page entirely
+// once there's no browser history to fall back on. Pushing a state entry
+// whenever the view changes (search results, home) lets popstate catch the
+// back gesture and restore the previous view in-app instead of leaving.
+function pushViewState(view) {
+  const state = { cfView: view };
+  if (history.state && history.state.cfView === view) {
+    history.replaceState(state, '');
+  } else {
+    history.pushState(state, '');
+  }
+}
+window.addEventListener('popstate', (e) => {
+  const view = e.state && e.state.cfView;
+  if (view === 'results' && currentDisplayedResults) {
+    renderVisibleResults();
+  } else {
+    document.getElementById('search-input').value = '';
+    renderHomepage();
+    lastSearchResult = null;
+    currentDisplayedResults = null;
+    currentResultsRaw = null;
+    currentSortBy = 'default';
+  }
+});
+
 function renderResultsGrid(movies, label) {
   const recentEl = document.getElementById('recently-viewed-section');
   if (recentEl) recentEl.innerHTML = ''; // homepage-only widget
@@ -1498,6 +1541,7 @@ function renderResultsGrid(movies, label) {
   currentResultsLabel = label || null;
   currentSortBy = 'default';
   visibleResultsCount = RESULTS_PER_PAGE; // reset to first page whenever a new list is shown
+  pushViewState('results');
   showFiltersBar();
   renderVisibleResults();
 }
@@ -2541,6 +2585,7 @@ function resetSearch() {
   document.getElementById('year-filter').value = '';
   document.getElementById('rating-filter').value = '';
   document.getElementById('type-filter').value = '';
+  pushViewState('home');
   renderHomepage();
   lastSearchResult = null;
   currentDisplayedResults = null;
