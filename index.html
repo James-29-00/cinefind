@@ -694,21 +694,36 @@
   }
   body.light-mode .card-pastel-blue {
     background: linear-gradient(155deg, #e4e9ee 0%, #d9e0e7 100%);
-    box-shadow: 0 6px 16px rgba(20,17,12,.14), inset 0 1px 0 rgba(255,255,255,.3);
+    box-shadow: 0 8px 20px rgba(20,17,12,.20), inset 0 1px 0 rgba(255,255,255,.3);
   }
   body.light-mode .card-pastel-gold {
     background: linear-gradient(155deg, #e9e4d5 0%, #ded5bf 100%);
-    box-shadow: 0 6px 16px rgba(20,17,12,.14), inset 0 1px 0 rgba(255,255,255,.3);
+    box-shadow: 0 8px 20px rgba(20,17,12,.20), inset 0 1px 0 rgba(255,255,255,.3);
   }
   body.light-mode .card-pastel-rose {
     background: linear-gradient(155deg, #e9e0de 0%, #ddd0ce 100%);
-    box-shadow: 0 6px 16px rgba(20,17,12,.14), inset 0 1px 0 rgba(255,255,255,.3);
+    box-shadow: 0 8px 20px rgba(20,17,12,.20), inset 0 1px 0 rgba(255,255,255,.3);
   }
+  /* Border opacity bumped from .14 → .28: against a page background this
+     close in lightness to the card tints, a faint border reads as no
+     border at all — cards need a visibly darker edge (plus the shadow
+     above) to actually look "lifted" rather than blending into the page. */
   body.light-mode .gradient-card-wrapper {
-    background: rgba(43,36,29,.14);
+    background: rgba(43,36,29,.28);
   }
   body.light-mode .gradient-card-wrapper:hover {
-    background: rgba(43,36,29,.28);
+    background: rgba(43,36,29,.42);
+    /* Colored glow (color-mix with the theme accent) was tuned to pop
+       against a near-black card — against a light pastel card it just
+       looks muddy/washed out instead of reading as "lifted." A neutral
+       dark shadow works as an elevation cue regardless of theme color. */
+    box-shadow: 0 10px 24px rgba(20,17,12,.22);
+  }
+  body.light-mode .gradient-card-wrapper.is-hot {
+    box-shadow: 0 6px 18px rgba(20,17,12,.18);
+  }
+  body.light-mode .gradient-card-wrapper.is-hot:hover {
+    box-shadow: 0 12px 28px rgba(20,17,12,.28);
   }
   .pin-icon {
     color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
@@ -750,11 +765,11 @@
   .status-dot-mini {
     display: none; align-items: center; justify-content: center;
     position: absolute; top: 8px; left: 8px; z-index: 2;
-    width: 16px; height: 16px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     background: rgba(8,8,16,.75);
   }
-  .status-dot-mini svg { width: 62%; height: 62%; display: block; }
+  .status-dot-mini svg { width: 68%; height: 68%; display: block; }
   /* Inline variant — used when the dot sits inside the bottom label bar
      (next to the ONLINE text) instead of floating top-left on its own. */
   .status-label-mini .status-dot-mini {
@@ -790,13 +805,13 @@
      gives them equal specificity, so source order (they come after) lets
      the real status color apply. */
   body.light-mode .status-label-mini.status-up {
-    background: linear-gradient(0deg, rgba(6,214,160,.32), rgba(6,214,160,.06));
+    background: linear-gradient(0deg, rgba(6,214,160,.55), rgba(6,214,160,.18));
   }
   body.light-mode .status-label-mini.status-blocked {
-    background: linear-gradient(0deg, rgba(240,180,40,.32), rgba(240,180,40,.06));
+    background: linear-gradient(0deg, rgba(240,180,40,.55), rgba(240,180,40,.18));
   }
   body.light-mode .status-label-mini.status-down {
-    background: linear-gradient(0deg, rgba(230,57,70,.32), rgba(230,57,70,.06));
+    background: linear-gradient(0deg, rgba(230,57,70,.55), rgba(230,57,70,.18));
   }
   /* Color-coded tint once status resolves — green/gold/red wash across the
      whole bar (not just the dot) so status reads at a glance without
@@ -1025,7 +1040,7 @@
         <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
         <button class="theme-toggle help-toggle" id="help-btn" title="Help / what do the icons mean?" aria-label="Help" onclick="showHelpTip()" style="font-weight:700;">?</button>
         <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </div>
     </div>
@@ -1138,6 +1153,15 @@ function applyTheme(state, announce) {
   if (labelEl) labelEl.textContent = state.label;
   const btn = document.getElementById('theme-picker-btn');
   if (btn) btn.setAttribute('aria-label', `Change theme — currently ${state.label}`);
+  // Moon = "tap to go dark", sun = "tap to go light" — standard convention.
+  // The button used to show a moon icon even while already in Light Mode,
+  // which reads backwards (looks like "currently dark", not "tap for dark").
+  const iconEl = document.getElementById('theme-toggle-icon');
+  if (iconEl) {
+    iconEl.innerHTML = state.mode === 'light-mode'
+      ? '<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2.2M12 18.8V21M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M3 12h2.2M18.8 12H21M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>'
+      : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  }
   if (announce) showToast(`Switched to ${state.label} theme`);
 }
 
