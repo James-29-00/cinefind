@@ -1089,13 +1089,10 @@
     pointer-events: none; z-index: 0;
   }
   .card-logo svg { width: 40px; height: 28px; display: block; }
-  /* Featured/hero card — the one top-ranked hot site gets extra width
-     instead of a new badge. Spans 2 columns: on mobile's 2-col grid this
-     reads as a full-width banner at the top; on wider grids it's simply a
-     wider card among the regular ones. */
-  .featured-card { grid-column: span 2; }
-  .featured-card .card-content { height: 168px; }
-  .featured-card .card-logo svg { width: 52px; height: 36px; }
+  /* Featured (2x width + taller) sizing removed — with several sites often
+     marked hot at once, whichever happened to sort first got blown up into
+     a banner while equally-"hot" sites below stayed small. Every card now
+     stays a uniform size regardless of hot status or position. */
   .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: var(--fs-xl); letter-spacing: -.01em; line-height: 1; }
   .lw-white { color: var(--card-logo-ink, #fff); }
   .lw-accent { color: var(--accent); }
@@ -3355,18 +3352,17 @@ function renderSitesDirectory() {
   const buildCard = (s, i) => {
     const isFav = favs.includes(s.name);
     const isHot = isHotSite(s.name);
-    // Visual hierarchy: the single top-ranked hot site (first in the
-    // already-sorted list) gets a wider "hero" card instead of a new badge
-    // or label — size alone signals priority without adding more clutter
-    // to a grid we just spent effort decluttering.
-    const isFeatured = isHot && i === 0;
+    // Uniform sizing — no card gets a wider/taller "hero" treatment anymore,
+    // since with several sites often marked hot at once, whichever sorted
+    // first was blowing up into a banner while equally-"hot" sites lower
+    // down stayed small. The 🔥 badge alone signals hot status now.
     const liveUrl = getOverriddenUrl(s.name, s.url);
     const pinIcon = isFav
       ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
       : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
     const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][i % 3];
     return `
-    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}${isFeatured ? ' featured-card' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
+    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
