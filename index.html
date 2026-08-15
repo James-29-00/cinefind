@@ -265,11 +265,15 @@
     letter-spacing: clamp(.02em, .01em + .15vw, .04em);
     line-height: 1;
     white-space: nowrap;
-    background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    /* Flat solid white for "Cine" instead of a diagonal gradient — at
+       small sizes the gradient only had a few characters' worth of pixels
+       to blend across, and the hard handoff into the solid-color "Find"
+       span made the join look blotchy/uneven. Two flat colors read
+       cleanly at any size and stay consistent across all theme accents. */
+    color: #fff;
     flex: 1;
   }
-  .logo span { color: var(--accent); -webkit-text-fill-color: var(--accent); }
+  .logo span { color: var(--accent); }
   body.theme-crimson .logo span {
     filter: drop-shadow(0 0 12px rgba(230,57,70,.6));
   }
@@ -1028,15 +1032,13 @@
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
   .card-logo {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; position: relative; z-index: 1;
-    /* Standardized "stage" for per-brand wordmarks: each logo's own font/
-       style still varies by design, but every card now centers its mark
-       inside the same fixed-height box, capped to a consistent max size.
-       Keeps the grid feeling like one coherent set even though DC's
-       outlined type, KissKH's plain bold, MovieBox's stacked two-tone, and
-       1FLEX's italic slant are all visually different from each other. */
-    max-height: 44px;
+    /* Standardized "stage" for per-brand wordmarks: this container stays
+       flex:1 so it still fills and centers within the full card height —
+       the cap below applies to the wordmark content itself (max-width),
+       not this box, so the logo doesn't stretch the full card but the
+       empty space around it stays evenly balanced top/bottom. */
   }
-  .card-logo > * { max-width: 100%; }
+  .card-logo > * { max-width: 100%; max-height: 44px; }
   /* Soft radial glow behind the logo — breaks up the flat empty space in
      the middle of the card without competing with the logo itself. */
   .card-content::before {
@@ -1125,6 +1127,19 @@
   @media (max-width: 768px) {
     .wrapper { padding: 0 16px 64px; }
     .dir-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--sp-3); }
+  }
+
+  /* Desktop/CP upgrade — the grid was tuned for phone widths (140px min
+     card), so on a real desktop viewport it just added more small tiles
+     per row instead of the cards themselves growing. This scales the
+     cards up (wider + taller) once there's room, without touching the
+     mobile layout above or the .wrapper container width. */
+  @media (min-width: 900px) {
+    .dir-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-6); }
+    .card-content { height: 160px; }
+    .card-logo svg { width: 52px; height: 36px; }
+    .logo-word { font-size: 2.1rem; }
+    .card-logo > * { max-height: 56px; }
   }
 
   @media (max-width: 500px) {
