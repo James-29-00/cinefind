@@ -253,7 +253,7 @@
 
   .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
 
-  header { text-align: center; padding: 20px 0 24px; position: relative; }
+  header { text-align: center; padding: 20px 0 var(--sp-3); position: relative; }
   .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 4px; }
   .logo {
     font-family: 'Bebas Neue', sans-serif;
@@ -349,7 +349,7 @@
   body.light-mode .copy-link-btn:hover {
     background: rgba(var(--bg-glow-rgb),.12);
   }
-  .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
+  .tagline { font-size: .9rem; color: var(--muted); margin-top: var(--sp-1); letter-spacing: .08em; text-transform: uppercase; }
 
   /* Returning-visitor hero: on repeat visits the full-size logo + tagline
      eats a near-full screen before any content shows, which is pure
@@ -455,7 +455,7 @@
     transform: none; opacity: 1; box-shadow: 0 0 8px var(--accent);
   }
 
-  .search-wrap { position: relative; margin: 20px 0 12px; }
+  .search-wrap { position: relative; margin: var(--sp-4) 0 var(--sp-3); }
   .search-wrap input {
     width: 100%; padding: 18px 60px 18px 22px;
     background: var(--card); border: 1.5px solid var(--border);
@@ -717,12 +717,13 @@
     position: relative;
     border-radius: 16px;
     padding: 1px;
-    /* Skips layout/paint for cards currently off-screen — the main lever for
-       scroll jank on a long grid on lower-end phones. contain-intrinsic-size
-       reserves the card's known height so the page doesn't jump/reflow as
-       cards enter and exit the visible area. */
-    content-visibility: auto;
-    contain-intrinsic-size: 0 132px;
+    /* content-visibility: auto + contain-intrinsic-size was here as a
+       scroll-perf hack for off-screen cards, but on some Android Chrome/
+       GPU combinations that pairing causes a rendering glitch — faint
+       "ghost" text/cards bleeding through above their real position
+       (reported by a user, e.g. a stray "Cineby" ghost near the header).
+       Removed: with ~30 cards the perf gain was marginal anyway, and a
+       visible rendering bug is worse than the jank it was preventing. */
     /* Per-brand accent (--card-accent, set inline per card from the site's
        logo color) tints one corner of the border so cards stay scannable
        by brand at a glance, fading back to the neutral border color rather
@@ -1025,7 +1026,17 @@
   }
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
-  .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; position: relative; z-index: 1; }
+  .card-logo {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; position: relative; z-index: 1;
+    /* Standardized "stage" for per-brand wordmarks: each logo's own font/
+       style still varies by design, but every card now centers its mark
+       inside the same fixed-height box, capped to a consistent max size.
+       Keeps the grid feeling like one coherent set even though DC's
+       outlined type, KissKH's plain bold, MovieBox's stacked two-tone, and
+       1FLEX's italic slant are all visually different from each other. */
+    max-height: 44px;
+  }
+  .card-logo > * { max-width: 100%; }
   /* Soft radial glow behind the logo — breaks up the flat empty space in
      the middle of the card without competing with the logo itself. */
   .card-content::before {
