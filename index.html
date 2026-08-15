@@ -138,6 +138,20 @@
     --text: #f5f0fa; --muted: #c3b3dc;
     --accent: #ff5fa2; --accent2: #ff8fc4; --gold: #ffcf5c; --bg-glow-rgb: 255,95,162;
   }
+  /* --accent2 (bright coral, used for genre chips/badges, the theme-toggle
+     icon, favorite star, and bolded tip text) needs a darker value in
+     Light Mode — #ff6b6b measures only ~1.86:1 against the light --bg,
+     badly failing WCAG AA. This previously lived in the plain
+     `body.light-mode` block above, but that has the SAME specificity as
+     `body.theme-crimson` right above (both are one-element+one-class
+     selectors) — with equal specificity, source order decides, and the
+     theme rule comes later, so it silently won every time and the fix
+     never actually applied. Scoping this as a compound
+     `body.light-mode.theme-crimson` selector (two classes) gives it
+     higher specificity so it reliably wins regardless of order. */
+  body.light-mode.theme-crimson {
+    --accent2: #9c2f3f;
+  }
   /* Starfield + nebula glow, only rendered in Cyber Neon mode. Pure CSS
      (radial gradients / SVG data-URI), so no extra image requests. */
   body.theme-cyber .bg-glow {
@@ -210,6 +224,10 @@
     filter: drop-shadow(0 0 5px rgba(var(--bg-glow-rgb), .75));
     transition: color .3s, filter .3s;
   }
+  /* var(--accent) only measures ~2.82:1 against Light Mode's warm --bg,
+     under WCAG 1.4.11's 3:1 floor for icons. Reuses the already-fixed
+     --accent2 (4.87:1) rather than a new color. */
+  body.light-mode .fav-star-icon { color: var(--accent2); }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -286,6 +304,12 @@
   body.light-mode .logo {
     background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
     -webkit-background-clip: text; background-clip: text;
+    /* Without this, the base .logo rule's solid `color: #fff` still paints
+       on top of the gradient (background-clip:text only clips the
+       background, it doesn't hide an opaque text color underneath) — so
+       "Cine" rendered solid white and vanished against the light page,
+       even though the gradient was technically applied. */
+    color: transparent; -webkit-text-fill-color: transparent;
   }
   /* Glow effects below (ambient background circle, button halos, text
      drop-shadow) were all tuned for a near-black background, where a
@@ -300,6 +324,9 @@
   }
   body.light-mode .theme-toggle {
     box-shadow: 0 0 6px rgba(var(--bg-glow-rgb),.4);
+    /* Same ~2.82:1-vs-3:1 icon contrast issue as .fav-star-icon above —
+       border+icon both reuse --accent2 (4.87:1) here for the same reason. */
+    border-color: var(--accent2); color: var(--accent2);
   }
   body.light-mode .theme-toggle:hover {
     box-shadow: 0 0 10px rgba(var(--bg-glow-rgb),.5);
@@ -348,6 +375,17 @@
   }
   body.light-mode .badge-year {
     background: rgba(0,0,0,.06);
+  }
+  /* Genre/rating badge tints were only tuned for the dark card (a faint
+     colored wash reads clearly against near-black) — at the same low
+     opacity on the light card they look weak/washed out instead of like
+     a distinct pill. Slightly stronger tints here keep them readable as
+     actual badges rather than near-invisible text with no chip shape. */
+  body.light-mode .badge-genre {
+    background: rgba(var(--bg-glow-rgb),.14);
+  }
+  body.light-mode .badge-rating {
+    background: rgba(255,209,102,.22);
   }
   body.light-mode .copy-link-btn {
     background: rgba(0,0,0,.05);
@@ -412,6 +450,10 @@
     font-size: .72rem; color: var(--muted); line-height: 1.5;
   }
   .safety-tip .tip-icon { font-size: .85rem; opacity: .7; flex-shrink: 0; }
+  /* Same ~2.82:1-vs-4.5:1 text contrast issue as elsewhere — this is an
+     actual link (not just decorative text), so the stricter text-contrast
+     floor applies. Reuses --accent2 (4.87:1). */
+  body.light-mode .brave-dl-link { color: var(--accent2); }
   .safety-tip strong { color: var(--accent2); font-weight: 600; }
   .safety-tip .tip-close {
     background: none; border: none; color: var(--muted); opacity: .6;
@@ -609,6 +651,12 @@
     display: inline-flex; align-items: center; gap: 7px;
   }
   .genre-chip:hover { background: rgba(var(--bg-glow-rgb),.1); transform: translateY(-1px); }
+  /* The dark-mode border color (var(--accent), #e63946) only measures
+     ~2.82:1 against Light Mode's warm --bg — just under WCAG 1.4.11's 3:1
+     floor for UI component borders. Reusing the already-fixed --accent2
+     (4.87:1) instead of introducing a new color keeps this consistent with
+     the genre-chip text fix above. */
+  body.light-mode .genre-chip { border-color: var(--accent2); }
   .genre-chip.active { background: var(--accent); color: #fff; }
   .genre-chip .icon { display: inline-flex; opacity: .7; flex-shrink: 0; }
   .genre-chip .icon svg { display: block; }
@@ -1514,8 +1562,12 @@ function applyTheme(state, announce) {
   // which reads backwards (looks like "currently dark", not "tap for dark").
   const iconEl = document.getElementById('theme-toggle-icon');
   if (iconEl) {
+    // Sun icon redrawn with evenly-spaced rays (45° apart) and a slightly
+    // heavier stroke (2 vs the earlier 1.8) — the original hand-placed
+    // coordinates had uneven gaps between rays that read as slightly
+    // lopsided at 20px, especially next to the clean, symmetric moon fill.
     iconEl.innerHTML = state.mode === 'light-mode'
-      ? '<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2.2M12 18.8V21M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M3 12h2.2M18.8 12H21M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>'
+      ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
       : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
   }
   if (announce) showToast(`Switched to ${state.label} theme`);
@@ -1641,10 +1693,15 @@ function updateFavCount() {
 // Small card for a favorited website, reused inside the "My Favorites" page.
 // Mirrors the homepage directory card's look (logo, status dot/label) but
 // standalone since renderSitesDirectory()'s buildCard is scoped locally.
-function buildFavSiteCard(s) {
+function buildFavSiteCard(s, i) {
   const liveUrl = getOverriddenUrl(s.name, s.url);
+  // Same pastel-tint cycling as the homepage directory cards (buildCard) —
+  // this was missing here, so favorite site cards stayed on the plain dark
+  // .gradient-card-wrapper look and never picked up Light Mode's pastel
+  // card treatment (showed up as a leftover black card on a light page).
+  const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][(i || 0) % 3];
   return `
-    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
+    <div class="gradient-card-wrapper ${pastelClass}" data-site-name="${escapeAttr(s.name)}">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
@@ -1719,7 +1776,7 @@ function showFavorites(sortBy, siteSortBy) {
     </select>` : ''}
   </div>`;
   html += favSites.length > 0
-    ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map(buildFavSiteCard).join('')}</div>`
+    ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map((s, i) => buildFavSiteCard(s, i)).join('')}</div>`
     : `<p style="color:var(--muted); font-size:.85rem; margin-bottom:28px;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>`;
 
   if (favs.length > 0) html += `<h3 style="font-size:1rem; margin:0 0 12px;">🎬 Favorite Movies &amp; Shows</h3>`;
@@ -3627,7 +3684,7 @@ function renderHomepage() {
     ${dirTipDismissed ? '' : `
     <div class="safety-tip" id="dir-safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
       <span class="tip-icon">🛡️</span>
-      <span>Use an ad-blocking browser like <strong>Brave</strong> and avoid pop-ups/"download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:underline;">Get Brave →</a></span>
+      <span>Use an ad-blocking browser like <strong>Brave</strong> and avoid pop-ups/"download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" class="brave-dl-link" style="color:var(--accent); font-weight:600; text-decoration:underline;">Get Brave →</a></span>
       <button class="tip-close" onclick="dismissDirTip()" aria-label="Dismiss tip">✕</button>
     </div>
     `}
