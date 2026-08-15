@@ -54,6 +54,24 @@
        against that dark circle. */
     --status-green: #06d6a0;
     --status-gold: #ffd166;
+    /* Per-brand logo text colors, used by several sites' custom logoHtml
+       (e.g. "Studios" in TBA Studios, "Cine" in CineWhale). These were
+       hardcoded as inline style="color:#hex" — fine on the dark card they
+       were tuned for, but every one of them measured well under WCAG AA's
+       4.5:1 against the new light pastel cards (as low as ~1.45:1) once
+       Light Mode shipped. Inline styles can't be overridden by a CSS
+       class, so these became variables instead — dark-mode value here,
+       darkened light-mode value in the body.light-mode block below. */
+    --brand-teal: #06d6a0;
+    --brand-red: #ef4444;
+    --brand-purple: #a855f7;
+    --brand-cyan: #00c2b8;
+    --brand-orange: #ff8a3d;
+    --brand-coral: #ff7a59;
+    --brand-pink: #ff4d8f;
+    --brand-orangered: #f4522b;
+    --brand-blue: #4da6ff;
+    --brand-skyblue: #1e9edb;
 
     /* Spacing scale (4px base) — card padding/gap/radius pull from this
        instead of one-off numbers, so the grid reads as intentional rather
@@ -151,6 +169,23 @@
      higher specificity so it reliably wins regardless of order. */
   body.light-mode.theme-crimson {
     --accent2: #9c2f3f;
+  }
+  /* Darkened (same hue/saturation, reduced lightness) versions of each
+     --brand-* color, tuned to hit 4.5:1+ against the lightest of the
+     three pastel card tones. No theme block ever sets these variables
+     (unlike --accent2), so plain body.light-mode is sufficient here —
+     no specificity fight to worry about. */
+  body.light-mode {
+    --brand-teal: #037356;
+    --brand-red: #c61111;
+    --brand-purple: #8a1bf4;
+    --brand-cyan: #00706b;
+    --brand-orange: #a34100;
+    --brand-coral: #bf2600;
+    --brand-pink: #c7004a;
+    --brand-orangered: #ba2c0a;
+    --brand-blue: #005fbd;
+    --brand-skyblue: #146a93;
   }
   /* Starfield + nebula glow, only rendered in Cyber Neon mode. Pure CSS
      (radial gradients / SVG data-URI), so no extra image requests. */
@@ -1695,14 +1730,16 @@ function updateFavCount() {
 // standalone since renderSitesDirectory()'s buildCard is scoped locally.
 function buildFavSiteCard(s, i) {
   const liveUrl = getOverriddenUrl(s.name, s.url);
-  // Same pastel-tint cycling as the homepage directory cards (buildCard) —
-  // this was missing here, so favorite site cards stayed on the plain dark
-  // .gradient-card-wrapper look and never picked up Light Mode's pastel
-  // card treatment (showed up as a leftover black card on a light page).
+  // Same pastel-tint cycling as the homepage directory cards (buildCard).
+  // IMPORTANT: this class must go on .card-content (the <a> below), not
+  // the outer .gradient-card-wrapper — the .card-pastel-blue/gold/rose
+  // CSS rules override .card-content's base dark background-color, so
+  // putting the class on the wrong element (as an earlier fix did) left
+  // the card silently still rendering the dark #16161f background.
   const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][(i || 0) % 3];
   return `
-    <div class="gradient-card-wrapper ${pastelClass}" data-site-name="${escapeAttr(s.name)}">
-      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
+      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
@@ -3413,45 +3450,45 @@ const SITES_DIRECTORY = [
   { name: 'DramaCool',  url: 'https://dramacool.com.tw/', domain: 'dramacool.com.tw', categories: ['drama'], icon: '🎬', accent: '#5b8def',
     logoHtml: `<span class="logo-clapper" aria-hidden="true"><svg viewBox="0 0 40 30" width="30" height="22"><rect x="4" y="12" width="32" height="16" rx="2" fill="none" stroke="#5b8def" stroke-width="2.4"/><path d="M4 12 L10 4 L16 4 L11 12 Z" fill="#5b8def"/><path d="M15 12 L21 4 L27 4 L22 12 Z" fill="#5b8def"/><path d="M26 12 L32 4 L36 4 L36 12 Z" fill="#5b8def"/></svg></span><span class="logo-word"><span class="lw-outline">D</span><span class="lw-white">C</span></span>` },
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'], accent: '#ff4d8f',
-    logoHtml: `<span class="logo-word"><span style="color:#ff4d8f;">Kiss</span><span class="lw-white">KH</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:var(--brand-pink);">Kiss</span><span class="lw-white">KH</span></span>` },
   { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'], accent: '#8b5cf6',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
   { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'], accent: '#00c2b8',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:#00c2b8;">ki</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:var(--brand-cyan);">ki</span></span>` },
   { name: 'Viu',           url: 'https://www.viu.com/',         domain: 'viu.com',              categories: ['drama'], accent: '#00b8a9',
-    logoHtml: `<span class="logo-word"><span style="color:#00c2b8;">Vi</span><span class="lw-white">u</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:var(--brand-cyan);">Vi</span><span class="lw-white">u</span></span>` },
   { name: 'Kocowa',        url: 'https://www.kocowa.com/',      domain: 'kocowa.com',           categories: ['drama'], accent: '#ff7a59',
-    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#ff7a59;">Ko</span><span class="lw-white">cowa</span></span>` },
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--brand-coral);">Ko</span><span class="lw-white">cowa</span></span>` },
   { name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', domain: 'ondemandkorea.com',  categories: ['drama'], accent: '#4a5fc1',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.7rem;letter-spacing:.06em;color:rgba(255,255,255,.5);text-transform:uppercase;">OnDemand</span><span style="font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:1.5rem;letter-spacing:.04em;color:var(--accent);">KOREA</span></div>` },
   { name: 'WeTV',          url: 'https://wetv.vip/',            domain: 'wetv.vip',             categories: ['drama'], accent: '#06d6a0',
-    logoHtml: `<span class="logo-word"><span class="lw-white">We</span><span style="color:#06d6a0;">TV</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white">We</span><span style="color:var(--brand-teal);">TV</span></span>` },
   { name: 'Amasian TV',    url: 'https://amasiantv.com/',       domain: 'amasiantv.com',        categories: ['drama'], accent: '#f5a623',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
   { name: '1Shows',        url: 'https://1shows.org/',          domain: '1shows.org',           categories: ['movie'], accent: '#4da6ff',
-    logoHtml: `<span class="logo-word"><span style="color:#4da6ff;">1</span><span class="lw-white">Shows</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:var(--brand-blue);">1</span><span class="lw-white">Shows</span></span>` },
   { name: 'FlickyStream',  url: 'https://flickystream.dad/',    domain: 'flickystream.dad',     categories: ['movie'], accent: '#c084fc',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.3rem;line-height:1.05;background:linear-gradient(90deg,#5b8def,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">flicky</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.1rem;line-height:1.05;background:linear-gradient(90deg,#c084fc,#ff6b9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">stream</span></div>` },
   { name: 'MovieBox',      url: 'https://movie-box.co/',        domain: 'movie-box.co',         categories: ['movie'], accent: '#f4c430',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
   { name: '1Flex',         url: 'https://1flex.org/',           domain: '1flex.org',            categories: ['movie'], accent: '#ef4444',
-    logoHtml: `<span class="logo-word" style="font-style:italic;transform:skewX(-6deg);display:inline-block;color:#ef4444;">1FLEX</span>` },
+    logoHtml: `<span class="logo-word" style="font-style:italic;transform:skewX(-6deg);display:inline-block;color:var(--brand-red);">1FLEX</span>` },
   { name: '1Tube',         url: 'https://1tube.org/',           domain: '1tube.org',            categories: ['movie'], accent: '#a855f7',
-    logoHtml: `<span class="logo-word"><span style="color:#a855f7;">1</span><span class="lw-white">Tube</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:var(--brand-purple);">1</span><span class="lw-white">Tube</span></span>` },
   { name: 'Cineby',        url: 'https://cineby.at/',           domain: 'cineby.at',            categories: ['movie'], accent: '#06d6a0',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:#06d6a0;">by</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:var(--brand-teal);">by</span></span>` },
   { name: 'FMovies',       url: 'https://fmovies-hd.to/',       domain: 'fmovies-hd.to',        categories: ['movie'], accent: '#3b82f6',
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--accent);">F</span><span class="lw-white">Movies</span></span>` },
   { name: 'ReAnime',       url: 'https://reanime.to/',          domain: 'reanime.to',           categories: ['anime'], accent: '#10b981',
-    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#06d6a0;">Re</span><span class="lw-white">Anime</span></span>` },
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--brand-teal);">Re</span><span class="lw-white">Anime</span></span>` },
   { name: 'Animepahe',     url: 'https://animepahe.pw/',        domain: 'animepahe.pw',         categories: ['anime'], accent: '#e6b800',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">pahe</span></div>` },
   { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'], accent: '#9333ea',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:#a855f7;">ro</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:var(--brand-purple);">ro</span></span>` },
   { name: 'Anikoto',       url: 'https://anikototv.to/',        domain: 'anikototv.to',         categories: ['anime'], accent: '#22d3ee',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'], accent: '#ff8a3d',
-    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:#ff8a3d;">ma</span></span>` },
+    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:var(--brand-orange);">ma</span></span>` },
   // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
   // No aggregator/mirror sites here on purpose — those are usually unlicensed
   // and get taken down constantly. These are the actual rights-holders
@@ -3462,17 +3499,17 @@ const SITES_DIRECTORY = [
   { name: 'Star Cinema',   url: 'https://www.youtube.com/@ABSstarcinema', domain: 'youtube.com', categories: ['pinoy'], accent: '#ffd166',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:var(--card-logo-ink,#fff);text-transform:uppercase;">Cinema</span></div>` },
   { name: 'Viva Films',    url: 'https://www.youtube.com/@VIVAFilms/videos', domain: 'youtube.com', categories: ['pinoy'], accent: '#dc2626',
-    logoHtml: `<span class="logo-word"><span style="color:#ef4444;">VIVA</span><span class="lw-white" style="font-size:1rem;"> Films</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:var(--brand-red);">VIVA</span><span class="lw-white" style="font-size:1rem;"> Films</span></span>` },
   { name: 'Regal Entertainment', url: 'https://www.youtube.com/@RegalEntertainmentInc/', domain: 'youtube.com', categories: ['pinoy'], accent: '#b91c1c',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Regal</span></div>` },
   { name: 'Cinema One',    url: 'https://www.youtube.com/@CinemaOnePH/', domain: 'youtube.com',   categories: ['pinoy'], accent: '#e0a300',
     logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
   { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'], accent: '#059669',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:#06d6a0;">Studios</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--brand-teal);">Studios</span></div>` },
   { name: 'CineWhale',     url: 'https://cinewhale.cc/',        domain: 'cinewhale.cc',         categories: ['movie'], accent: '#1e9edb',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:#1e9edb;">Whale</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:var(--brand-skyblue);">Whale</span></span>` },
   { name: 'Dulo',          url: 'https://dulo.sx/',             domain: 'dulo.sx',              categories: ['movie'], accent: '#f4522b',
-    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span style="color:#f4522b;">Du</span><span class="lw-white">lo</span></span>` },
+    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span style="color:var(--brand-orangered);">Du</span><span class="lw-white">lo</span></span>` },
 ];
 
 let activeDirFilters = []; // multi-select: any combo of 'drama' / 'anime' / 'movie'
