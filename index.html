@@ -148,8 +148,10 @@
     display: none;
     /* Absolute (not fixed) and capped in height so the dots only live
        behind the hero/header — logo, tagline, search bar — and scroll
-       away with the page instead of showing through every card below. */
-    position: absolute; top: 0; left: 0; right: 0; height: 560px;
+       away with the page instead of showing through every card below.
+       Trimmed from 560px — that was tall enough to bleed into the top rows
+       of the sites grid, distracting from the cards themselves. */
+    position: absolute; top: 0; left: 0; right: 0; height: 380px;
     overflow: hidden; z-index: 0; pointer-events: none;
     background:
       radial-gradient(1.5px 1.5px at 20% 15%, #fff 100%, transparent),
@@ -187,10 +189,10 @@
   }
   body.theme-galaxy .starfield {
     display: block;
-    opacity: .8;
+    opacity: .5;
     animation: galaxyTwinkle 5s ease-in-out infinite alternate;
   }
-  @keyframes galaxyTwinkle { from { opacity: .5; } to { opacity: .85; } }
+  @keyframes galaxyTwinkle { from { opacity: .35; } to { opacity: .55; } }
   body.theme-galaxy .site-card:hover {
     border-color: var(--accent); box-shadow: 0 0 24px rgba(255,95,162,.35);
   }
@@ -409,7 +411,7 @@
   .safety-tip strong { color: var(--accent2); font-weight: 600; }
   .safety-tip .tip-close {
     background: none; border: none; color: var(--muted); opacity: .6;
-    cursor: pointer; font-size: .95rem; line-height: 1; padding: 2px 4px;
+    cursor: pointer; font-size: .9rem; line-height: 1; padding: 2px 4px;
     flex-shrink: 0; margin-left: auto; align-self: flex-start;
   }
   .safety-tip .tip-close:hover { opacity: 1; color: var(--text); }
@@ -425,7 +427,7 @@
     animation: slideUpFade .3s ease;
   }
   #ios-install-banner .ios-banner-icon { font-size: 1.2rem; flex-shrink: 0; }
-  #ios-install-banner .ios-banner-text { font-size: .78rem; color: var(--text); line-height: 1.4; flex: 1; }
+  #ios-install-banner .ios-banner-text { font-size: .8rem; color: var(--text); line-height: 1.4; flex: 1; }
   #ios-install-banner .ios-banner-text strong { color: var(--accent2); }
   #ios-install-banner .ios-banner-close {
     background: none; border: none; color: var(--muted); opacity: .7;
@@ -584,7 +586,7 @@
   .genre-chip {
     padding: 9px 20px 9px 16px; border-radius: 24px; border: 1.5px solid var(--accent);
     background: transparent; color: var(--accent2); font-family: 'Space Grotesk', sans-serif;
-    font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s;
+    font-size: .8rem; font-weight: 600; cursor: pointer; transition: all .2s;
     display: inline-flex; align-items: center; gap: 7px;
   }
   .genre-chip:hover { background: rgba(var(--bg-glow-rgb),.1); transform: translateY(-1px); }
@@ -647,9 +649,9 @@
   .badge-year { background: rgba(255,255,255,.07); color: var(--text); }
   .badge-genre { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent2); }
   .badge-rating { background: rgba(255,209,102,.12); color: var(--gold); }
-  .movie-desc { font-size: .88rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  .movie-desc { font-size: .85rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
   .movie-desc.expanded { display: block; -webkit-line-clamp: unset; }
-  .movie-desc-toggle { font-size: .78rem; color: var(--accent); font-weight: 600; margin-top: 4px; cursor: pointer; background: none; border: none; padding: 0; }
+  .movie-desc-toggle { font-size: .8rem; color: var(--accent); font-weight: 600; margin-top: 4px; cursor: pointer; background: none; border: none; padding: 0; }
 
   .section-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
   .sites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -743,7 +745,10 @@
   .gradient-card-wrapper:hover {
     transform: translateY(-3px);
     background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 40%, var(--accent) 60%) 0%, rgba(var(--bg-glow-rgb),.45) 65%);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--card-accent, var(--accent)) 20%, var(--accent) 80%);
+    /* Blur trimmed from 16px — with only 12px between cards on mobile, a
+       wider glow was visually merging into the next card's glow instead of
+       reading as one card lifting. */
+    box-shadow: 0 0 9px color-mix(in srgb, var(--card-accent, var(--accent)) 20%, var(--accent) 80%);
   }
   .gradient-card-wrapper:active {
     transform: scale(.97);
@@ -756,10 +761,15 @@
        letting it sit in-family with whatever theme is active. */
     --hot-color: color-mix(in srgb, #f0b428 55%, var(--accent) 45%);
     background: linear-gradient(135deg, var(--hot-color) 0%, rgba(var(--bg-glow-rgb),.6) 100%);
-    box-shadow: 0 0 14px color-mix(in srgb, var(--hot-color) 45%, transparent);
+    /* Trimmed from 14px, and from 45% to 25% mix strength — this glow is
+       always-on (not hover-only) and nearly every card in the grid is
+       "hot", so at the old strength every card's glow was touching its
+       neighbor's, making the whole grid look like one blurry mass instead
+       of distinct cards. */
+    box-shadow: 0 0 7px color-mix(in srgb, var(--hot-color) 25%, transparent);
   }
   .gradient-card-wrapper.is-hot:hover {
-    box-shadow: 0 0 20px color-mix(in srgb, var(--hot-color) 60%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--hot-color) 45%, transparent);
   }
   .card-content {
     background-color: #16161f;
@@ -874,9 +884,9 @@
   .status-dot-mini {
     display: none; align-items: center; justify-content: center;
     position: absolute; top: 8px; left: 8px; z-index: 2;
-    width: 20px; height: 20px;
+    width: 17px; height: 17px;
     border-radius: 50%;
-    background: rgba(8,8,16,.75);
+    background: rgba(8,8,16,.55);
   }
   .status-dot-mini svg { width: 68%; height: 68%; display: block; }
   /* Inline variant — used when the dot sits inside the bottom label bar
@@ -1053,6 +1063,9 @@
        the cap below applies to the wordmark content itself (max-width),
        not this box, so the logo doesn't stretch the full card but the
        empty space around it stays evenly balanced top/bottom. */
+    /* Small bottom nudge so the logo doesn't sit flush against the status
+       bar below it — a bit of separation reads as less cramped. */
+    padding-bottom: 8px;
   }
   .card-logo > * { max-width: 100%; max-height: 44px; }
   /* Soft radial glow behind the logo — breaks up the flat empty space in
@@ -1065,6 +1078,13 @@
     pointer-events: none; z-index: 0;
   }
   .card-logo svg { width: 40px; height: 28px; display: block; }
+  /* Featured/hero card — the one top-ranked hot site gets extra width
+     instead of a new badge. Spans 2 columns: on mobile's 2-col grid this
+     reads as a full-width banner at the top; on wider grids it's simply a
+     wider card among the regular ones. */
+  .featured-card { grid-column: span 2; }
+  .featured-card .card-content { height: 168px; }
+  .featured-card .card-logo svg { width: 52px; height: 36px; }
   .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: var(--fs-xl); letter-spacing: -.01em; line-height: 1; }
   .lw-white { color: var(--card-logo-ink, #fff); }
   .lw-accent { color: var(--accent); }
@@ -1099,7 +1119,7 @@
      adapts across Light Mode and all three color themes automatically. */
   .quick-test-btn {
     background: var(--surface); border: 1px solid var(--border); color: var(--text);
-    border-radius: 8px; padding: 6px 12px; font-size: .78rem; cursor: pointer;
+    border-radius: 8px; padding: 6px 12px; font-size: .8rem; cursor: pointer;
     transition: background .15s ease, border-color .15s ease;
   }
   .quick-test-btn:hover { border-color: var(--accent); }
@@ -1123,7 +1143,7 @@
 
   .empty { text-align: center; padding: 60px 20px; color: var(--muted); animation: fadeUp .4s ease forwards; }
   .empty .big { font-size: 3rem; margin-bottom: 12px; }
-  .empty p { font-size: .95rem; }
+  .empty p { font-size: .9rem; }
 
   .popular-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
   .popular-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1135,7 +1155,7 @@
   }
   .pop-chip:hover { border-color: var(--accent); color: var(--accent); }
 
-  footer { text-align: center; padding: 30px 0 0; font-size: .78rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 40px; }
+  footer { text-align: center; padding: 30px 0 0; font-size: .8rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 40px; }
 
   /* Tablet-range breakpoint — the site previously jumped straight from
      desktop-ish styling to the 500px phone breakpoint below, leaving a
@@ -1154,7 +1174,7 @@
     .dir-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--sp-6); }
     .card-content { height: 160px; }
     .card-logo svg { width: 52px; height: 36px; }
-    .logo-word { font-size: 2.1rem; }
+    .logo-word { font-size: 2rem; }
     .card-logo > * { max-height: 56px; }
   }
 
@@ -1210,7 +1230,7 @@
       </span>
       <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
         <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
-        <button class="theme-toggle" id="install-app-btn" title="Install app" aria-label="Install app" onclick="triggerInstallPrompt()" style="display:none; font-size:1.05rem;">📲</button>
+        <button class="theme-toggle" id="install-app-btn" title="Install app" aria-label="Install app" onclick="triggerInstallPrompt()" style="display:none; font-size:1rem;">📲</button>
         <button class="theme-toggle help-toggle" id="help-btn" title="Help / what do the icons mean?" aria-label="Help" onclick="showHelpTip()" style="font-weight:700;">?</button>
         <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
           <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -1276,7 +1296,7 @@
 
   <footer>
     <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
-    <p style="margin-top:6px;"><button onclick="openAboutModal()" style="background:none; border:none; color:var(--muted); text-decoration:underline; font-size:.78rem; cursor:pointer; padding:0;">ℹ️ About & Disclaimer</button></p>
+    <p style="margin-top:6px;"><button onclick="openAboutModal()" style="background:none; border:none; color:var(--muted); text-decoration:underline; font-size:.8rem; cursor:pointer; padding:0;">ℹ️ About & Disclaimer</button></p>
     <p id="visit-stats" style="opacity:0.7; font-size:0.85em; margin-top:4px;"></p>
   </footer>
 </div>
@@ -1985,7 +2005,7 @@ function renderOnboardingTip() {
   const el = document.getElementById('onboarding-banner');
   if (!el) return;
   el.innerHTML = `
-    <div style="background:color-mix(in srgb, var(--gold) 10%, transparent); border:1px solid color-mix(in srgb, var(--gold) 30%, transparent); border-radius:12px; padding:12px 14px; margin:-4px 0 18px; font-size:.78rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;">
+    <div style="background:color-mix(in srgb, var(--gold) 10%, transparent); border:1px solid color-mix(in srgb, var(--gold) 30%, transparent); border-radius:12px; padding:12px 14px; margin:-4px 0 18px; font-size:.8rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;">
       <span style="flex-shrink:0; color:var(--gold); display:inline-flex; margin-top:1px;" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span>
       <span style="flex:1;">
         <strong style="color:var(--text);">Good to know:</strong>
@@ -2132,7 +2152,7 @@ function renderRecentlyViewed() {
             ${m.poster
               ? `<img src="${escapeAttr(m.poster)}" alt="" loading="lazy" style="width:72px; height:104px; object-fit:cover; border-radius:8px; display:block;">`
               : `<div style="width:72px; height:104px; border-radius:8px; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:1.4rem;">🎬</div>`}
-            <div style="font-size:.68rem; color:var(--text); margin-top:4px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeAttr(m.title)}</div>
+            <div style="font-size:.7rem; color:var(--text); margin-top:4px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeAttr(m.title)}</div>
           </button>`).join('')}
       </div>
     </div>`;
@@ -2473,7 +2493,7 @@ function searchMovie() {
           <div class="empty">
             <div class="big">🔍</div>
             <p style="margin-bottom:6px;">No matches for "<strong>${escapeAttr(query)}</strong>".</p>
-            <p style="color:var(--muted); font-size:.82rem; margin-bottom:20px;">Double-check the spelling, try the original (non-translated) title, or search a shorter keyword.</p>
+            <p style="color:var(--muted); font-size:.8rem; margin-bottom:20px;">Double-check the spelling, try the original (non-translated) title, or search a shorter keyword.</p>
             <button class="pop-chip" onclick="document.getElementById('search-input').value=''; document.getElementById('search-input').focus();">✏️ Edit search</button>
             <button class="pop-chip" onclick="renderHomepage()" style="margin-left:8px;">🗂️ Browse directory</button>
           </div>`;
@@ -3194,7 +3214,7 @@ const SITES_DIRECTORY = [
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'], accent: '#ff4d8f',
     logoHtml: `<span class="logo-word"><span style="color:#ff4d8f;">Kiss</span><span class="lw-white">KH</span></span>` },
   { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'], accent: '#8b5cf6',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
   { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'], accent: '#00c2b8',
     logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:#00c2b8;">ki</span></span>` },
   { name: 'Viu',           url: 'https://www.viu.com/',         domain: 'viu.com',              categories: ['drama'], accent: '#00b8a9',
@@ -3206,11 +3226,11 @@ const SITES_DIRECTORY = [
   { name: 'WeTV',          url: 'https://wetv.vip/',            domain: 'wetv.vip',             categories: ['drama'], accent: '#06d6a0',
     logoHtml: `<span class="logo-word"><span class="lw-white">We</span><span style="color:#06d6a0;">TV</span></span>` },
   { name: 'Amasian TV',    url: 'https://amasiantv.com/',       domain: 'amasiantv.com',        categories: ['drama'], accent: '#f5a623',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.15rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
   { name: '1Shows',        url: 'https://1shows.org/',          domain: '1shows.org',           categories: ['movie'], accent: '#4da6ff',
     logoHtml: `<span class="logo-word"><span style="color:#4da6ff;">1</span><span class="lw-white">Shows</span></span>` },
   { name: 'FlickyStream',  url: 'https://flickystream.dad/',    domain: 'flickystream.dad',     categories: ['movie'], accent: '#c084fc',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.35rem;line-height:1.05;background:linear-gradient(90deg,#5b8def,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">flicky</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.1rem;line-height:1.05;background:linear-gradient(90deg,#c084fc,#ff6b9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">stream</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.3rem;line-height:1.05;background:linear-gradient(90deg,#5b8def,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">flicky</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.1rem;line-height:1.05;background:linear-gradient(90deg,#c084fc,#ff6b9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">stream</span></div>` },
   { name: 'MovieBox',      url: 'https://movie-box.co/',        domain: 'movie-box.co',         categories: ['movie'], accent: '#f4c430',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
   { name: '1Flex',         url: 'https://1flex.org/',           domain: '1flex.org',            categories: ['movie'], accent: '#ef4444',
@@ -3228,7 +3248,7 @@ const SITES_DIRECTORY = [
   { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'], accent: '#9333ea',
     logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:#a855f7;">ro</span></span>` },
   { name: 'Anikoto',       url: 'https://anikototv.to/',        domain: 'anikototv.to',         categories: ['anime'], accent: '#22d3ee',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'], accent: '#ff8a3d',
     logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:#ff8a3d;">ma</span></span>` },
   // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
@@ -3324,13 +3344,18 @@ function renderSitesDirectory() {
   const buildCard = (s, i) => {
     const isFav = favs.includes(s.name);
     const isHot = isHotSite(s.name);
+    // Visual hierarchy: the single top-ranked hot site (first in the
+    // already-sorted list) gets a wider "hero" card instead of a new badge
+    // or label — size alone signals priority without adding more clutter
+    // to a grid we just spent effort decluttering.
+    const isFeatured = isHot && i === 0;
     const liveUrl = getOverriddenUrl(s.name, s.url);
     const pinIcon = isFav
       ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
       : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
     const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][i % 3];
     return `
-    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
+    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}${isFeatured ? ' featured-card' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
@@ -3374,7 +3399,7 @@ function showMoreDirSites() {
 function defaultLogoHtml(s) {
   return `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; width:100%; padding:0 8px; overflow:hidden;">
     <span style="font-size:1.4rem; line-height:1;">${s.icon || '🎥'}</span>
-    <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:.68rem; color:#f0f0f5; text-align:center; line-height:1.15; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; width:100%;">${escapeAttr(s.name)}</span>
+    <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:.7rem; color:#f0f0f5; text-align:center; line-height:1.15; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; width:100%;">${escapeAttr(s.name)}</span>
   </div>`;
 }
 
@@ -3441,7 +3466,7 @@ function renderHomepage() {
     </div>
     `}
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
-      <div id="dir-results-count" style="font-size:.78rem; color:var(--muted);"></div>
+      <div id="dir-results-count" style="font-size:.8rem; color:var(--muted);"></div>
     </div>
     <div class="dir-grid" id="sites-directory-grid"></div>
 
@@ -3658,13 +3683,13 @@ async function loadAdminPanel() {
       padding: 8px 16px; font-size: .8rem; font-weight: 600; cursor: pointer; flex-shrink: 0;
     }
     #admin-overlay .test-link-btn:disabled { opacity: .5; cursor: default; }
-    #admin-overlay .test-link-result { margin-top: 10px; font-size: .78rem; display: none; }
+    #admin-overlay .test-link-result { margin-top: 10px; font-size: .8rem; display: none; }
     #admin-overlay .test-link-result.show { display: block; }
     #admin-overlay .test-link-status { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     #admin-overlay .test-link-note { color: #9494b5; font-size: .72rem; margin-bottom: 10px; line-height: 1.4; }
     #admin-overlay .test-link-open-btn {
       background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
-      border-radius: 6px; padding: 6px 14px; font-size: .76rem; cursor: pointer;
+      border-radius: 6px; padding: 6px 14px; font-size: .75rem; cursor: pointer;
     }
   `;
   document.head.appendChild(style);
@@ -3678,7 +3703,7 @@ async function loadAdminPanel() {
       <h1>🔒 Site Status Admin</h1>
       <p>Loading status.json...</p>
     </div>
-    <div class="test-link-box" style="font-size:.74rem; color:#9494b5; line-height:1.5;">
+    <div class="test-link-box" style="font-size:.72rem; color:#9494b5; line-height:1.5;">
       <div class="test-link-title" style="margin-bottom:6px;">ℹ️ What the dots mean</div>
       <div><span style="color:#06d6a0;">🟢 Up</span> — site responded normally.</div>
       <div><span style="color:#f0b428;">🟡 Blocked</span> — GitHub's checker got a 403/429/503 or timed out. This is usually <strong>not</strong> the site being down — Cloudflare/DDoS-Guard etc. often flag GitHub Actions' datacenter IP as a bot, even when the site works fine for real visitors. Use "Test a Link" above or open the URL yourself to confirm before assuming it's broken.</div>
