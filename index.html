@@ -54,6 +54,29 @@
        against that dark circle. */
     --status-green: #06d6a0;
     --status-gold: #ffd166;
+
+    /* Spacing scale (4px base) — card padding/gap/radius pull from this
+       instead of one-off numbers, so the grid reads as intentional rather
+       than assorted. Existing values that already matched (e.g. 16px,
+       32px) are untouched; only the odd-ones-out (14px, 15px, 130px...)
+       were nudged onto this scale. */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+    --sp-12: 48px;
+    --sp-16: 64px;
+
+    /* Type scale (16px root) — same idea for font-size. Card labels below
+       now pick the nearest step instead of an arbitrary .95rem/.88rem/.7rem
+       mix. */
+    --fs-xs: .75rem;   /* 12px */
+    --fs-sm: .875rem;  /* 14px */
+    --fs-base: 1rem;   /* 16px */
+    --fs-lg: 1.25rem;  /* 20px */
+    --fs-xl: 1.75rem;  /* 28px */
   }
 
   /* Dark Mode (Default) */
@@ -195,6 +218,10 @@
     min-height: 100vh;
     overflow-x: hidden;
     transition: background .3s, color .3s;
+    /* Base readable line-height for body copy (paragraphs, disclaimers,
+       descriptions). Short UI labels/buttons already set their own
+       line-height: 1 explicitly, so they're unaffected by this default. */
+    line-height: 1.5;
   }
 
   /* ===== Accessibility: global keyboard-focus fallback ===== */
@@ -230,8 +257,14 @@
   .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 4px; }
   .logo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(3.5rem, 10vw, 6rem);
-    letter-spacing: .04em; line-height: 1;
+    /* Smoother fluid scaling: a fixed rem base plus a gentler vw increment,
+       instead of a steep straight vw value. This avoids the sudden crowded
+       look on ~360-400px phones where 10vw was already near the clamp
+       floor, and keeps the size change gradual across breakpoints. */
+    font-size: clamp(3rem, 2.2rem + 4vw, 6rem);
+    letter-spacing: clamp(.02em, .01em + .15vw, .04em);
+    line-height: 1;
+    white-space: nowrap;
     background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     flex: 1;
@@ -638,22 +671,22 @@
   .result-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
   .result-card .result-poster { width: 100%; aspect-ratio: 2/3; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 2rem; overflow: hidden; }
   .result-card .result-poster img { width: 100%; height: 100%; object-fit: cover; }
-  .result-card .result-info { padding: 10px 12px 12px; }
-  .result-card .result-title { font-size: .88rem; font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: .7rem; color: var(--muted); }
+  .result-card .result-info { padding: var(--sp-2) var(--sp-3) var(--sp-3); }
+  .result-card .result-title { font-size: var(--fs-sm); font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--muted); }
   .site-card {
     position: relative;
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-    padding: 16px; text-decoration: none; color: var(--text);
-    display: flex; align-items: center; gap: 14px;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--sp-4);
+    padding: var(--sp-4); text-decoration: none; color: var(--text);
+    display: flex; align-items: center; gap: var(--sp-3);
     transition: border-color .2s, transform .2s, box-shadow .2s;
     animation: fadeUp .4s ease forwards;
     max-width: 100%; overflow: hidden;
   }
   .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
-  .site-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+  .site-icon { width: 40px; height: 40px; border-radius: var(--sp-2); display: flex; align-items: center; justify-content: center; font-size: var(--fs-lg); flex-shrink: 0; }
   .site-logo-box {
-    width: 64px; height: 46px; border-radius: 10px; flex-shrink: 0;
+    width: 64px; height: 48px; border-radius: var(--sp-2); flex-shrink: 0;
     background: #14141c; border: 1px solid rgba(255,255,255,.07);
     display: flex; align-items: center; justify-content: center; overflow: hidden;
   }
@@ -673,11 +706,11 @@
   }
   .site-logo-box > * { transform: scale(.62); transform-origin: center; }
   .site-info { flex: 1; min-width: 0; }
-  .site-name { font-weight: 600; font-size: .95rem; overflow-wrap: break-word; }
-  .site-note { font-size: .75rem; color: var(--muted); margin-top: 2px; overflow-wrap: break-word; }
-  .site-free { font-size: .7rem; font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
-  .arrow { color: var(--muted); font-size: .8rem; }
-  .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 20px; align-items: stretch; }
+  .site-name { font-weight: 600; font-size: var(--fs-base); overflow-wrap: break-word; }
+  .site-note { font-size: var(--fs-xs); color: var(--muted); margin-top: 2px; overflow-wrap: break-word; }
+  .site-free { font-size: var(--fs-xs); font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px var(--sp-2); border-radius: var(--sp-2); white-space: nowrap; }
+  .arrow { color: var(--muted); font-size: var(--fs-xs); }
+  .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-4); margin-bottom: 20px; align-items: stretch; }
 
   /* ===== Gradient-border directory card ===== */
   .gradient-card-wrapper {
@@ -719,10 +752,10 @@
   }
   .card-content {
     background-color: #16161f;
-    border-radius: 15px;
+    border-radius: var(--sp-4);
     display: flex; flex-direction: column;
     text-decoration: none; color: var(--text);
-    height: 130px;
+    height: 128px;
     position: relative;
     overflow: hidden;
   }
@@ -1002,8 +1035,8 @@
     background: radial-gradient(circle, rgba(var(--bg-glow-rgb),.16) 0%, transparent 70%);
     pointer-events: none; z-index: 0;
   }
-  .card-logo svg { width: 38px; height: 26px; display: block; }
-  .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.65rem; letter-spacing: -.01em; line-height: 1; }
+  .card-logo svg { width: 40px; height: 28px; display: block; }
+  .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: var(--fs-xl); letter-spacing: -.01em; line-height: 1; }
   .lw-white { color: var(--card-logo-ink, #fff); }
   .lw-accent { color: var(--accent); }
   .lw-outline { color: transparent; -webkit-text-stroke: 1.7px var(--card-logo-outline, #5b8def); font-weight: 800; margin-right: 1px; }
@@ -1012,7 +1045,7 @@
   .logo-pluto { display: inline-flex; align-items: center; gap: 6px; }
   .pluto-ring {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 29px; height: 29px; border-radius: 50%; font-size: .68rem; font-weight: 800; color: #fff;
+    width: 32px; height: 32px; border-radius: 50%; font-size: var(--fs-xs); font-weight: 800; color: #fff;
     background: conic-gradient(#ff3d6e, #ffb347, #ffe45e, #4dd4ac, #4d9fff, #a259ff, #ff3d6e);
   }
 
@@ -1074,6 +1107,14 @@
   .pop-chip:hover { border-color: var(--accent); color: var(--accent); }
 
   footer { text-align: center; padding: 30px 0 0; font-size: .78rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 40px; }
+
+  /* Tablet-range breakpoint — the site previously jumped straight from
+     desktop-ish styling to the 500px phone breakpoint below, leaving a
+     ~500-768px zone with no tailored spacing. This softens that gap. */
+  @media (max-width: 768px) {
+    .wrapper { padding: 0 16px 64px; }
+    .dir-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--sp-3); }
+  }
 
   @media (max-width: 500px) {
     .movie-header { flex-direction: column; }
