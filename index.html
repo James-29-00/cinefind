@@ -467,10 +467,17 @@
 
   .search-wrap { position: relative; margin: var(--sp-4) 0 var(--sp-3); }
   .search-wrap input {
-    width: 100%; padding: 18px 60px 18px 22px;
-    background: var(--card); border: 1.5px solid var(--border);
+    width: 100%; padding: 18px 62px 18px 22px;
+    /* Dialed back from an earlier pass that overcorrected — 22px padding +
+       2px border + a heavy shadow made the search bar visually louder than
+       everything else on the page instead of just "clearly the primary
+       action." This keeps a slightly bolder border/shadow than the
+       original 1.5px-no-shadow version so it still reads as emphasized,
+       without ballooning in physical size. */
+    background: var(--surface); border: 1.5px solid rgba(var(--bg-glow-rgb),.3);
     border-radius: 14px; font-family: 'Space Grotesk', sans-serif;
     font-size: 1rem; color: var(--text); outline: none;
+    box-shadow: 0 4px 14px rgba(var(--bg-glow-rgb),.1);
     transition: border-color .2s, box-shadow .2s;
   }
   .search-wrap input::placeholder { color: var(--muted); }
@@ -495,9 +502,9 @@
   .suggestion-title { font-size: .85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .suggestion-meta { font-size: .7rem; color: var(--muted); }
   .search-btn {
-    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
     background: var(--accent); border: none; border-radius: 10px;
-    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: background .2s, transform .15s; font-size: 18px;
   }
   .search-btn:hover { background: var(--accent2); transform: translateY(-50%) scale(1.05); }
@@ -560,23 +567,24 @@
     font-size: 13px;
     padding: 6px 16px;
     border-radius: 9999px;
-    border: 1.5px solid transparent;
+    border: 1.5px solid var(--border);
     cursor: pointer;
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
-    background-image:
-      linear-gradient(var(--card), var(--card)),
-      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
-    background-origin: border-box;
-    background-clip: padding-box, border-box;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease, background-image .15s ease;
+    /* Was a colorful gradient border on EVERY chip, active or not — with
+       "My Favorites", the Sites/Genres tabs, and 4+ filter chips all doing
+       this at once, the whole row read as one glowing blob with no clear
+       "this one is selected." Unselected chips now use a plain neutral
+       border; the gradient only appears once a chip is actually active
+       (see .active below), so color = selection, not decoration. */
   }
   .dual-gradient-pill.active {
     color: var(--text); font-weight: 600;
+    border: 1.5px solid transparent;
     background-image:
       linear-gradient(var(--card), var(--card)),
       linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
-    border-color: transparent;
     /* Ring uses the theme accent (not a flat white) so the "selected" state
        reads as an emphasized version of the same gradient-pill family
        instead of a visually different component. */
@@ -650,6 +658,13 @@
     cursor: pointer; font-size: 1.2rem; transition: all .2s;
     z-index: 10;
   }
+  /* Star now an SVG (was the ⭐ emoji glyph, which always renders the same
+     fixed yellow regardless of state — only the background circle behind
+     it changed color). Outline/unfilled by default, solid gold once
+     favorited, so the state itself is visible on the icon, not just its
+     backdrop. */
+  .fav-btn svg { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linejoin: round; transition: fill .2s, stroke .2s; }
+  .fav-btn.favorited svg { fill: #ffd23f; stroke: #ffd23f; }
   .fav-btn:hover { background: rgba(var(--bg-glow-rgb),.9); transform: scale(1.15); }
   .fav-btn.favorited { background: rgba(var(--bg-glow-rgb),.9); }
 
@@ -734,6 +749,30 @@
   .site-free { font-size: var(--fs-xs); font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px var(--sp-2); border-radius: var(--sp-2); white-space: nowrap; }
   .arrow { color: var(--muted); font-size: var(--fs-xs); }
   .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-4); margin-bottom: 20px; align-items: stretch; }
+
+  /* Home tab bar (Sites / Genres) — item 10. Same pill language as the
+     existing genre-pill/filter chips elsewhere on the page (rounded,
+     bordered, accent-filled when active) so it reads as part of the same
+     component family, not a new unrelated control. */
+  .home-tab-bar {
+    display: flex; gap: 3px; margin: var(--sp-6) 0 var(--sp-4);
+    /* Rectangular segmented-control shape (not the fully-rounded 999px
+       pill used for filter chips) — this is page-level navigation
+       (switches the whole view), not a same-level filter refinement, so
+       it deliberately reads as a different control type instead of just
+       another oval in the row. A shared dark track behind both buttons
+       (like iOS/Android segmented controls) instead of two separate
+       floating pills. */
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 3px;
+  }
+  .home-tab {
+    flex: 1; padding: 9px 0; border-radius: 9px; border: none;
+    background: transparent; color: var(--muted); font-family: 'Space Grotesk', sans-serif;
+    font-size: var(--fs-sm); font-weight: 600; cursor: pointer; transition: all .2s;
+  }
+  .home-tab.active { background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 0 0 1.5px var(--accent); }
+  .home-tab:not(.active):hover { color: var(--text); }
 
   /* ===== Gradient-border directory card ===== */
   .gradient-card-wrapper {
@@ -1232,12 +1271,14 @@
         <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
         <button class="theme-toggle" id="install-app-btn" title="Install app" aria-label="Install app" onclick="triggerInstallPrompt()" style="display:none; font-size:1rem;">📲</button>
         <button class="theme-toggle help-toggle" id="help-btn" title="Help / what do the icons mean?" aria-label="Help" onclick="showHelpTip()" style="font-weight:700;">?</button>
-        <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
-          <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-        <button id="theme-dropdown-arrow" title="Pick a theme" aria-label="Open theme list" onclick="toggleThemeDropdown(event)" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:2px; display:flex; align-items:center;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-        </button>
+        <div style="position:relative; display:inline-flex;">
+          <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
+            <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button id="theme-dropdown-arrow" title="Pick a theme" aria-label="Open theme list" onclick="toggleThemeDropdown(event)" style="position:absolute; bottom:-3px; right:-3px; width:16px; height:16px; background:var(--card); border:1px solid var(--border); border-radius:50%; cursor:pointer; color:var(--text); padding:0; display:flex; align-items:center; justify-content:center; line-height:1;">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+          </button>
+        </div>
         <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:140px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
       </div>
     </div>
@@ -1248,7 +1289,7 @@
 
   <div class="search-wrap">
     <input type="text" id="search-input" placeholder="Search any movie or drama..." aria-label="Search any movie or drama" autocomplete="off">
-    <button class="search-btn" onclick="searchMovie()" aria-label="Search">🔍</button>
+    <button class="search-btn" onclick="searchMovie()" aria-label="Search"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg></button>
     <div class="suggestions-box" id="suggestions-box"></div>
   </div>
 
@@ -1400,10 +1441,10 @@ function initTheme() {
 
 const THEME_KEY = 'cinefind-theme-mode';
 const THEME_CYCLE = [
-  { theme: 'theme-crimson', mode: 'dark-mode', label: 'Crimson' },
-  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode' },
-  { theme: 'theme-cyber', mode: 'dark-mode', label: 'Cyber' },
-  { theme: 'theme-galaxy', mode: 'dark-mode', label: 'Galaxy' },
+  { theme: 'theme-crimson', mode: 'dark-mode', label: 'Crimson', swatch: '#e63946' },
+  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode', swatch: '#e8e2d3' },
+  { theme: 'theme-cyber', mode: 'dark-mode', label: 'Cyber', swatch: '#22e5e5' },
+  { theme: 'theme-galaxy', mode: 'dark-mode', label: 'Galaxy', swatch: '#ff5fa2' },
 ];
 const THEME_CLASSES = THEME_CYCLE.map(s => s.theme).filter((v, i, a) => a.indexOf(v) === i);
 const MODE_CLASSES = ['dark-mode', 'light-mode'];
@@ -1431,9 +1472,13 @@ function toggleThemeDropdown(event) {
     return;
   }
   const activeIndex = findThemeIndex();
+  // Color swatch dot per option — previously plain text labels only, so
+  // you had to actually pick a theme to see what it looked like. The dot
+  // uses each theme's real accent color as a preview before switching.
   menu.innerHTML = THEME_CYCLE.map((s, i) => `
-    <button onclick="selectThemeFromDropdown(${i})" style="display:block; width:100%; text-align:left; background:${i === activeIndex ? 'rgba(255,255,255,.08)' : 'none'}; border:none; color:var(--text); font-size:.82rem; font-weight:${i === activeIndex ? '700' : '500'}; padding:8px 10px; border-radius:6px; cursor:pointer;">
-      ${i === activeIndex ? '✓ ' : ''}${s.label}
+    <button onclick="selectThemeFromDropdown(${i})" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:${i === activeIndex ? 'rgba(255,255,255,.08)' : 'none'}; border:none; color:var(--text); font-size:.82rem; font-weight:${i === activeIndex ? '700' : '500'}; padding:8px 10px; border-radius:6px; cursor:pointer;">
+      <span style="width:12px; height:12px; border-radius:50%; background:${s.swatch}; border:1px solid rgba(255,255,255,.25); flex-shrink:0; box-shadow:0 0 6px ${s.swatch}99;"></span>
+      <span>${i === activeIndex ? '✓ ' : ''}${s.label}</span>
     </button>
   `).join('');
   menu.style.display = 'block';
@@ -2259,7 +2304,7 @@ function startCooldownDisplay() {
       btn.textContent = Math.ceil(timeLeft / 1000) + 's';
       btn.disabled = true;
     } else {
-      btn.textContent = '🔍';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>';
       btn.disabled = false;
       clearInterval(interval);
     }
@@ -2685,7 +2730,27 @@ function renderResult(data, query) {
     return rankA - rankB;
   };
   const freeSites = (data.sites || []).filter(s => s.free).sort(byHotThenStatus);
-  const otherSites = (data.sites || []).filter(s => !s.free).sort(byHotThenStatus);
+  let otherSites = (data.sites || []).filter(s => !s.free).sort(byHotThenStatus);
+
+  // Auto-append Pinoy sources for Filipino/Tagalog content (item: "kunware
+  // Tagalog yung movie, dapat kasama sa dulo yung mga Pinoy websites").
+  // These aren't per-title direct links (no API returns "this exact movie
+  // is on iWantTFC"), so they're added as homepage search-inside-site
+  // links, same treatment as the rest of otherSites, and always LAST so
+  // titles known to actually have this movie/show still show first.
+  // Detection assumes `data` carries the same original_language/
+  // origin_country TMDB fields used elsewhere in this file (see the
+  // isKDrama/isAnime checks) — verify this fires correctly on the live
+  // site, since this file can't confirm the exact shape of `data` at
+  // this point without live-testing your actual API responses.
+  const isPinoyContent = data.original_language === 'tl' || (data.origin_country || []).includes('PH');
+  if (isPinoyContent) {
+    const alreadyListed = new Set([...freeSites, ...otherSites].map(s => normalizeSiteName(s.name)));
+    const pinoySites = SITES_DIRECTORY
+      .filter(d => (d.categories || []).includes('pinoy') && !alreadyListed.has(normalizeSiteName(d.name)))
+      .map(d => ({ name: d.name, url: d.url, free: false, note: 'Filipino content — search inside site' }));
+    otherSites = [...otherSites, ...pinoySites];
+  }
   const SITES_VISIBLE_INITIAL = 4;
 
   // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
@@ -2749,7 +2814,7 @@ function renderResult(data, query) {
         ${data.poster
           ? `<img class="poster-img" src="${data.poster}" alt="${escapeAttr(data.title || query)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${data.type === 'series' ? '📺' : '🎬'}'">`
           : (data.type === 'series' ? '📺' : '🎬')}
-        <button class="fav-btn ${isFavorited ? 'favorited' : ''}" onclick="toggleFavorite(event)" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-label="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-pressed="${isFavorited}">⭐</button>
+        <button class="fav-btn ${isFavorited ? 'favorited' : ''}" onclick="toggleFavorite(event)" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-label="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-pressed="${isFavorited}"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg></button>
       </div>
       <div class="movie-info">
         <div class="movie-title">${data.title || query}</div>
@@ -2914,8 +2979,8 @@ function openReportModal(siteName, url) {
   overlay.id = 'report-modal-overlay';
   overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
   overlay.innerHTML = `
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; max-width:340px; width:100%;">
-      <div style="font-weight:700; color:var(--text); margin-bottom:4px;">🚩 Report "${escapeAttr(siteName)}"</div>
+    <div style="background:var(--card); border:1.5px solid rgba(var(--bg-glow-rgb),.3); border-radius:16px; padding:22px; max-width:340px; width:100%; box-shadow:0 12px 40px rgba(var(--bg-glow-rgb),.15), 0 4px 20px rgba(0,0,0,.4);">
+      <div style="display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text); margin-bottom:4px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="var(--accent)"><path d="M5 3v18h2v-7h11l-2.5-4L18 6H7V3z"/></svg> Report "${escapeAttr(siteName)}"</div>
       <div style="font-size:.75rem; color:var(--muted); margin-bottom:14px;">What's wrong with this site?</div>
       <div id="report-reason-buttons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
         ${['Broken / dead link', 'Too many ads/popups', 'Wrong movie/title', 'Other'].map(r => `
@@ -3211,6 +3276,22 @@ function statusDotIcon(status, color) {
 // (homepage directory or a movie's site list) once status.json has loaded.
 // Cards render before this data is ready, so dots get filled in afterward
 // rather than delaying the initial paint.
+// "Last checked" freshness text (item 9) — status.json is only re-run once
+// a day by the GitHub Action checker, so this is one shared batch
+// timestamp for every site, not a per-site check time. Kept compact
+// ("3h ago") since it's appended inline after the status word on a small
+// card — a full date/time only shows in the tooltip (see applyStatusDots).
+function formatRelativeCheck(ms) {
+  if (!ms) return '';
+  const diffMin = Math.round((Date.now() - ms) / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
 function applyStatusDots() {
   if (!siteStatusMap) return;
   document.querySelectorAll('[data-site-name]').forEach(el => {
@@ -3239,9 +3320,16 @@ function applyStatusDots() {
         // Shows the status word (Online/Warning/Down) directly, so users
         // don't have to interpret the dot's color on their own.
         const textEl = label.querySelector('[data-status-text]') || label;
-        textEl.textContent = statusShortLabel(status);
+        // "Last checked" freshness text (item 9) — the batch timestamp was
+        // already being captured (siteStatusLastRun) but never actually
+        // shown anywhere. Appended in the same small muted text run as the
+        // status word itself, so it inherits the exact same font-size/
+        // color/truncation behavior already tuned for this card — no new
+        // style rules needed, it just reads as part of the same line.
+        const freshness = formatRelativeCheck(siteStatusLastRun);
+        textEl.textContent = statusShortLabel(status) + (freshness ? ` · ${freshness}` : '');
         label.style.display = 'flex';
-        label.title = tooltipText;
+        label.title = tooltipText + (siteStatusLastRun ? ` — checked ${new Date(siteStatusLastRun).toLocaleString()}` : '');
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
         label.classList.add(`status-${status}`);
       }
@@ -3518,14 +3606,23 @@ function renderHomepage() {
         <svg class="refresh-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       </button>
     </div>
+
+    <!-- Item 10: homepage was one long scroll (sites, then genres, then
+         popular searches) before you'd ever reach genre browsing. Both
+         sections' render functions/data are untouched — this just wraps
+         each in a show/hide container and adds a tab bar, so switching is
+         instant with no extra fetch/re-render. -->
+    <div class="home-tab-bar" role="tablist" aria-label="Browse by">
+      <button class="home-tab active" id="home-tab-btn-sites" role="tab" aria-selected="true" onclick="switchHomeTab('sites')">Sites</button>
+      <button class="home-tab" id="home-tab-btn-genres" role="tab" aria-selected="false" onclick="switchHomeTab('genres')">Genres</button>
+    </div>
+
+    <div id="home-tab-sites">
     <div class="pill-container" id="dir-filter-chips">
       <button class="genre-pill dual-gradient-pill active" onclick="clearDirFilters(this)">All</button>
       <button class="genre-pill dual-gradient-pill" data-cat="movie" onclick="toggleDirFilter('movie', this)">Movie</button>
-      <button class="genre-pill dual-gradient-pill" data-cat="drama" onclick="toggleDirFilter('drama', this)">K-Drama</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="drama" onclick="toggleDirFilter('drama', this)">Asian Drama</button>
       <button class="genre-pill dual-gradient-pill" data-cat="anime" onclick="toggleDirFilter('anime', this)">Anime</button>
-      <button class="genre-pill dual-gradient-pill" data-cat="pinoy" onclick="toggleDirFilter('pinoy', this)">🇵🇭 Pinoy</button>
-      <button class="genre-pill dual-gradient-pill" data-cat="hot" onclick="toggleDirFilter('hot', this)">Hot</button>
-      <button class="genre-pill dual-gradient-pill" data-cat="pinned" onclick="toggleDirFilter('pinned', this)">📌 Pinned</button>
     </div>
     ${dirTipDismissed ? '' : `
     <div class="safety-tip" id="dir-safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
@@ -3538,7 +3635,9 @@ function renderHomepage() {
       <div id="dir-results-count" style="font-size:.8rem; color:var(--muted);"></div>
     </div>
     <div class="dir-grid" id="sites-directory-grid"></div>
+    </div>
 
+    <div id="home-tab-genres" style="display:none;">
     <div style="margin:24px 0 12px" class="popular-label">🎭 Browse by Genre</div>
     <div class="genre-grid" id="genre-grid">
       <button class="genre-chip" data-genre="28" onclick="browseGenre(28, 'Action', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></span>Action</button>
@@ -3561,8 +3660,27 @@ function renderHomepage() {
       <button class="pop-chip" onclick="quickSearch('My Love from the Star')">My Love from the Star</button>
       <button class="pop-chip" onclick="quickSearch('Attack on Titan')">Attack on Titan</button>
       <button class="pop-chip" onclick="quickSearch('Crash Landing on You')">Crash Landing on You</button>
+    </div>
     </div>`;
   renderSitesDirectory();
+}
+
+// Item 10 tab switcher — pure show/hide, no data fetch or re-render, so
+// there's no loading flicker or risk of desyncing from renderSitesDirectory
+// (which still owns #sites-directory-grid exactly as before).
+function switchHomeTab(tab) {
+  const sitesPane = document.getElementById('home-tab-sites');
+  const genresPane = document.getElementById('home-tab-genres');
+  const sitesBtn = document.getElementById('home-tab-btn-sites');
+  const genresBtn = document.getElementById('home-tab-btn-genres');
+  if (!sitesPane || !genresPane) return;
+  const showSites = tab === 'sites';
+  sitesPane.style.display = showSites ? '' : 'none';
+  genresPane.style.display = showSites ? 'none' : '';
+  sitesBtn.classList.toggle('active', showSites);
+  genresBtn.classList.toggle('active', !showSites);
+  sitesBtn.setAttribute('aria-selected', String(showSites));
+  genresBtn.setAttribute('aria-selected', String(!showSites));
 }
 
 function browseGenre(genreId, label, el) {
