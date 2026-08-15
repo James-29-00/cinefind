@@ -750,11 +750,16 @@
     transition: transform .1s ease;
   }
   .gradient-card-wrapper.is-hot {
-    background: linear-gradient(135deg, #f0b428 0%, rgba(var(--bg-glow-rgb),.6) 100%);
-    box-shadow: 0 0 14px rgba(240,180,40,.25);
+    /* Was flat #f0b428 — pure gold on a pink/purple (Galaxy) or teal (Cyber)
+       page reads as a mismatched, competing border. Blending 55/45 with the
+       theme accent keeps the "hot = gold" convention recognizable while
+       letting it sit in-family with whatever theme is active. */
+    --hot-color: color-mix(in srgb, #f0b428 55%, var(--accent) 45%);
+    background: linear-gradient(135deg, var(--hot-color) 0%, rgba(var(--bg-glow-rgb),.6) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--hot-color) 45%, transparent);
   }
   .gradient-card-wrapper.is-hot:hover {
-    box-shadow: 0 0 20px rgba(240,180,40,.4);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--hot-color) 60%, transparent);
   }
   .card-content {
     background-color: #16161f;
@@ -841,10 +846,14 @@
      text for screen readers and on long-press/hover) instead of a labeled
      pill. Frees up footer width so the "Checked Xm ago" text has room to
      sit on one line instead of wrapping. */
+  /* Kept always visible (not hover-gated) since mobile has no hover state
+     to reveal it — but toned down from a solid black-pill background to a
+     quiet plain icon, so it reads as the rarer/secondary action it is
+     instead of visually competing 1:1 with the favorite star next to it. */
   .report-icon {
     display: inline-flex; align-items: center; justify-content: center;
     flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
-    color: rgba(255,255,255,.5); background: rgba(0,0,0,.25);
+    color: rgba(255,255,255,.4); background: transparent;
     position: relative;
   }
   .report-icon:hover, .report-icon:focus-visible { color: var(--accent); background: rgba(var(--bg-glow-rgb),.2); }
@@ -969,7 +978,7 @@
     color: var(--card-logo-ink); text-shadow: none; opacity: .75;
   }
   body.light-mode .status-label-mini .report-icon {
-    color: var(--card-logo-ink); opacity: .55; background: rgba(43,36,29,.08);
+    color: var(--card-logo-ink); opacity: .45; background: transparent;
   }
   body.light-mode .status-label-mini .report-icon:hover { opacity: 1; background: rgba(var(--bg-glow-rgb),.15); }
   /* Small "HOT" badge — top-right, next to the favorite star. Only Hot
