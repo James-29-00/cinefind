@@ -577,10 +577,10 @@
     background-origin: border-box;
     background-clip: padding-box, border-box;
     border-color: transparent;
-    /* Solid ring instead of a large neon blur — reads clearly as "selected"
-       without competing with the Hot-card glow, which is now the only
-       heavy glow effect on the page. */
-    box-shadow: 0 0 0 1.5px var(--text);
+    /* Ring uses the theme accent (not a flat white) so the "selected" state
+       reads as an emphasized version of the same gradient-pill family
+       instead of a visually different component. */
+    box-shadow: 0 0 0 1.5px var(--accent);
   }
   .dual-gradient-pill.active::before {
     content: "✓";
@@ -748,18 +748,18 @@
        the page's active palette — cards keep a subtle brand hint while
        staying visually cohesive across all three themes. Falls back to the
        theme accent for any site without one (e.g. admin-added custom sites). */
-    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 35%, var(--accent) 65%) 0%, var(--border) 55%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 20%, var(--accent) 80%) 0%, var(--border) 55%);
     transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
   }
   .gradient-card-wrapper:hover {
     transform: translateY(-3px);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 40%, var(--accent) 60%) 0%, rgba(var(--bg-glow-rgb),.45) 65%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 25%, var(--accent) 75%) 0%, rgba(var(--bg-glow-rgb),.45) 65%);
     /* Blur trimmed from 16px — with only 12px between cards on mobile, a
        wider glow was visually merging into the next card's glow instead of
        reading as one card lifting. */
-    box-shadow: 0 0 9px color-mix(in srgb, var(--card-accent, var(--accent)) 20%, var(--accent) 80%);
+    box-shadow: 0 0 9px color-mix(in srgb, var(--card-accent, var(--accent)) 15%, var(--accent) 85%);
   }
   .gradient-card-wrapper:active {
     transform: scale(.97);
@@ -781,6 +781,17 @@
   }
   .gradient-card-wrapper.is-hot:hover {
     box-shadow: 0 0 12px color-mix(in srgb, var(--hot-color) 45%, transparent);
+  }
+  /* Editor's Pick — a quiet always-on gold ring (not a resize) marking a
+     small hand-picked set of sites. Comes after .is-hot in the cascade so
+     it wins the box-shadow when a site happens to be both, since a
+     deliberate curated pick should read stronger than the (often
+     over-applied) hot flag. */
+  .gradient-card-wrapper.editor-pick {
+    box-shadow: 0 0 0 1.5px rgba(255,207,92,.6), 0 0 10px rgba(255,207,92,.2);
+  }
+  .gradient-card-wrapper.editor-pick:hover {
+    box-shadow: 0 0 0 1.5px rgba(255,207,92,.85), 0 0 14px rgba(255,207,92,.35);
   }
   .card-content {
     background-color: #16161f;
@@ -857,11 +868,11 @@
   body.light-mode .pin-icon:hover, body.light-mode .pin-icon.faved { color: var(--gold); }
   /* Not-yet-favorited star stays dim(mer) by default — it's a secondary,
      optional action, not something that needs equal visual weight to status
-     or Hot. .78 (raised from .6) keeps it clearly legible on dark cards
-     while still visibly secondary vs. the fully-opaque faved state. */
-  .pin-icon:not(.faved) { opacity: .78; }
+     or Hot. Bumped .78 → .9 — at .78 the outline star was still reading as
+     "barely there" against busy card art, especially in Galaxy/Cyber themes. */
+  .pin-icon:not(.faved) { opacity: .9; }
   .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
-  .pin-icon.faved { opacity: 1; }
+  .pin-icon.faved { opacity: 1; filter: drop-shadow(0 1px 3px rgba(0,0,0,.55)) drop-shadow(0 0 4px rgba(255,207,92,.5)); }
 
   /* Report-broken — icon-only with a tooltip (title/aria-label carry the
      text for screen readers and on long-press/hover) instead of a labeled
@@ -1046,8 +1057,8 @@
     position: absolute; top: 8px; right: 8px; z-index: 2;
     width: 20px; height: 20px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,.4); color: rgba(255,255,255,.75);
-    opacity: .85; transform: translate(0,0);
+    background: rgba(0,0,0,.5); color: rgba(255,255,255,.92);
+    opacity: .95; transform: translate(0,0);
     transition: opacity .2s ease, transform .2s ease, color .2s ease;
     pointer-events: none;
   }
@@ -3349,9 +3360,24 @@ function renderSitesDirectory() {
     return;
   }
 
+  // The 🔥 badge only means something if it's rare. hot-sites.json is
+  // admin-editable and can end up with most/all sites marked hot at once —
+  // capping the *displayed* badge to the first few (already sorted hot-first
+  // above) keeps the visual meaning intact without needing the underlying
+  // data cleaned up every time.
+  const MAX_VISIBLE_HOT_BADGES = 5;
+  let hotBadgesShown = 0;
+
+  // Hand-picked "best experience per category" sites (speed, ad-load,
+  // library freshness) — a quiet gold ring, not a resize, so a couple of
+  // sites get a nod without reintroducing the oversized "featured" card.
+  const EDITOR_PICKS = new Set(['KissKH', 'Cineby', 'Miruro', 'Dulo']);
+
   const buildCard = (s, i) => {
     const isFav = favs.includes(s.name);
-    const isHot = isHotSite(s.name);
+    const isHot = isHotSite(s.name) && hotBadgesShown < MAX_VISIBLE_HOT_BADGES;
+    if (isHot) hotBadgesShown++;
+    const isEditorPick = EDITOR_PICKS.has(s.name);
     // Uniform sizing — no card gets a wider/taller "hero" treatment anymore,
     // since with several sites often marked hot at once, whichever sorted
     // first was blowing up into a banner while equally-"hot" sites lower
@@ -3359,10 +3385,10 @@ function renderSitesDirectory() {
     const liveUrl = getOverriddenUrl(s.name, s.url);
     const pinIcon = isFav
       ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
-      : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
+      : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
     const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][i % 3];
     return `
-    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
+    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}${isEditorPick ? ' editor-pick' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
       <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
