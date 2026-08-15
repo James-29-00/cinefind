@@ -136,7 +136,7 @@
     --bg: #120a1e; --surface: #1a1028; --card: #1c1230;
     --border: #ff5fa233;
     --text: #f5f0fa; --muted: #c3b3dc;
-    --accent: #ff5fa2; --accent2: #ff8fc4; --gold: #c9a8ff; --bg-glow-rgb: 255,95,162;
+    --accent: #ff5fa2; --accent2: #ff8fc4; --gold: #ffcf5c; --bg-glow-rgb: 255,95,162;
   }
   /* Starfield + nebula glow, only rendered in Cyber Neon mode. Pure CSS
      (radial gradients / SVG data-URI), so no extra image requests. */
@@ -730,19 +730,20 @@
        visible rendering bug is worse than the jank it was preventing. */
     /* Per-brand accent (--card-accent, set inline per card from the site's
        logo color) tints one corner of the border so cards stay scannable
-       by brand at a glance, fading back to the neutral border color rather
-       than glowing the full edge — keeps it a family resemblance, not
-       every card fighting for attention. Falls back to the theme accent
-       for any site without one (e.g. admin-added custom sites). */
-    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 55%, var(--border)) 0%, var(--border) 55%);
+       by brand at a glance. Blended mostly with the theme accent (not just
+       the neutral border) so raw brand hues (gold, green, etc.) don't fight
+       the page's active palette — cards keep a subtle brand hint while
+       staying visually cohesive across all three themes. Falls back to the
+       theme accent for any site without one (e.g. admin-added custom sites). */
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 35%, var(--accent) 65%) 0%, var(--border) 55%);
     transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
   }
   .gradient-card-wrapper:hover {
     transform: translateY(-3px);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 75%, transparent) 0%, rgba(var(--bg-glow-rgb),.45) 65%);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--card-accent, var(--accent)) 30%, transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 40%, var(--accent) 60%) 0%, rgba(var(--bg-glow-rgb),.45) 65%);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--card-accent, var(--accent)) 20%, var(--accent) 80%);
   }
   .gradient-card-wrapper:active {
     transform: scale(.97);
@@ -760,7 +761,7 @@
     border-radius: var(--sp-4);
     display: flex; flex-direction: column;
     text-decoration: none; color: var(--text);
-    height: 128px;
+    height: 148px;
     position: relative;
     overflow: hidden;
   }
@@ -809,10 +810,11 @@
     box-shadow: 0 12px 28px rgba(20,17,12,.28);
   }
   .pin-icon {
-    color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
+    color: rgba(255,255,255,.78); cursor: pointer; transition: color .2s ease, opacity .2s ease;
     background: none; border: none; line-height: 1; padding: 0;
     display: flex; align-items: center; justify-content: center;
     position: relative;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
   }
   /* Invisible tap-area expansion — same reasoning as .report-icon::before. */
   .pin-icon::before {
@@ -827,12 +829,11 @@
      one-off color. */
   body.light-mode .pin-icon { color: var(--card-logo-ink); }
   body.light-mode .pin-icon:hover, body.light-mode .pin-icon.faved { color: var(--gold); }
-  /* Not-yet-favorited star stays dim by default — it's a secondary, optional
-     action, not something that needs equal visual weight to status or Hot.
-     .6 (not .4) keeps it visibly secondary while still clearing the ~3:1
-     WCAG 1.4.11 non-text contrast minimum for interactive UI components.
-     Full opacity on hover/focus (discoverable) and once actually favorited. */
-  .pin-icon:not(.faved) { opacity: .6; }
+  /* Not-yet-favorited star stays dim(mer) by default — it's a secondary,
+     optional action, not something that needs equal visual weight to status
+     or Hot. .78 (raised from .6) keeps it clearly legible on dark cards
+     while still visibly secondary vs. the fully-opaque faved state. */
+  .pin-icon:not(.faved) { opacity: .78; }
   .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
   .pin-icon.faved { opacity: 1; }
 
@@ -1006,15 +1007,21 @@
      face said so. A quiet corner icon (barely-there by default, so it
      doesn't compete with the logo) confirms "this whole card opens the
      site" without needing an explicit "Visit" label taking up space. */
+  /* Tap-to-visit affordance — the whole card is a link, but nothing on its
+     face said so. A corner icon confirms "this whole card opens the site"
+     without needing an explicit "Visit" label taking up space. Visible
+     enough by default (not just on hover) since touch devices have no
+     hover state to reveal it otherwise. */
   .visit-hint {
     position: absolute; top: 8px; right: 8px; z-index: 2;
     width: 20px; height: 20px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,.25); color: rgba(255,255,255,.35);
-    opacity: .55; transform: translate(0,0);
+    background: rgba(0,0,0,.4); color: rgba(255,255,255,.75);
+    opacity: .85; transform: translate(0,0);
     transition: opacity .2s ease, transform .2s ease, color .2s ease;
     pointer-events: none;
   }
+  .visit-hint svg { stroke-width: 2.5; }
   .gradient-card-wrapper:hover .visit-hint,
   .gradient-card-wrapper:focus-within .visit-hint {
     opacity: 1; color: var(--card-accent, var(--accent));
