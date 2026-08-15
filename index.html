@@ -1235,6 +1235,10 @@
         <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
           <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
+        <button id="theme-dropdown-arrow" title="Pick a theme" aria-label="Open theme list" onclick="toggleThemeDropdown(event)" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:2px; display:flex; align-items:center;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        </button>
+        <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:140px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
       </div>
     </div>
     <div class="logo">Cine<span>Find</span>
@@ -1414,6 +1418,37 @@ function findThemeIndex() {
 function cycleTheme() {
   const next = THEME_CYCLE[(findThemeIndex() + 1) % THEME_CYCLE.length];
   applyTheme(next, true);
+}
+
+// ========== THEME DROPDOWN (pick directly instead of cycling one-by-one) ==========
+function toggleThemeDropdown(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('theme-dropdown-menu');
+  if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  if (isOpen) {
+    menu.style.display = 'none';
+    return;
+  }
+  const activeIndex = findThemeIndex();
+  menu.innerHTML = THEME_CYCLE.map((s, i) => `
+    <button onclick="selectThemeFromDropdown(${i})" style="display:block; width:100%; text-align:left; background:${i === activeIndex ? 'rgba(255,255,255,.08)' : 'none'}; border:none; color:var(--text); font-size:.82rem; font-weight:${i === activeIndex ? '700' : '500'}; padding:8px 10px; border-radius:6px; cursor:pointer;">
+      ${i === activeIndex ? '✓ ' : ''}${s.label}
+    </button>
+  `).join('');
+  menu.style.display = 'block';
+  document.addEventListener('click', closeThemeDropdownOnOutsideClick, { once: true });
+}
+
+function selectThemeFromDropdown(index) {
+  applyTheme(THEME_CYCLE[index], true);
+  const menu = document.getElementById('theme-dropdown-menu');
+  if (menu) menu.style.display = 'none';
+}
+
+function closeThemeDropdownOnOutsideClick() {
+  const menu = document.getElementById('theme-dropdown-menu');
+  if (menu) menu.style.display = 'none';
 }
 
 function applyTheme(state, announce) {
