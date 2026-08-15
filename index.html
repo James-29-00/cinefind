@@ -380,7 +380,11 @@
     color: #b8ffcf;
     background: rgba(34, 197, 94, .12);
     border: 1px solid rgba(34, 197, 94, .35);
-    padding: 4px 10px 4px 8px;
+    /* Padding bumped up (was 4px 10px 4px 8px) — at the old size this pill
+       sat noticeably shorter than the 45px circular buttons beside it in
+       the header row, reading as a mismatched, unrelated element rather
+       than part of the same row. */
+    padding: 10px 14px 10px 10px;
     border-radius: 999px;
     vertical-align: middle;
     margin-right: auto;
@@ -517,13 +521,20 @@
   .filter-chip.fav-chip { color: var(--accent2); border-color: rgba(var(--bg-glow-rgb),.35); }
   .filter-chip.fav-chip:hover { background: rgba(var(--bg-glow-rgb),.1); }
   .fav-quick-link {
-    background: none; border: none; cursor: pointer;
+    /* Was plain text with no background/border — floated on the page with
+       nothing visually anchoring it to the search bar above or the site
+       list below. A light pill container (same language as the app's other
+       chips/pills) gives it a clear, intentional identity instead. */
+    background: rgba(var(--bg-glow-rgb),.08);
+    border: 1px solid rgba(var(--bg-glow-rgb),.25);
+    border-radius: 999px;
+    cursor: pointer;
     font-family: 'Space Grotesk', sans-serif; font-size: .8rem;
-    color: var(--muted); padding: 4px 2px;
+    color: var(--muted); padding: 7px 14px 7px 12px;
     display: inline-flex; align-items: center; gap: 5px;
-    transition: color .2s;
+    transition: color .2s, border-color .2s, background .2s;
   }
-  .fav-quick-link:hover { color: var(--accent2); }
+  .fav-quick-link:hover { color: var(--accent2); border-color: var(--accent2); background: rgba(var(--bg-glow-rgb),.14); }
 
   /* ===== Genre pill chips (gradient border trick) ===== */
   .pill-container {
