@@ -694,6 +694,12 @@
   .site-card {
     position: relative;
     background: var(--card); border: 1px solid var(--border); border-radius: var(--sp-4);
+    /* Same per-brand accent cue as the homepage grid cards — set inline per
+       card from the matched site's logo color — just adapted to a left-edge
+       stripe since this is a horizontal list row, not a square tile with a
+       corner to tint. Keeps the two card styles feeling like one brand
+       language instead of two unrelated components. */
+    border-left: 3px solid var(--site-card-accent, var(--border));
     padding: var(--sp-4); text-decoration: none; color: var(--text);
     display: flex; align-items: center; gap: var(--sp-3);
     transition: border-color .2s, transform .2s, box-shadow .2s;
@@ -847,11 +853,11 @@
     box-shadow: 0 12px 28px rgba(20,17,12,.28);
   }
   .pin-icon {
-    color: rgba(255,255,255,.78); cursor: pointer; transition: color .2s ease, opacity .2s ease;
+    color: rgba(255,255,255,.85); cursor: pointer; transition: color .2s ease, opacity .2s ease;
     background: none; border: none; line-height: 1; padding: 0;
     display: flex; align-items: center; justify-content: center;
     position: relative;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,.6));
   }
   /* Invisible tap-area expansion — same reasoning as .report-icon::before. */
   .pin-icon::before {
@@ -859,13 +865,13 @@
     top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: 44px; height: 44px;
   }
-  .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
+  .pin-icon:hover, .pin-icon.faved { color: var(--accent); }
   /* Light Mode fix: the default white-ish star (tuned for dark cards) has
      near-zero contrast against the new light pastel cards. Uses the same
      dark ink as the logo text so it reads clearly without a separate
      one-off color. */
   body.light-mode .pin-icon { color: var(--card-logo-ink); }
-  body.light-mode .pin-icon:hover, body.light-mode .pin-icon.faved { color: var(--gold); }
+  body.light-mode .pin-icon:hover, body.light-mode .pin-icon.faved { color: var(--accent); }
   /* Not-yet-favorited star stays dim(mer) by default — it's a secondary,
      optional action, not something that needs equal visual weight to status
      or Hot. Bumped .78 → .9 — at .78 the outline star was still reading as
@@ -887,6 +893,7 @@
     flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
     color: rgba(255,255,255,.4); background: transparent;
     position: relative;
+    font-size: .9rem; line-height: 1; letter-spacing: -1px;
   }
   .report-icon:hover, .report-icon:focus-visible { color: var(--accent); background: rgba(var(--bg-glow-rgb),.2); }
   /* Invisible tap-area expansion to meet the ~44px mobile touch target
@@ -958,13 +965,13 @@
      whole bar (not just the dot) so status reads at a glance without
      needing to focus on the small icon. */
   .status-label-mini.status-up {
-    background: linear-gradient(0deg, rgba(6,214,160,.32), rgba(6,214,160,.06));
+    background: linear-gradient(0deg, rgba(6,214,160,.5), rgba(6,214,160,.1));
   }
   .status-label-mini.status-blocked {
-    background: linear-gradient(0deg, rgba(240,180,40,.32), rgba(240,180,40,.06));
+    background: linear-gradient(0deg, rgba(240,180,40,.5), rgba(240,180,40,.1));
   }
   .status-label-mini.status-down {
-    background: linear-gradient(0deg, rgba(230,57,70,.32), rgba(230,57,70,.06));
+    background: linear-gradient(0deg, rgba(230,57,70,.5), rgba(230,57,70,.1));
   }
   /* Skeleton shimmer shown before status.json resolves, so the bottom bar
      never looks "broken"/empty on first paint — it visibly signals
@@ -1048,34 +1055,8 @@
      face said so. A quiet corner icon (barely-there by default, so it
      doesn't compete with the logo) confirms "this whole card opens the
      site" without needing an explicit "Visit" label taking up space. */
-  /* Tap-to-visit affordance — the whole card is a link, but nothing on its
-     face said so. A corner icon confirms "this whole card opens the site"
-     without needing an explicit "Visit" label taking up space. Visible
-     enough by default (not just on hover) since touch devices have no
-     hover state to reveal it otherwise. */
-  .visit-hint {
-    position: absolute; top: 8px; right: 8px; z-index: 2;
-    width: 20px; height: 20px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,.5); color: rgba(255,255,255,.92);
-    opacity: .95; transform: translate(0,0);
-    transition: opacity .2s ease, transform .2s ease, color .2s ease;
-    pointer-events: none;
-  }
-  .visit-hint svg { stroke-width: 2.5; }
-  .gradient-card-wrapper:hover .visit-hint,
-  .gradient-card-wrapper:focus-within .visit-hint {
-    opacity: 1; color: var(--card-accent, var(--accent));
-    transform: translate(1px,-1px);
-  }
-  /* Same fix as the HOT flame above: a black circle + faint white arrow
-     (right for Dark Mode's near-black card) is nearly invisible against
-     Light Mode's pale card — flips to a light chip with dark ink so the
-     "this opens a link" affordance still reads. */
-  body.light-mode .visit-hint {
-    background: rgba(43,36,29,.16); color: var(--card-logo-ink);
-    opacity: .8;
-  }
+  /* visit-hint removed — the whole card already opens as a link, and having
+     a corner icon repeat that on every single card was pure visual noise. */
 
   /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
   .card-logo {
@@ -2028,7 +2009,7 @@ function renderOnboardingTip() {
       <span style="flex-shrink:0; color:var(--gold); display:inline-flex; margin-top:1px;" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span>
       <span style="flex:1;">
         <strong style="color:var(--text);">Good to know:</strong>
-        ✅ = direct link, ⚠️ = search inside the site, and the <span style="display:inline-flex; align-items:center; gap:3px; white-space:nowrap;"><span style="display:inline-flex; gap:3px;"><span style="width:9px;height:9px;border-radius:50%;background:#06d6a0;display:inline-block;"></span><span style="width:9px;height:9px;border-radius:50%;background:#f0b428;display:inline-block;"></span><span style="width:9px;height:9px;border-radius:50%;background:#e63946;display:inline-block;"></span></span> dot</span> shows if a site's online.
+        🔗 = direct link, 🔍 = search inside the site, and the <span style="display:inline-flex; align-items:center; gap:3px; white-space:nowrap;"><span style="display:inline-flex; gap:3px;"><span style="width:9px;height:9px;border-radius:50%;background:#06d6a0;display:inline-block;"></span><span style="width:9px;height:9px;border-radius:50%;background:#f0b428;display:inline-block;"></span><span style="width:9px;height:9px;border-radius:50%;background:#e63946;display:inline-block;"></span></span> dot</span> shows if a site's online.
       </span>
       <button onclick="dismissOnboarding()" aria-label="Dismiss tip" style="background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; flex-shrink:0; line-height:1; padding:8px; margin:-8px -6px -8px 0;">✕</button>
     </div>`;
@@ -2642,13 +2623,34 @@ function renderResult(data, query) {
   const favs = getFavorites();
   const isFavorited = favs.some(f => f.title === data.title);
 
-  // Show verified search-link sites first (more reliable — links straight to results)
-  // before "search inside site" homepage links, so the most useful sites appear
-  // in the initial visible batch rather than at random. Split into two named
-  // groups (rather than relying on the small per-card badge alone) so the
-  // distinction reads as an actual grouping, not just incidental sort order.
-  const freeSites = (data.sites || []).filter(s => s.free);
-  const otherSites = (data.sites || []).filter(s => !s.free);
+  // Show direct-link sites first (link straight to the specific title) before
+  // "search inside site" homepage links, so the most useful sites appear in
+  // the initial visible batch rather than at random. This split just reflects
+  // whether a direct URL was returned for this title — it isn't an active
+  // verification check, so don't badge it as "verified" or imply certainty
+  // in the UI. Split into two named groups (rather than relying on the small
+  // per-card badge alone) so the distinction reads as an actual grouping,
+  // not just incidental sort order.
+  // Within each group, same priority as the homepage directory: 🔥 Hot first,
+  // then by live status (up > blocked > unknown > down) — a site being
+  // "free"/"search-link" doesn't mean much if it's actually offline right now.
+  const statusRank = { up: 0, blocked: 1, down: 3 };
+  const resolveCanonicalName = (s) => {
+    const match = [...SITES_DIRECTORY, ...customSites].find(d =>
+      normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
+    );
+    return match ? match.name : s.name;
+  };
+  const byHotThenStatus = (a, b) => {
+    const nameA = resolveCanonicalName(a), nameB = resolveCanonicalName(b);
+    const hotDiff = (isHotSite(nameB) ? 1 : 0) - (isHotSite(nameA) ? 1 : 0);
+    if (hotDiff !== 0) return hotDiff;
+    const rankA = statusRank[getSiteStatus(nameA)] ?? 2;
+    const rankB = statusRank[getSiteStatus(nameB)] ?? 2;
+    return rankA - rankB;
+  };
+  const freeSites = (data.sites || []).filter(s => s.free).sort(byHotThenStatus);
+  const otherSites = (data.sites || []).filter(s => !s.free).sort(byHotThenStatus);
   const SITES_VISIBLE_INITIAL = 4;
 
   // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
@@ -2659,12 +2661,12 @@ function renderResult(data, query) {
     );
     const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
     return `
-    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i*0.07}s">
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
         <div class="site-name">${s.name}</div>
         <div class="site-note">${s.note || 'Free streaming'}</div>
-        ${s.free ? '<div style="font-size:.7rem;color:var(--green);margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:var(--gold);margin-top:3px;">⚠️ Search inside site</div>'}
+        ${s.free ? '<div style="font-size:.7rem;color:var(--muted);margin-top:3px;">🔗 Direct link</div>' : '<div style="font-size:.7rem;color:var(--muted);margin-top:3px;">🔍 Search inside site</div>'}
       </div>
       <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg><span class="report-label-text">Report</span></button>
       <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
@@ -2680,7 +2682,7 @@ function renderResult(data, query) {
   const showGroupHeaders = freeSites.length > 0 && otherSites.length > 0;
   const rows = [];
   if (freeSites.length > 0) {
-    if (showGroupHeaders) rows.push({ card: false, html: `<div class="site-group-header">✅ Direct links</div>` });
+    if (showGroupHeaders) rows.push({ card: false, html: `<div class="site-group-header">🔗 Direct links</div>` });
     freeSites.forEach(s => rows.push({ card: true, site: s }));
   }
   if (otherSites.length > 0) {
@@ -3384,8 +3386,8 @@ function renderSitesDirectory() {
     // down stayed small. The 🔥 badge alone signals hot status now.
     const liveUrl = getOverriddenUrl(s.name, s.url);
     const pinIcon = isFav
-      ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
-      : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
+      ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`
+      : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
     const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][i % 3];
     return `
     <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}${isEditorPick ? ' editor-pick' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
@@ -3393,11 +3395,10 @@ function renderSitesDirectory() {
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
-          <button class="pin-icon${isFav ? ' faved' : ''}" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
-          <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
+          <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35;">⋯</button>
         </span>
+        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
         ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff8f1f"/><stop offset="100%" stop-color="#ffd23f"/></linearGradient></defs><path fill="url(#flameGrad)" d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/><path fill="#1a1a2e" fill-opacity=".35" d="M12 21a3.3 3.3 0 0 1-3.3-3.3c0-1.6 1-2.5 1.9-3.3-.1.7.2 1.3.8 1.3.7 0 1-.6 1-1.3.7.9 1.2 1.8 1.2 3.1A2.6 2.6 0 0 1 12 21Z"/></svg></span>` : ''}
-        <span class="visit-hint" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -3507,11 +3508,11 @@ function renderHomepage() {
     <div class="genre-grid" id="genre-grid">
       <button class="genre-chip" data-genre="28" onclick="browseGenre(28, 'Action', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></span>Action</button>
       <button class="genre-chip" data-genre="35" onclick="browseGenre(35, 'Comedy', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 13c1 1.5 2.5 2.3 4 2.3s3-.8 4-2.3"/><circle cx="9" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".6" fill="currentColor" stroke="none"/></svg></span>Comedy</button>
-      <button class="genre-chip" data-genre="18" onclick="browseGenre(18, 'Drama', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="6"/><path d="M5.5 14c1 1 2 1.3 2.5 1.3s1.5-.3 2.5-1.3"/><circle cx="16" cy="12" r="6"/><path d="M13.5 10c1-1 2-1.3 2.5-1.3s1.5.3 2.5 1.3"/></svg></span>Drama</button>
-      <button class="genre-chip" data-genre="27" onclick="browseGenre(27, 'Horror', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 00-7 7v4l1.5 2v2h2v-2h1v2h1v-2h2v2h1v-2h1v2h2v-2L19 14v-4a7 7 0 00-7-7z"/><circle cx="9.3" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg></span>Horror</button>
+      <button class="genre-chip" data-genre="18" onclick="browseGenre(18, 'Drama', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="6"/><path d="M5.5 14c1 1 2 1.3 2.5 1.3s1.5-.3 2.5-1.3"/><circle cx="16" cy="12" r="6"/><path d="M13.5 10c1-1 2-1.3 2.5-1.3s1.5.3 2.5 1.3"/></svg></span>Drama</button>
+      <button class="genre-chip" data-genre="27" onclick="browseGenre(27, 'Horror', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 00-7 7v4l1.5 2v2h2v-2h1v2h1v-2h2v2h1v-2h1v2h2v-2L19 14v-4a7 7 0 00-7-7z"/><circle cx="9.3" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg></span>Horror</button>
       <button class="genre-chip" data-genre="10749" onclick="browseGenre(10749, 'Romance', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C1 8 2 4.5 5.5 4 8 3.6 10 5 12 7c2-2 4-3.4 6.5-3 3.5.5 4.5 4 3 7-2.5 4.5-9.5 9-9.5 9z"/></svg></span>Romance</button>
-      <button class="genre-chip" data-genre="878" onclick="browseGenre(878, 'Sci-Fi', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2 4.5 6 4 10l-4 4-4-4c-.5-4 1-8 4-10z"/><path d="M8.5 13.5 5 15l1-4"/><path d="M15.5 13.5 19 15l-1-4"/><path d="M10 21l1-3h2l1 3"/><circle cx="12" cy="9" r="1.3" fill="currentColor" stroke="none"/></svg></span>Sci-Fi</button>
-      <button class="genre-chip" data-genre="16" onclick="browseGenre(16, 'Animation', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.2 0 2-1 2-2 0-.6-.3-1-.6-1.4-.3-.4-.4-.8-.1-1.2.3-.4.9-.4 1.4-.4H16a4 4 0 004-4c0-5-3.6-9-8-9z"/><circle cx="7.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="9.5" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="11" r="1" fill="currentColor" stroke="none"/></svg></span>Animation</button>
+      <button class="genre-chip" data-genre="878" onclick="browseGenre(878, 'Sci-Fi', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2 4.5 6 4 10l-4 4-4-4c-.5-4 1-8 4-10z"/><path d="M8.5 13.5 5 15l1-4"/><path d="M15.5 13.5 19 15l-1-4"/><path d="M10 21l1-3h2l1 3"/><circle cx="12" cy="9" r="1.3" fill="currentColor" stroke="none"/></svg></span>Sci-Fi</button>
+      <button class="genre-chip" data-genre="16" onclick="browseGenre(16, 'Animation', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.2 0 2-1 2-2 0-.6-.3-1-.6-1.4-.3-.4-.4-.8-.1-1.2.3-.4.9-.4 1.4-.4H16a4 4 0 004-4c0-5-3.6-9-8-9z"/><circle cx="7.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="9.5" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="11" r="1" fill="currentColor" stroke="none"/></svg></span>Animation</button>
       <button class="genre-chip" data-genre="53" onclick="browseGenre(53, 'Thriller', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span>Thriller</button>
     </div>
 
