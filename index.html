@@ -167,8 +167,25 @@
      never actually applied. Scoping this as a compound
      `body.light-mode.theme-crimson` selector (two classes) gives it
      higher specificity so it reliably wins regardless of order. */
+  /* Light Mode gets its own warm gold/amber accent instead of inheriting
+     Crimson's red — a cool-leaning red sits awkwardly against this warm
+     cream background, while gold is same-temperature (warm-on-warm) and
+     carries a "golden age of cinema" association that fits a movie-finder
+     brand. Also keeps Light Mode visually distinct from all three dark
+     themes (red/cyan/pink) instead of just reading as "Crimson but pale".
+     --accent2 is a terracotta/burnt-sienna rather than a second shade of
+     gold — with --accent and the existing --gold both already warm
+     amber-browns, a third near-identical gold made primary vs. secondary
+     emphasis hard to tell apart at a glance ("muddy"). Shifting --accent2
+     toward red-orange keeps the same warm-on-warm family (no cool clash)
+     while giving it a clearly distinct role — a "red carpet vs. gold
+     trophy" pairing. Both values measured 4.5:1+ against --bg (#d9d3c5)
+     for WCAG AA text compliance, same bar as every other Light Mode color
+     in this file. Overrides `body.theme-crimson`'s red via the same
+     two-class `body.light-mode.theme-crimson` compound selector used
+     elsewhere here for the specificity reasons explained above. */
   body.light-mode.theme-crimson {
-    --accent2: #9c2f3f;
+    --accent: #7a4d00; --accent2: #8f3a1a; --bg-glow-rgb: 122,77,0;
   }
   /* Darkened (same hue/saturation, reduced lightness) versions of each
      --brand-* color, tuned to hit 4.5:1+ against the lightest of the
@@ -659,7 +676,7 @@
     border: 1.5px solid transparent;
     background-image:
       linear-gradient(var(--card), var(--card)),
-      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
+      linear-gradient(135deg, rgba(var(--bg-glow-rgb),.55) 0%, var(--accent2) 100%);
     background-origin: border-box;
     background-clip: padding-box, border-box;
     /* Ring uses the theme accent (not a flat white) so the "selected" state
@@ -677,6 +694,16 @@
   .genre-pill:focus-visible {
     outline: 2px solid var(--text);
     outline-offset: 2px;
+  }
+  /* Light Mode's --bg is a warm cream, not the near-black every theme's
+     --accent was tuned for — the same fully-saturated accent that reads as
+     a crisp glow on dark backgrounds instead reads as a harsh, clashing
+     ring against a pastel one. Softened here by blending toward --bg
+     (same hue family, ~45% less saturated) rather than introducing a
+     separate light-mode accent variable, so it still visibly matches
+     whichever theme (Crimson/Cyber/Galaxy) is active. */
+  body.light-mode .dual-gradient-pill.active {
+    box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, var(--bg) 45%);
   }
 
   .genre-chip {
@@ -893,6 +920,23 @@
     transform: scale(.97);
     transition: transform .1s ease;
   }
+  /* Same fix as the pill active-state above — the raw theme accent used in
+     the card border blend (base rule further up) is tuned for a dark
+     background and reads too harsh/saturated against Light Mode's cream
+     --bg. Softened by mixing toward --border (light mode's already-correct
+     dark-on-cream neutral) instead of the raw accent. Bumped from 20%→32%
+     brand mix (was reading as barely-there) and the fade point now keeps a
+     touch of --accent instead of fading to flat --border — echoes Dark
+     Mode's approach of fading into the accent "family" rather than fully
+     desaturating to gray, without going back to the harsh full-saturation
+     look that prompted the original mute-down in the first place. */
+  body.light-mode .gradient-card-wrapper {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 32%, var(--border) 68%) 0%, color-mix(in srgb, var(--accent) 12%, var(--border) 88%) 60%);
+  }
+  body.light-mode .gradient-card-wrapper:hover {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 38%, var(--border) 62%) 0%, color-mix(in srgb, var(--accent) 25%, var(--bg) 75%) 65%);
+    box-shadow: 0 0 9px color-mix(in srgb, var(--card-accent, var(--accent)) 22%, var(--border) 78%);
+  }
   .gradient-card-wrapper.is-hot {
     /* Was a flat 55/45 gold/accent blend. In Crimson (accent = red) that
        still reads clearly as gold against a red-tinted card. But in Cyber
@@ -933,6 +977,24 @@
   }
   .gradient-card-wrapper.editor-pick:not(.is-hot):hover {
     box-shadow: 0 0 0 1.5px rgba(255,207,92,.85), 0 0 14px rgba(255,207,92,.35);
+  }
+  /* The dark-mode ring (pale #ffcf5c at low opacity) measured ~1:1 contrast
+     against all three Light Mode pastel cards — severely fails WCAG
+     1.4.11's 3:1 floor for UI component boundaries, making Editor's Picks
+     essentially invisible in Light Mode. Swapped for the solid Light Mode
+     --accent instead of just tweaking opacity, since no opacity of that
+     pale a color could ever clear 3:1 on backgrounds this light. Resting
+     state is thinner (1px) and 80% opacity rather than fully solid — a
+     full 1.5px opaque ring read as visually heavy/"thick" once combined
+     with a card's own base border + a filled favorite star (worst case:
+     KissKH, both at once). Still verified 3.39:1+ at 80% opacity against
+     all three pastel tones — comfortably above the 3:1 floor. Hover keeps
+     the full-strength ring since that's a deliberate emphasis moment. */
+  body.light-mode .gradient-card-wrapper.editor-pick:not(.is-hot) {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 80%, transparent), 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  body.light-mode .gradient-card-wrapper.editor-pick:not(.is-hot):hover {
+    box-shadow: 0 0 0 1.5px var(--accent), 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
   }
   .card-content {
     background-color: #16161f;
@@ -997,10 +1059,11 @@
     box-shadow: 0 10px 24px rgba(20,17,12,.22);
   }
   body.light-mode .gradient-card-wrapper.is-hot {
-    box-shadow: 0 6px 18px rgba(20,17,12,.18);
+    background: linear-gradient(135deg, var(--hot-color) 0%, color-mix(in srgb, var(--accent) 30%, var(--border) 70%) 100%);
+    box-shadow: 0 6px 18px rgba(20,17,12,.18), 0 0 7px color-mix(in srgb, var(--hot-color) 30%, transparent);
   }
   body.light-mode .gradient-card-wrapper.is-hot:hover {
-    box-shadow: 0 12px 28px rgba(20,17,12,.28);
+    box-shadow: 0 12px 28px rgba(20,17,12,.28), 0 0 12px color-mix(in srgb, var(--hot-color) 45%, transparent);
   }
   .pin-icon {
     color: rgba(255,255,255,.85); cursor: pointer; transition: color .2s ease, opacity .2s ease;
@@ -1067,10 +1130,11 @@
      tint combination this row can appear in. */
   .speed-badge-mini {
     display: none; align-items: center; justify-content: center;
-    flex-shrink: 0; opacity: .8;
-    color: rgba(255,255,255,.7);
+    flex-shrink: 0; opacity: 1;
+    color: rgba(255,255,255,.95);
+    filter: drop-shadow(0 0 1.5px rgba(0,0,0,.7)); /* subtle dark edge so the icon still reads against lighter/busy card backgrounds */
   }
-  body.light-mode .speed-badge-mini { color: var(--card-logo-ink); }
+  body.light-mode .speed-badge-mini { color: var(--card-logo-ink); filter: none; }
 
   /* Site status dot — filled in after status.json loads (see applyStatusDots()).
      Deliberately small and quiet (just enough contrast to read at a glance
@@ -1570,7 +1634,7 @@ function initTheme() {
 const THEME_KEY = 'cinefind-theme-mode';
 const THEME_CYCLE = [
   { theme: 'theme-crimson', mode: 'dark-mode', label: 'Crimson', swatch: '#e63946' },
-  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode', swatch: '#e8e2d3' },
+  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode', swatch: '#7a4d00' },
   { theme: 'theme-cyber', mode: 'dark-mode', label: 'Cyber', swatch: '#22e5e5' },
   { theme: 'theme-galaxy', mode: 'dark-mode', label: 'Galaxy', swatch: '#ff5fa2' },
 ];
