@@ -32,7 +32,7 @@
 <meta name="theme-color" content="#e63946">
 <link rel="manifest" href="manifest.json">
 
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
   :root {
     /* Light Mode Colors */
@@ -321,13 +321,28 @@
   header { text-align: center; padding: 20px 0 var(--sp-3); position: relative; }
   .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 4px; }
   .logo {
-    font-family: 'Bebas Neue', sans-serif;
+    /* Switched from 'Bebas Neue' — that font is an all-caps-only display
+       face with no distinct lowercase glyphs, so "Cine"+"Find" always
+       rendered visually identical to "CINEFIND" no matter the size,
+       color, or theme (the actual root cause of the "always looks like
+       caps" issue — not a sizing/contrast problem as first suspected).
+       Space Grotesk (already loaded at 700 weight for other UI bits)
+       has real lowercase forms, so the wordmark now genuinely reads as
+       mixed-case "CineFind". */
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
     /* Smoother fluid scaling: a fixed rem base plus a gentler vw increment,
        instead of a steep straight vw value. This avoids the sudden crowded
        look on ~360-400px phones where 10vw was already near the clamp
-       floor, and keeps the size change gradual across breakpoints. */
-    font-size: clamp(3rem, 2.2rem + 4vw, 6rem);
-    letter-spacing: clamp(.02em, .01em + .15vw, .04em);
+       floor, and keeps the size change gradual across breakpoints.
+       Max size trimmed from 5rem to 4.5rem — the previous size crowded
+       the space above the search bar on larger phones; this keeps the
+       wordmark commanding without dominating the whole first screen. */
+    font-size: clamp(2.6rem, 1.9rem + 3.2vw, 4.5rem);
+    /* Tighter, slightly negative tracking reads as a deliberate logotype
+       rather than plain bold text — standard practice for large display
+       wordmarks set in a geometric sans like Space Grotesk. */
+    letter-spacing: clamp(-.03em, -.035em + .03vw, -.02em);
     line-height: 1;
     white-space: nowrap;
     /* Flat solid white for "Cine" instead of a diagonal gradient — at
@@ -338,23 +353,22 @@
     color: #fff;
     flex: 1;
   }
-  .logo span { color: var(--accent); }
+  .logo span { color: var(--accent); font-weight: 800; }
   body.theme-crimson .logo span {
     filter: drop-shadow(0 0 12px rgba(230,57,70,.6));
   }
   /* The wordmark's first half ("Cine") fades from white into the accent
      color — built for a dark background. On Light Mode that white start
-     point is nearly invisible against the light page background, so it
-     needs a dark starting color instead. */
+     point is nearly invisible against the light page background.
+     A gradient blend was tried here first, but both endpoints (dark text
+     + darkened-for-contrast red) are low-lightness colors, so the blend
+     just reads as one uniform dark blob instead of a crisp brand mark —
+     losing the sharp two-tone pop the dark-mode version has. Simpler and
+     cleaner: go solid, same strategy as dark mode (solid white "Cine" +
+     solid accent-red "Find"), just swapping white for --text so "Cine"
+     still has strong contrast on the light background. */
   body.light-mode .logo {
-    background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
-    -webkit-background-clip: text; background-clip: text;
-    /* Without this, the base .logo rule's solid `color: #fff` still paints
-       on top of the gradient (background-clip:text only clips the
-       background, it doesn't hide an opaque text color underneath) — so
-       "Cine" rendered solid white and vanished against the light page,
-       even though the gradient was technically applied. */
-    color: transparent; -webkit-text-fill-color: transparent;
+    color: var(--text);
   }
   /* Glow effects below (ambient background circle, button halos, text
      drop-shadow) were all tuned for a near-black background, where a
@@ -449,7 +463,14 @@
      reachable with less scrolling — first-time visitors still get the
      full branded intro untouched. */
   body.hero-compact header { padding: 10px 0 14px; }
-  body.hero-compact .logo { font-size: clamp(2rem, 6vw, 2.75rem); }
+  /* Sized up from an earlier clamp(2rem, 6vw, 2.75rem) — at that smaller
+     size, Bebas Neue's lowercase letters (which have no ascenders/
+     descenders on "ine"/"ind") sit close enough in height to the
+     uppercase letters that the whole wordmark reads as if it were typed
+     in all-caps, even though the markup is still "Cine"+"Find" mixed
+     case. Keeping the compact size a bit larger preserves the visible
+     cap-height vs. x-height difference so it still reads as CineFind. */
+  body.hero-compact .logo { font-size: clamp(2.5rem, 6vw, 3.25rem); }
   body.hero-compact .tagline { display: none; }
 
   /* Online-now live badge — a secondary trust signal, so it lives in the
