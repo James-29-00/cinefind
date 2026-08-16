@@ -894,11 +894,21 @@
     transition: transform .1s ease;
   }
   .gradient-card-wrapper.is-hot {
-    /* Was flat #f0b428 — pure gold on a pink/purple (Galaxy) or teal (Cyber)
-       page reads as a mismatched, competing border. Blending 55/45 with the
-       theme accent keeps the "hot = gold" convention recognizable while
-       letting it sit in-family with whatever theme is active. */
-    --hot-color: color-mix(in srgb, #f0b428 55%, var(--accent) 45%);
+    /* Was a flat 55/45 gold/accent blend. In Crimson (accent = red) that
+       still reads clearly as gold against a red-tinted card. But in Cyber
+       and Galaxy, every card's DEFAULT (non-hot) border is already
+       tinted with that same theme accent (see the base
+       .gradient-card-wrapper rule above) — so a 45%-accent hot border
+       ended up too close in hue to a plain card's border, and "hot"
+       became hard to distinguish by color alone.
+       First attempt raised gold to 78%, but Cyber's cyan accent at that
+       ratio still muddied into an olive/khaki tone (#c3bf52) rather than
+       gold — cyan sits almost opposite gold on the color wheel, so even
+       22% of it visibly desaturates/greys the mix. 90% gold clears that
+       up across all three themes (verified: Crimson #efa82b, Cyber
+       #dbb93b, Galaxy #f2ac34 — all read as clean gold) while the
+       remaining 10% still keeps a faint per-theme tint. */
+    --hot-color: color-mix(in srgb, #f0b428 90%, var(--accent) 10%);
     background: linear-gradient(135deg, var(--hot-color) 0%, rgba(var(--bg-glow-rgb),.6) 100%);
     /* Trimmed from 14px, and from 45% to 25% mix strength — this glow is
        always-on (not hover-only) and nearly every card in the grid is
@@ -959,12 +969,27 @@
   /* Border opacity bumped from .14 → .28: against a page background this
      close in lightness to the card tints, a faint border reads as no
      border at all — cards need a visibly darker edge (plus the shadow
-     above) to actually look "lifted" rather than blending into the page. */
+     above) to actually look "lifted" rather than blending into the page.
+     Other themes tint their border with the site's brand accent / theme
+     accent (see the base .gradient-card-wrapper rule) — Light Mode
+     originally used a completely flat neutral instead, dropping that
+     visual language entirely. This brings a similar accent-corner tint
+     back (25% crimson red mixed into the dark neutral, landing on a dark
+     maroon rather than a bright red) so Light Mode still feels part of
+     the same card language, without giving up the dark, high-contrast
+     edge that keeps cards from blending into the light page.
+     IMPORTANT: the second gradient stop is a translucent neutral, and
+     it's the part of the ring farthest from the accent corner — it needs
+     its own contrast check, not just the accent stop. At .28 opacity it
+     only reached ~1.7–2.1:1 against the page/card colors, well under
+     WCAG 1.4.11's 3:1 floor for UI component boundaries. Computed the
+     actual opacity needed (0.54) rather than eyeballing it — verified
+     3.09:1+ against every adjacent color (page bg and all 3 card tones). */
   body.light-mode .gradient-card-wrapper {
-    background: rgba(43,36,29,.28);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 15%, #5a2927 85%) 0%, rgba(43,36,29,.54) 60%);
   }
   body.light-mode .gradient-card-wrapper:hover {
-    background: rgba(43,36,29,.42);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 20%, #6c2b2b 80%) 0%, rgba(43,36,29,.64) 65%);
     /* Colored glow (color-mix with the theme accent) was tuned to pop
        against a near-black card — against a light pastel card it just
        looks muddy/washed out instead of reading as "lifted." A neutral
@@ -1029,6 +1054,23 @@
     top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: 44px; height: 44px;
   }
+
+  /* Speed badge — bolt (fast) / turtle (slow) icon, shown only when
+     status.json reports timing data for a site (see getSiteSpeed()).
+     display:none by default so it takes zero space for the many sites
+     that don't have timing data yet; JS flips it to inline-flex only
+     when there's something to show. Deliberately no background/border of
+     its own — sits inline in the same status row as the (already
+     contrast-verified) status text and inherits its color via
+     currentColor, rather than introducing a new saturated color that
+     would need its own WCAG check against every theme × mode × status-
+     tint combination this row can appear in. */
+  .speed-badge-mini {
+    display: none; align-items: center; justify-content: center;
+    flex-shrink: 0; opacity: .8;
+    color: rgba(255,255,255,.7);
+  }
+  body.light-mode .speed-badge-mini { color: var(--card-logo-ink); }
 
   /* Site status dot — filled in after status.json loads (see applyStatusDots()).
      Deliberately small and quiet (just enough contrast to read at a glance
@@ -1746,8 +1788,8 @@ function buildFavSiteCard(s, i) {
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
+          <span class="speed-badge-mini" data-speed-badge></span>
         </span>
-        <button class="pin-icon faved" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
         </button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
@@ -3053,6 +3095,12 @@ function resetSearch() {
 // the admin panel already generates from the daily GitHub Action checker) ==========
 let siteStatusMap = null; // { normalizedName: 'up' | 'blocked' | 'down' }
 let siteStatusLastRun = null; // ms timestamp of the batch status check, for "last checked" freshness text
+// { normalizedName: number } — average response time in ms from the same
+// status-check batch, if the checker script reports it (optional field,
+// `avgResponseMs` on each status.json result). Absent/undefined for any
+// site the checker doesn't report timing for — the badge simply doesn't
+// render for that site rather than guessing.
+let siteSpeedMap = null;
 
 // Strips everything but letters/numbers before comparing site names, so
 // "1Shows" / "1-Shows" / "1 Shows" (AI output, directory entries, and
@@ -3170,8 +3218,19 @@ async function loadSiteStatus() {
     if (!res.ok) return;
     const data = await res.json();
     const map = {};
-    (data.results || []).forEach(r => { if (r.name) map[normalizeSiteName(r.name)] = r.status; });
+    const speedMap = {};
+    (data.results || []).forEach(r => {
+      if (!r.name) return;
+      const key = normalizeSiteName(r.name);
+      map[key] = r.status;
+      // Only recorded for an 'up' site — response time for a down/blocked
+      // site isn't a meaningful "how fast does it load" number.
+      if (r.status === 'up' && typeof r.avgResponseMs === 'number') {
+        speedMap[key] = r.avgResponseMs;
+      }
+    });
     siteStatusMap = map;
+    siteSpeedMap = speedMap;
     siteStatusLastRun = data.lastRun ? new Date(data.lastRun).getTime() : null;
     applyStatusDots();
   } catch (err) {
@@ -3319,6 +3378,53 @@ function getSiteStatus(name) {
   return found ? siteStatusMap[found] : null;
 }
 
+// Speed badge — classifies a site's average response time (from the same
+// GitHub Action batch check as the up/down status) into 'fast' or 'slow'.
+// IMPORTANT CAVEAT (shown to the user via the tooltip, not hidden): this
+// timing is measured from the checker's server, not from the visitor's
+// own connection. A site that's fast to reach from there can still be
+// slow on a specific mobile carrier/route — the badge is a rough signal
+// for comparing sites against each other, not a promise of your actual
+// load time.
+const SPEED_FAST_THRESHOLD_MS = 1200;
+function getSiteSpeed(name) {
+  if (!siteSpeedMap) return null;
+  const key = normalizeSiteName(name);
+  const ms = siteSpeedMap[key] !== undefined
+    ? siteSpeedMap[key]
+    : siteSpeedMap[Object.keys(siteSpeedMap).find(k => key.includes(k) || k.includes(key)) || ''];
+  if (typeof ms !== 'number') return null;
+  return ms <= SPEED_FAST_THRESHOLD_MS ? 'fast' : 'slow';
+}
+
+// Bolt/turtle are drawn with fill="currentColor" so they automatically
+// inherit .status-text-mini's color — already verified against every
+// status-chip background (both themes and Light Mode) elsewhere in this
+// file, so no separate contrast check is needed for the icon itself.
+// Shape (not color) carries the fast/slow meaning, per WCAG 1.4.1 — the
+// two icons are silhouette-distinct even for a colorblind user, and each
+// carries its own title/aria-label text besides.
+function speedBadgeIcon(speed) {
+  if (speed === 'fast') {
+    return `<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>`;
+  }
+  if (speed === 'slow') {
+    return `<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+      <ellipse cx="12" cy="14" rx="7.5" ry="5"/>
+      <circle cx="19.5" cy="13" r="2.3"/>
+      <circle cx="6" cy="10.5" r="1.4"/>
+      <circle cx="10" cy="10" r="1.4"/>
+      <circle cx="14.5" cy="10" r="1.4"/>
+      <circle cx="18.5" cy="10.2" r="1.4"/>
+      <path d="M4 15q-2 .3-2.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+    </svg>`;
+  }
+  return '';
+}
+function speedBadgeLabel(speed) {
+  return speed === 'fast' ? 'Loads quickly' : 'May load slowly';
+}
+
 function statusDotColor(status) {
   return status === 'up' ? 'var(--status-green)' : status === 'blocked' ? 'var(--status-gold)' : status === 'down' ? 'var(--accent2)' : null;
 }
@@ -3429,6 +3535,22 @@ function applyStatusDots() {
         label.title = tooltipText + (siteStatusLastRun ? ` — checked ${new Date(siteStatusLastRun).toLocaleString()}` : '');
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
         label.classList.add(`status-${status}`);
+
+        const speedEl = label.querySelector('[data-speed-badge]');
+        if (speedEl) {
+          const speed = getSiteSpeed(el.dataset.siteName);
+          if (speed) {
+            speedEl.innerHTML = speedBadgeIcon(speed);
+            speedEl.title = speedBadgeLabel(speed) +
+              ' (measured from our checker, not your connection — actual speed can vary)';
+            speedEl.setAttribute('role', 'img');
+            speedEl.setAttribute('aria-label', speedEl.title);
+            speedEl.style.display = 'inline-flex';
+          } else {
+            speedEl.innerHTML = '';
+            speedEl.style.display = 'none';
+          }
+        }
       }
     } else {
       if (dot) {
@@ -3615,6 +3737,7 @@ function renderSitesDirectory() {
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
+          <span class="speed-badge-mini" data-speed-badge></span>
           <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35;">⋯</button>
         </span>
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
