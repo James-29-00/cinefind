@@ -2385,10 +2385,9 @@ const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
 const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
-// Separate Worker (deploy the search-analytics-worker.js given alongside this
-// file — needs its own KV namespace). Kept apart from VISIT_WORKER_URL so a
-// bug/outage in one never touches the other.
-const SEARCH_ANALYTICS_WORKER_URL = 'https://cinefind-search-analytics.manio-james-g-5588.workers.dev';
+// Search analytics rides on the same visits Worker (VISIT_WORKER_URL) via
+// its /track-search and /top-searches routes — see cinefind-visits-worker.js.
+// No separate Worker/KV needed.
 
 // Fire-and-forget — never blocks or affects the actual search UX if the
 // worker is down/slow. Tracks the RESOLVED title/genre (not the raw
@@ -2396,7 +2395,7 @@ const SEARCH_ANALYTICS_WORKER_URL = 'https://cinefind-search-analytics.manio-jam
 // this only fires once a real TMDB match was found and shown.
 function trackSearchAnalytics(title, genre) {
   if (!title) return;
-  fetch(`${SEARCH_ANALYTICS_WORKER_URL}/track`, {
+  fetch(`${VISIT_WORKER_URL}/track-search`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, genre: genre || null }),
@@ -4386,7 +4385,7 @@ async function loadSearchAnalytics() {
   const body = document.getElementById('search-analytics-body');
   if (!body) return;
   try {
-    const res = await fetch(`${SEARCH_ANALYTICS_WORKER_URL}/top?t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(`${VISIT_WORKER_URL}/top-searches?t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
     if (!res.ok) throw new Error(`Worker returned HTTP ${res.status}`);
     const data = await res.json();
     const titles = data.topTitles || [];
