@@ -3157,7 +3157,11 @@ function renderResult(data, query) {
   const isPinoyContent = data.original_language === 'tl' || (data.origin_country || []).includes('PH');
   if (isPinoyContent) {
     const alreadyListed = new Set([...freeSites, ...otherSites].map(s => normalizeSiteName(s.name)));
-    const pinoySites = SITES_DIRECTORY
+    // Includes customSites (admin-added via the panel's category checkboxes,
+    // saved to custom-sites.json) alongside the built-in SITES_DIRECTORY —
+    // so a site added and tagged 🇵🇭 Pinoy in the admin panel shows up here
+    // immediately, with no code edit needed.
+    const pinoySites = [...SITES_DIRECTORY, ...customSites]
       .filter(d => (d.categories || []).includes('pinoy') && !alreadyListed.has(normalizeSiteName(d.name)))
       .map(d => ({ name: d.name, url: d.url, free: false, note: 'Filipino content — search inside site' }));
     otherSites = [...otherSites, ...pinoySites];
