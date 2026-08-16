@@ -911,14 +911,17 @@
     box-shadow: 0 0 12px color-mix(in srgb, var(--hot-color) 45%, transparent);
   }
   /* Editor's Pick — a quiet always-on gold ring (not a resize) marking a
-     small hand-picked set of sites. Comes after .is-hot in the cascade so
-     it wins the box-shadow when a site happens to be both, since a
-     deliberate curated pick should read stronger than the (often
-     over-applied) hot flag. */
-  .gradient-card-wrapper.editor-pick {
+     small hand-picked set of sites. Scoped to :not(.is-hot) so it only
+     applies to cards that are editor-picks but NOT also hot — previously
+     this always won over .is-hot's box-shadow (later in source order),
+     so a card that was both (e.g. KissKH, Dulo) got a visibly thicker/
+     stronger border than a hot-only card like MovieBox, making the grid's
+     "hot" styling look inconsistent card to card. Now every hot card
+     shares the exact same border regardless of editor-pick status. */
+  .gradient-card-wrapper.editor-pick:not(.is-hot) {
     box-shadow: 0 0 0 1.5px rgba(255,207,92,.6), 0 0 10px rgba(255,207,92,.2);
   }
-  .gradient-card-wrapper.editor-pick:hover {
+  .gradient-card-wrapper.editor-pick:not(.is-hot):hover {
     box-shadow: 0 0 0 1.5px rgba(255,207,92,.85), 0 0 14px rgba(255,207,92,.35);
   }
   .card-content {
@@ -1378,7 +1381,7 @@
 
   <div id="onboarding-banner"></div>
 
-  <div style="display:flex; justify-content:flex-end; margin:-6px 0 18px;">
+  <div style="display:flex; justify-content:flex-end; margin:10px 0 18px;">
     <button class="fav-quick-link" onclick="showFavorites()"><span class="fav-star-icon">★</span> My Favorites (<span id="fav-count">0</span>)</button>
   </div>
 
@@ -1465,12 +1468,12 @@ window.addEventListener('appinstalled', () => {
   if (btn) btn.style.display = 'none';
 });
 
-// Registering a service worker (even one that does no caching yet) is what
-// makes Chrome/Edge/Brave on Android reliably fire beforeinstallprompt —
-// on some versions it's a hard installability requirement, not just a nice-
-// to-have. sw.js currently just passes requests straight through to the
-// network; offline caching can be layered in later without touching this
-// registration code.
+// Registering a service worker is what makes Chrome/Edge/Brave on Android
+// reliably fire beforeinstallprompt — on some versions it's a hard
+// installability requirement, not just a nice-to-have. sw.js now also
+// caches the app shell (index.html) and serves it back when the network
+// is unavailable, so the app opens to something useful instead of the
+// browser's default offline error — see sw.js for what is/isn't cached.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(err => {
