@@ -319,7 +319,7 @@
   .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
 
   header { text-align: center; padding: 20px 0 var(--sp-3); position: relative; }
-  .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: var(--sp-6); }
   .logo {
     /* Switched from 'Bebas Neue' — that font is an all-caps-only display
        face with no distinct lowercase glyphs, so "Cine"+"Find" always
@@ -1384,6 +1384,15 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  .offline-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    background: var(--gold); color: #1a1200;
+    text-align: center; font-size: .8rem; font-weight: 600;
+    padding: 10px 16px; transform: translateY(-100%);
+    transition: transform .25s ease;
+  }
+  .offline-banner.show { transform: translateY(0); }
+
   .tips-box {
     background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--gold);
     border-radius: 0 12px 12px 0; padding: 14px 18px; font-size: .85rem; color: var(--muted);
@@ -1790,6 +1799,32 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
+// ========== OFFLINE DETECTION ==========
+// A persistent banner (not the auto-dismissing toast above) since "no
+// connection" is an ongoing state the user should keep seeing until it's
+// resolved, not a one-off notification. Search/status fetches already
+// have their own per-request error handling (see searchMovie()'s catch
+// block) — this banner is purely an at-a-glance signal so the user
+// understands *why* things are failing, without needing to first try an
+// action and read an error message to find out.
+function updateOfflineBanner() {
+  let banner = document.getElementById('offline-banner');
+  if (navigator.onLine) {
+    if (banner) banner.classList.remove('show');
+    return;
+  }
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'offline-banner';
+    banner.className = 'offline-banner';
+    banner.innerHTML = `📡 You're offline — some things may not load until your connection's back.`;
+    document.body.appendChild(banner);
+  }
+  banner.classList.add('show');
+}
+window.addEventListener('online', updateOfflineBanner);
+window.addEventListener('offline', updateOfflineBanner);
+
 function copyTextToClipboard(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     return navigator.clipboard.writeText(text);
@@ -2123,6 +2158,16 @@ let currentResultsLabel = null; // optional custom header, e.g. "🎭 Comedy"
 let currentResultsRaw = null;   // original, unsorted order — kept so sorting can always start fresh
 let currentSortBy = 'default';
 
+// Genre browsing used to only ever fetch TMDB's first results page (~20
+// titles before the poster filter), so "Load More" would reveal all of
+// them in a couple of clicks and then just disappear — capping every
+// genre at ~20 titles even though TMDB has hundreds more. This state
+// lets loadMoreResults() fetch additional TMDB pages once the
+// currently-loaded batch runs out, instead of only revealing what's
+// already in memory. Reset to inactive here so plain search results
+// (which don't have TMDB pages to fetch further) never try to use it.
+let genreBrowseState = null; // { genreId, label, page, totalPages } or null when not genre-browsing
+
 // ========== BACK-BUTTON / HISTORY INTEGRATION ==========
 // Android's hardware/gesture back button normally exits the page entirely
 // once there's no browser history to fall back on. Pushing a state entry
@@ -2158,6 +2203,7 @@ function renderResultsGrid(movies, label) {
   currentResultsLabel = label || null;
   currentSortBy = 'default';
   visibleResultsCount = RESULTS_PER_PAGE; // reset to first page whenever a new list is shown
+  genreBrowseState = null; // only browseGenre() turns this back on
   pushViewState('results');
   showFiltersBar();
   renderVisibleResults();
@@ -2804,7 +2850,13 @@ function parseTmdbItem(r, fallbackMediaType) {
     genre: genreIdsToLabel(r.genre_ids),
     poster: r.poster_path ? `https://image.tmdb.org/t/p/w300${r.poster_path}` : null,
     sites: CATEGORY_SITES[category](title),
-    tip: `Tip: Search for "<strong>${title}</strong>" on the site directly if direct link doesn't work.`
+    tip: `Tip: Search for "<strong>${title}</strong>" on the site directly if direct link doesn't work.`,
+    // Preserved so renderResult()'s isPinoyContent check further down actually
+    // has data to read — without these two fields it always evaluated
+    // undefined === 'tl' (false), so Pinoy sites never appended regardless
+    // of what was searched.
+    original_language: r.original_language,
+    origin_country: r.origin_country || []
   };
 }
 
@@ -3337,15 +3389,48 @@ function openAboutModal() {
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
   overlay.innerHTML = `
     <div style="background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; max-width:380px; width:100%; max-height:80vh; overflow-y:auto;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <div style="font-weight:700; color:var(--text);">ℹ️ About & Disclaimer</div>
-        <button onclick="document.getElementById('about-modal-overlay').remove()" style="background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer;">✕</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text); font-size:.95rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          About & Disclaimer
+        </div>
+        <button onclick="document.getElementById('about-modal-overlay').remove()" aria-label="Close" style="position:relative; background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <span style="position:absolute; inset:-11px;"></span>✕
+        </button>
       </div>
       <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.6;">
         <p style="margin-bottom:10px;"><strong>CineFind is a search &amp; directory tool only.</strong> We don't host, upload, or store any video content ourselves — we help you find where a title might be available on other, independent websites.</p>
         <p style="margin-bottom:10px;">We're not affiliated with any of the third-party sites listed. Their availability, legality, and content are entirely outside our control, and can change at any time.</p>
-        <p style="margin-bottom:10px;">Streaming laws vary by country. Please check what's legal to access in your own region before using any listed site.</p>
-        <p style="margin-bottom:10px;">Found a broken link, a site with excessive ads/popups, or something that looks wrong? Use the 🚩 report button next to that site's card — reports go straight to us and help keep the list accurate for everyone.</p>
+        <p style="margin-bottom:0;">Streaming laws vary by country. Please check what's legal to access in your own region before using any listed site.</p>
+      </div>
+
+      <div style="height:1px; background:var(--border); margin:18px 0;"></div>
+
+      <div style="display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text); font-size:.85rem; margin-bottom:12px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg>
+        How It Works
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Search</strong> – Enter a movie or TV show title to get free website recommendations.</div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--green)" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
+          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Green</strong> – Website is online.</div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--gold)" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
+          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Yellow</strong> – The website has issues or may not work properly.</div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#e63946" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
+          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Red</strong> – The website is down or unavailable.</div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>
+          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Report</strong> – Found a dead link or a problem? Click Report to help us keep the website list updated.</div>
+        </div>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -3393,11 +3478,35 @@ async function submitReport(siteName, url, movieTitle) {
   }
 }
 
-async function loadSiteStatus() {
+// Shared fetch for status.json, used by both the public homepage
+// (loadSiteStatus) and the admin panel (loadAdminPanel). These two used to
+// each do their own separate fetch — harmless on its own, but for the site
+// owner specifically (who loads the page with ?admin=... in the URL),
+// checkAdminAccess() calls loadAdminPanel() in the same window 'load'
+// handler right after loadSiteStatus() already ran, so in practice it was
+// firing two near-simultaneous requests for the exact same file on every
+// single admin page load. A short TTL cache collapses that pair into one
+// network call without meaningfully hurting freshness for someone
+// re-opening the admin panel later — pass forceFresh to skip the cache
+// (used by the manual "refresh status" button, where the user explicitly
+// wants the latest).
+let _statusJsonCache = null; // { data, ts }
+const STATUS_JSON_CACHE_TTL_MS = 5000;
+async function fetchStatusJson(forceFresh) {
+  const now = Date.now();
+  if (!forceFresh && _statusJsonCache && (now - _statusJsonCache.ts) < STATUS_JSON_CACHE_TTL_MS) {
+    return _statusJsonCache.data;
+  }
+  const res = await fetch('./status.json?t=' + now);
+  if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
+  const data = await res.json();
+  _statusJsonCache = { data, ts: now };
+  return data;
+}
+
+async function loadSiteStatus(forceFresh) {
   try {
-    const res = await fetch('./status.json?t=' + Date.now());
-    if (!res.ok) return;
-    const data = await res.json();
+    const data = await fetchStatusJson(forceFresh);
     const map = {};
     const speedMap = {};
     (data.results || []).forEach(r => {
@@ -3430,7 +3539,7 @@ async function refreshSiteStatus(btn) {
   const icon = btn.querySelector('.refresh-status-icon');
   if (icon) icon.style.animation = 'spin .8s linear infinite';
   btn.disabled = true;
-  await loadSiteStatus();
+  await loadSiteStatus(true);
   if (icon) icon.style.animation = '';
   btn.disabled = false;
   showToast('Status refreshed');
@@ -3813,6 +3922,11 @@ const SITES_DIRECTORY = [
     logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
   { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'], accent: '#059669',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--brand-teal);">Studios</span></div>` },
+  // Aggregator/mirror site, unlike the licensed sources above — domain
+  // changes over time (seen .org/.ph/.co/.lol/.win historically), so the
+  // link here may need updating if it moves again.
+  { name: 'PinoyMoviesHub', url: 'https://pinoymovieshub.org/', domain: 'pinoymovieshub.org', categories: ['pinoy'], accent: '#f4a300',
+    logoHtml: `<span class="logo-word"><span class="lw-white">Pinoy</span><span style="color:var(--accent);">MoviesHub</span></span>` },
   { name: 'CineWhale',     url: 'https://cinewhale.cc/',        domain: 'cinewhale.cc',         categories: ['movie'], accent: '#1e9edb',
     logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:var(--brand-skyblue);">Whale</span></span>` },
   { name: 'Dulo',          url: 'https://dulo.sx/',             domain: 'dulo.sx',              categories: ['movie'], accent: '#f4522b',
@@ -4143,6 +4257,7 @@ window.addEventListener('load', () => {
   checkAdminAccess();
   showOnboardingIfNeeded();
   showIosInstallBannerIfNeeded();
+  updateOfflineBanner();
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
@@ -4344,9 +4459,7 @@ async function loadAdminPanel() {
   document.body.appendChild(overlay);
 
   try {
-    const res = await fetch('./status.json?t=' + Date.now()); // cache-bust
-    if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await fetchStatusJson();
 
     // Fresh copies of removed-sites.json / custom-sites.json — status.json
     // only refreshes every 6h via the GitHub Action, so a site deleted or
