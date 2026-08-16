@@ -2385,6 +2385,24 @@ const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
 const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
+// Separate Worker (deploy the search-analytics-worker.js given alongside this
+// file — needs its own KV namespace). Kept apart from VISIT_WORKER_URL so a
+// bug/outage in one never touches the other.
+const SEARCH_ANALYTICS_WORKER_URL = 'https://cinefind-search-analytics.manio-james-g-5588.workers.dev';
+
+// Fire-and-forget — never blocks or affects the actual search UX if the
+// worker is down/slow. Tracks the RESOLVED title/genre (not the raw
+// keystroke), so misspellings and partial typing don't pollute the data —
+// this only fires once a real TMDB match was found and shown.
+function trackSearchAnalytics(title, genre) {
+  if (!title) return;
+  fetch(`${SEARCH_ANALYTICS_WORKER_URL}/track`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, genre: genre || null }),
+    signal: AbortSignal.timeout(5000)
+  }).catch(() => { /* silent — analytics should never affect the user's search */ });
+}
 
 // ===== VISITOR TRACKING =====
 async function trackVisit() {
@@ -2836,6 +2854,7 @@ function injectMovieStructuredData(data) {
 function renderResult(data, query) {
   hideFiltersBar(); // filters apply to result lists, not a single detail view
   saveRecentlyViewed(data);
+  trackSearchAnalytics(data.title, data.genre);
   const recentEl = document.getElementById('recently-viewed-section');
   if (recentEl) recentEl.innerHTML = ''; // homepage-only widget — hide once viewing a detail page
   const area = document.getElementById('result-area');
@@ -3409,14 +3428,15 @@ function speedBadgeIcon(speed) {
     return `<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>`;
   }
   if (speed === 'slow') {
-    return `<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
-      <ellipse cx="12" cy="14" rx="7.5" ry="5"/>
-      <circle cx="19.5" cy="13" r="2.3"/>
-      <circle cx="6" cy="10.5" r="1.4"/>
-      <circle cx="10" cy="10" r="1.4"/>
-      <circle cx="14.5" cy="10" r="1.4"/>
-      <circle cx="18.5" cy="10.2" r="1.4"/>
-      <path d="M4 15q-2 .3-2.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+    // Simplified to shell + head + a hint of hind legs (dropped the earlier
+    // 4-separate-circle "feet" — at 12px those just blurred into a fuzzy dot
+    // cluster instead of reading as a turtle). Bumped size up too since a
+    // rounded silhouette needs to be a bit bigger than an angular one (the
+    // bolt) to register clearly at a glance.
+    return `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+      <ellipse cx="13" cy="13" rx="8" ry="6"/>
+      <circle cx="4" cy="11" r="2.6"/>
+      <path d="M9.5 18.5c1 1.5 2.3 2.2 3.5 2.2s2.5-.7 3.5-2.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>
     </svg>`;
   }
   return '';
@@ -4342,6 +4362,10 @@ function renderAdminPanel(data) {
       <div class="admin-stat"><div class="num">${data.totalSites}</div><div class="lbl">Total</div></div>
     </div>
     <div class="test-link-box" style="margin-bottom:16px;">
+      <div class="test-link-title">📊 Search Analytics <span style="font-size:.7rem; color:#9494b5; font-weight:400;">— what visitors actually search for</span></div>
+      <div id="search-analytics-body"><p style="font-size:.75rem; color:#9494b5;">Loading...</p></div>
+    </div>
+    <div class="test-link-box" style="margin-bottom:16px;">
       <div class="test-link-title">🚩 User Reports <span id="reports-count-badge" style="font-size:.7rem; color:#9494b5;"></span></div>
       <div id="admin-reports-list"><p style="font-size:.75rem; color:#9494b5;">Loading reports...</p></div>
     </div>
@@ -4351,6 +4375,50 @@ function renderAdminPanel(data) {
     <p class="refresh-note">Checked automatically every day. Replacement notes are saved only on this device — update SITES_DIRECTORY in the code when ready.</p>
   `;
   loadReportsIntoAdmin();
+  loadSearchAnalytics();
+}
+
+// Renders two simple ranked lists (top titles, top genres) from the search
+// analytics Worker's aggregate counts — see search-analytics-worker.js.
+// Purely informational for the admin (which sites to prioritize verifying/
+// hot-tagging); it doesn't feed back into the site anywhere automatically.
+async function loadSearchAnalytics() {
+  const body = document.getElementById('search-analytics-body');
+  if (!body) return;
+  try {
+    const res = await fetch(`${SEARCH_ANALYTICS_WORKER_URL}/top?t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) throw new Error(`Worker returned HTTP ${res.status}`);
+    const data = await res.json();
+    const titles = data.topTitles || [];
+    const genres = data.topGenres || [];
+
+    if (titles.length === 0 && genres.length === 0) {
+      body.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">No search data yet — this fills in as visitors search.</p>`;
+      return;
+    }
+
+    const renderRankedList = (items) => items.map((item, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:.78rem;">
+        <span style="color:#f0f0f5;">${i + 1}. ${escapeAttr(item.name)}</span>
+        <span style="color:#9494b5;">${item.count}×</span>
+      </div>
+    `).join('');
+
+    body.innerHTML = `
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px;">
+          <div style="font-size:.72rem; color:#9494b5; margin-bottom:4px; text-transform:uppercase; letter-spacing:.03em;">Top Searched Titles</div>
+          ${titles.length ? renderRankedList(titles.slice(0, 10)) : `<p style="font-size:.75rem; color:#9494b5;">No data yet.</p>`}
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <div style="font-size:.72rem; color:#9494b5; margin-bottom:4px; text-transform:uppercase; letter-spacing:.03em;">Top Genres</div>
+          ${genres.length ? renderRankedList(genres.slice(0, 10)) : `<p style="font-size:.75rem; color:#9494b5;">No data yet.</p>`}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load search analytics: ${err.message}</p>`;
+  }
 }
 
 // Replacement notes are stored locally so only you (on your device) see them —
