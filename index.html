@@ -1919,7 +1919,7 @@ function buildFavSiteCard(s, i) {
   const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][(i || 0) % 3];
   return `
     <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
-      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab">
+      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab" onclick="trackSiteClick('${escapeAttr(s.name).replace(/'/g, "\\'")}')">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
@@ -2433,13 +2433,38 @@ function renderOnboardingTip() {
   const el = document.getElementById('onboarding-banner');
   if (!el) return;
   el.innerHTML = `
-    <div style="background:color-mix(in srgb, var(--gold) 10%, transparent); border:1px solid color-mix(in srgb, var(--gold) 30%, transparent); border-radius:12px; padding:12px 14px; margin:-4px 0 18px; font-size:.8rem; color:var(--muted); display:flex; gap:10px; align-items:flex-start;">
-      <span style="flex-shrink:0; color:var(--gold); display:inline-flex; margin-top:1px;" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span>
-      <span style="flex:1;">
-        <strong style="color:var(--text);">Good to know:</strong>
-        🔗 = direct link, 🔍 = search inside the site, and the <span style="display:inline-flex; align-items:center; gap:3px; white-space:nowrap;"><span style="display:inline-flex; gap:3px;"><span style="width:9px;height:9px;border-radius:50%;background:#06d6a0;display:inline-block;"></span><span style="width:9px;height:9px;border-radius:50%;background:#f0b428;display:inline-block;"></span><span style="width:9px;height:9px;border-radius:50%;background:#e63946;display:inline-block;"></span></span> dot</span> shows if a site's online.
-      </span>
-      <button onclick="dismissOnboarding()" aria-label="Dismiss tip" style="background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; flex-shrink:0; line-height:1; padding:8px; margin:-8px -6px -8px 0;">✕</button>
+    <div style="background:color-mix(in srgb, var(--gold) 10%, transparent); border:1px solid color-mix(in srgb, var(--gold) 30%, transparent); border-radius:12px; padding:14px; margin:-4px 0 18px; font-size:.8rem; color:var(--muted);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text); font-size:.85rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg>
+          How It Works
+        </div>
+        <button onclick="dismissOnboarding()" aria-label="Dismiss tip" style="position:relative; background:none; border:none; color:var(--muted); font-size:1rem; cursor:pointer; flex-shrink:0; line-height:1; padding:8px; margin:-8px -6px 0 0;">
+          <span style="position:absolute; inset:-6px;"></span>✕
+        </button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <div style="color:var(--text); opacity:.85; line-height:1.5;"><strong>Search</strong> – Enter a movie or TV show title to get free website recommendations.</div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--green)" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
+          <div style="color:var(--text); opacity:.85; line-height:1.5;"><strong>Green</strong> – Website is online.</div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--gold)" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
+          <div style="color:var(--text); opacity:.85; line-height:1.5;"><strong>Yellow</strong> – Usually still works, just flagged by the site's bot protection ("I am not a robot" check).</div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#e63946" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
+          <div style="color:var(--text); opacity:.85; line-height:1.5;"><strong>Red</strong> – The website is down or unavailable.</div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>
+          <div style="color:var(--text); opacity:.85; line-height:1.5;"><strong>Report</strong> – Found a dead link or a problem? Click Report to help us keep the website list updated.</div>
+        </div>
+      </div>
     </div>`;
 }
 function showOnboardingIfNeeded() {
@@ -2610,6 +2635,20 @@ function trackSearchAnalytics(title, genre) {
     body: JSON.stringify({ title, genre: genre || null }),
     signal: AbortSignal.timeout(5000)
   }).catch(() => { /* silent — analytics should never affect the user's search */ });
+}
+
+// Same fire-and-forget pattern as trackSearchAnalytics above, but for which
+// streaming site card actually got tapped (not just which movie was
+// searched) — lets the admin panel show "🌐 Top Websites" alongside
+// "Top Searched Titles". Rides the same Worker via /track-site-click.
+function trackSiteClick(siteName) {
+  if (!siteName) return;
+  fetch(`${VISIT_WORKER_URL}/track-site-click`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ siteName }),
+    signal: AbortSignal.timeout(5000)
+  }).catch(() => { /* silent — analytics should never affect the user's click-through */ });
 }
 
 // ===== VISITOR TRACKING =====
@@ -3133,7 +3172,7 @@ function renderResult(data, query) {
     );
     const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
     return `
-    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" onclick="trackSiteClick('${escapeAttr(dirMatch ? dirMatch.name : s.name).replace(/'/g, "\\'")}')" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
         <div class="site-name">${s.name}</div>
@@ -3402,35 +3441,6 @@ function openAboutModal() {
         <p style="margin-bottom:10px;"><strong>CineFind is a search &amp; directory tool only.</strong> We don't host, upload, or store any video content ourselves — we help you find where a title might be available on other, independent websites.</p>
         <p style="margin-bottom:10px;">We're not affiliated with any of the third-party sites listed. Their availability, legality, and content are entirely outside our control, and can change at any time.</p>
         <p style="margin-bottom:0;">Streaming laws vary by country. Please check what's legal to access in your own region before using any listed site.</p>
-      </div>
-
-      <div style="height:1px; background:var(--border); margin:18px 0;"></div>
-
-      <div style="display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text); font-size:.85rem; margin-bottom:12px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg>
-        How It Works
-      </div>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Search</strong> – Enter a movie or TV show title to get free website recommendations.</div>
-        </div>
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--green)" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
-          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Green</strong> – Website is online.</div>
-        </div>
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--gold)" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
-          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Yellow</strong> – The website has issues or may not work properly.</div>
-        </div>
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#e63946" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/></svg>
-          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Red</strong> – The website is down or unavailable.</div>
-        </div>
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg>
-          <div style="font-size:.8rem; color:var(--text); opacity:.85; line-height:1.5;"><strong>Report</strong> – Found a dead link or a problem? Click Report to help us keep the website list updated.</div>
-        </div>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -3729,7 +3739,7 @@ function statusDotLabel(status) {
 // don't parse color-only signals — pairing it with a word is more accessible
 // and answers the question people actually have ("does this work right now?").
 function statusShortLabel(status) {
-  return status === 'up' ? 'Online' : status === 'blocked' ? 'Warning' : status === 'down' ? 'Down' : '';
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'Flagged' : status === 'down' ? 'Down' : '';
 }
 
 // Relative "last checked" freshness text shown on the card's bottom strip —
@@ -3922,11 +3932,6 @@ const SITES_DIRECTORY = [
     logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
   { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'], accent: '#059669',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--brand-teal);">Studios</span></div>` },
-  // Aggregator/mirror site, unlike the licensed sources above — domain
-  // changes over time (seen .org/.ph/.co/.lol/.win historically), so the
-  // link here may need updating if it moves again.
-  { name: 'PinoyMoviesHub', url: 'https://pinoymovieshub.org/', domain: 'pinoymovieshub.org', categories: ['pinoy'], accent: '#f4a300',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Pinoy</span><span style="color:var(--accent);">MoviesHub</span></span>` },
   { name: 'CineWhale',     url: 'https://cinewhale.cc/',        domain: 'cinewhale.cc',         categories: ['movie'], accent: '#1e9edb',
     logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:var(--brand-skyblue);">Whale</span></span>` },
   { name: 'Dulo',          url: 'https://dulo.sx/',             domain: 'dulo.sx',              categories: ['movie'], accent: '#f4522b',
@@ -4029,7 +4034,7 @@ function renderSitesDirectory() {
     const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][i % 3];
     return `
     <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}${isEditorPick ? ' editor-pick' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
-      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab">
+      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab" onclick="trackSiteClick('${escapeAttr(s.name).replace(/'/g, "\\'")}')">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
@@ -4648,6 +4653,10 @@ function renderAdminPanel(data) {
       <div id="search-analytics-body"><p style="font-size:.75rem; color:#9494b5;">Loading...</p></div>
     </div>
     <div class="test-link-box" style="margin-bottom:16px;">
+      <div class="test-link-title">🌐 Top Websites <span style="font-size:.7rem; color:#9494b5; font-weight:400;">— which site cards visitors actually click</span></div>
+      <div id="top-sites-body"><p style="font-size:.75rem; color:#9494b5;">Loading...</p></div>
+    </div>
+    <div class="test-link-box" style="margin-bottom:16px;">
       <div class="test-link-title">🚩 User Reports <span id="reports-count-badge" style="font-size:.7rem; color:#9494b5;"></span></div>
       <div id="admin-reports-list"><p style="font-size:.75rem; color:#9494b5;">Loading reports...</p></div>
     </div>
@@ -4658,6 +4667,7 @@ function renderAdminPanel(data) {
   `;
   loadReportsIntoAdmin();
   loadSearchAnalytics();
+  loadTopSites();
 }
 
 // Renders two simple ranked lists (top titles, top genres) from the search
@@ -4700,6 +4710,36 @@ async function loadSearchAnalytics() {
     `;
   } catch (err) {
     body.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load search analytics: ${err.message}</p>`;
+  }
+}
+
+// Same aggregate-counter pattern as loadSearchAnalytics above, but reads
+// the /top-sites route (site-click: KV prefix) instead of search-title:/
+// search-genre: — shows which streaming site cards actually get tapped,
+// which is a more direct signal than search terms for deciding which
+// sites are worth keeping "Hot" or prioritizing for uptime checks.
+async function loadTopSites() {
+  const body = document.getElementById('top-sites-body');
+  if (!body) return;
+  try {
+    const res = await fetch(`${VISIT_WORKER_URL}/top-sites?t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) throw new Error(`Worker returned HTTP ${res.status}`);
+    const data = await res.json();
+    const sites = data.topSites || [];
+
+    if (sites.length === 0) {
+      body.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">No click data yet — this fills in as visitors tap site cards.</p>`;
+      return;
+    }
+
+    body.innerHTML = sites.slice(0, 10).map((item, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:.78rem;">
+        <span style="color:#f0f0f5;">${i + 1}. ${escapeAttr(item.name)}</span>
+        <span style="color:#9494b5;">${item.count}×</span>
+      </div>
+    `).join('');
+  } catch (err) {
+    body.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load top websites: ${err.message}</p>`;
   }
 }
 
