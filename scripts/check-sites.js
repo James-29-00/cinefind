@@ -41,6 +41,7 @@ function sleep(ms) {
 async function attemptFetch(url) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const startedAt = Date.now();
 
   try {
     const res = await fetch(url, {
@@ -50,7 +51,7 @@ async function attemptFetch(url) {
       headers: BROWSER_HEADERS
     });
     clearTimeout(timeout);
-    return { ok: true, httpStatus: res.status };
+    return { ok: true, httpStatus: res.status, responseMs: Date.now() - startedAt };
   } catch (err) {
     clearTimeout(timeout);
     return {
@@ -103,7 +104,10 @@ function classifyResult(site, result) {
       return { ...base, status: 'blocked', httpStatus: result.httpStatus };
     }
     if (result.httpStatus >= 200 && result.httpStatus < 400) {
-      return { ...base, status: 'up', httpStatus: result.httpStatus };
+      // Response time is only meaningful for a confirmed-up site — a
+      // blocked/down result's timing doesn't tell you how fast the site
+      // actually loads, so it's omitted for those branches above.
+      return { ...base, status: 'up', httpStatus: result.httpStatus, avgResponseMs: Math.round(result.responseMs) };
     }
     // Other 4xx/5xx not in the block-like set (e.g. 404) — treat as down.
     return { ...base, status: 'down', httpStatus: result.httpStatus };
