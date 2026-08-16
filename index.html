@@ -167,25 +167,18 @@
      never actually applied. Scoping this as a compound
      `body.light-mode.theme-crimson` selector (two classes) gives it
      higher specificity so it reliably wins regardless of order. */
-  /* Light Mode gets its own warm gold/amber accent instead of inheriting
-     Crimson's red — a cool-leaning red sits awkwardly against this warm
-     cream background, while gold is same-temperature (warm-on-warm) and
-     carries a "golden age of cinema" association that fits a movie-finder
-     brand. Also keeps Light Mode visually distinct from all three dark
-     themes (red/cyan/pink) instead of just reading as "Crimson but pale".
-     --accent2 is a terracotta/burnt-sienna rather than a second shade of
-     gold — with --accent and the existing --gold both already warm
-     amber-browns, a third near-identical gold made primary vs. secondary
-     emphasis hard to tell apart at a glance ("muddy"). Shifting --accent2
-     toward red-orange keeps the same warm-on-warm family (no cool clash)
-     while giving it a clearly distinct role — a "red carpet vs. gold
-     trophy" pairing. Both values measured 4.5:1+ against --bg (#d9d3c5)
-     for WCAG AA text compliance, same bar as every other Light Mode color
-     in this file. Overrides `body.theme-crimson`'s red via the same
-     two-class `body.light-mode.theme-crimson` compound selector used
-     elsewhere here for the specificity reasons explained above. */
+  /* Light Mode uses a darker, WCAG-AA-safe red instead of the original
+     bright Crimson red (#e63946, which only measures ~1.86:1 against this
+     warm --bg — badly failing accessibility) or the earlier gold/amber
+     substitute. Both --accent and --accent2 are darkened reds tuned to
+     clear 4.5:1+ against --bg (#d9d3c5) — #a80f0f measures ~5.14:1,
+     #a52a25 ~4.76:1 — so Light Mode stays on-brand (matches the red
+     wordmark/dark-theme accent) instead of reading as a different app.
+     Overrides `body.theme-crimson`'s red via the same two-class
+     `body.light-mode.theme-crimson` compound selector used elsewhere here
+     for the specificity reasons explained above. */
   body.light-mode.theme-crimson {
-    --accent: #7a4d00; --accent2: #8f3a1a; --bg-glow-rgb: 122,77,0;
+    --accent: #a80f0f; --accent2: #a52a25; --bg-glow-rgb: 168,15,15;
   }
   /* Darkened (same hue/saturation, reduced lightness) versions of each
      --brand-* color, tuned to hit 4.5:1+ against the lightest of the
@@ -547,17 +540,6 @@
     box-shadow: 0 0 10px var(--accent);
   }
   .theme-toggle:hover { transform: scale(1.1); box-shadow: 0 0 18px var(--accent), 0 0 6px var(--accent); }
-  /* Help "?" button previously reused the exact same size/glow as the
-     primary theme-toggle circle, making two visually-equal buttons compete
-     for attention in a cramped row. Sized down and de-glowed so it reads
-     as the secondary, occasional-use action it actually is. */
-  .theme-toggle.help-toggle {
-    width: 32px; height: 32px; font-size: .85rem !important;
-    box-shadow: none; opacity: .75;
-  }
-  .theme-toggle.help-toggle:hover {
-    transform: none; opacity: 1; box-shadow: 0 0 8px var(--accent);
-  }
 
   .search-wrap { position: relative; margin: var(--sp-4) 0 var(--sp-3); }
   .search-wrap input {
@@ -875,13 +857,29 @@
        floating pills. */
     background: var(--card); border: 1px solid var(--border);
     border-radius: 12px; padding: 3px;
+    position: relative; /* anchors .home-tab-indicator below */
+  }
+  /* Sliding active-state indicator — a single absolutely-positioned block
+     that transform-slides between the two tab slots instead of each button
+     independently toggling its own background. transform (not left/width)
+     so the animation stays GPU-composited/smooth rather than triggering
+     layout on every switch. Sized/positioned via JS (updateHomeTabIndicator)
+     since it needs the real rendered width of the bar, which isn't knowable
+     from CSS alone with a flexible/responsive layout. */
+  .home-tab-indicator {
+    position: absolute; top: 3px; bottom: 3px; left: 3px;
+    width: calc(50% - 4.5px); border-radius: 9px;
+    background: var(--surface); box-shadow: 0 0 0 1.5px var(--accent);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    z-index: 0;
   }
   .home-tab {
     flex: 1; padding: 9px 0; border-radius: 9px; border: none;
     background: transparent; color: var(--muted); font-family: 'Space Grotesk', sans-serif;
-    font-size: var(--fs-sm); font-weight: 600; cursor: pointer; transition: all .2s;
+    font-size: var(--fs-sm); font-weight: 600; cursor: pointer; transition: color .2s;
+    position: relative; z-index: 1; /* sits above .home-tab-indicator */
   }
-  .home-tab.active { background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 0 0 1.5px var(--accent); }
+  .home-tab.active { color: var(--text); font-weight: 700; }
   .home-tab:not(.active):hover { color: var(--text); }
 
   /* ===== Gradient-border directory card ===== */
@@ -1461,17 +1459,15 @@
       </span>
       <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
         <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
-        <button class="theme-toggle" id="install-app-btn" title="Install app" aria-label="Install app" onclick="triggerInstallPrompt()" style="display:none; font-size:1rem;">📲</button>
-        <button class="theme-toggle help-toggle" id="help-btn" title="Help / what do the icons mean?" aria-label="Help" onclick="showHelpTip()" style="font-weight:700;">?</button>
         <div style="position:relative; display:inline-flex;">
           <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
             <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </button>
-          <button id="theme-dropdown-arrow" title="Pick a theme" aria-label="Open theme list" onclick="toggleThemeDropdown(event)" style="position:absolute; bottom:-3px; right:-3px; width:16px; height:16px; background:var(--card); border:1px solid var(--border); border-radius:50%; cursor:pointer; color:var(--text); padding:0; display:flex; align-items:center; justify-content:center; line-height:1;">
+          <button id="theme-dropdown-arrow" title="Theme, help, install" aria-label="Open menu" onclick="toggleThemeDropdown(event)" style="position:absolute; bottom:-3px; right:-3px; width:16px; height:16px; background:var(--card); border:1px solid var(--border); border-radius:50%; cursor:pointer; color:var(--text); padding:0; display:flex; align-items:center; justify-content:center; line-height:1;">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
           </button>
         </div>
-        <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:140px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
+        <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:150px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
       </div>
     </div>
     <div class="logo">Cine<span>Find</span>
@@ -1542,19 +1538,18 @@
 // ========== PWA INSTALL PROMPT ==========
 // Chrome/Edge/Android fire this event once the site meets installability
 // criteria (manifest.json + icons + served over https). We intercept it and
-// stash it instead of letting the browser show its own mini-infobar, so we
-// can reveal a branded "📲 Install app" button in the header — no need for
-// users to dig through the browser's overflow menu to find "Add to Home
-// screen". iOS Safari never fires this event (no such API there), so the
-// button simply never appears there — iOS users still add via native
-// Share -> "Add to Home Screen", unchanged.
+// stash it instead of letting the browser show its own mini-infobar. The
+// "Install app" action itself lives inside the theme dropdown menu now
+// (folded in alongside Help, see toggleThemeDropdown) rather than its own
+// header button — deferredInstallPrompt being non-null is what the dropdown
+// checks to decide whether to show that row at all. iOS Safari never fires
+// this event (no such API there), so the row simply never appears there —
+// iOS users still add via native Share -> "Add to Home Screen", unchanged.
 let deferredInstallPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
-  const btn = document.getElementById('install-app-btn');
-  if (btn) btn.style.display = 'flex';
 });
 
 async function triggerInstallPrompt() {
@@ -1562,16 +1557,13 @@ async function triggerInstallPrompt() {
   deferredInstallPrompt.prompt();
   await deferredInstallPrompt.userChoice; // resolves once the user accepts/dismisses
   deferredInstallPrompt = null;
-  const btn = document.getElementById('install-app-btn');
-  if (btn) btn.style.display = 'none';
 }
 
 // Covers the case where the user installs via the browser's own UI instead
-// of our button (e.g. they'd already dismissed ours) — keeps state in sync.
+// of our menu row (e.g. they'd already dismissed it once) — keeps state in
+// sync so a stale "Install app" row doesn't linger in the dropdown.
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
-  const btn = document.getElementById('install-app-btn');
-  if (btn) btn.style.display = 'none';
 });
 
 // Registering a service worker is what makes Chrome/Edge/Brave on Android
@@ -1634,7 +1626,7 @@ function initTheme() {
 const THEME_KEY = 'cinefind-theme-mode';
 const THEME_CYCLE = [
   { theme: 'theme-crimson', mode: 'dark-mode', label: 'Crimson', swatch: '#e63946' },
-  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode', swatch: '#7a4d00' },
+  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode', swatch: '#ffffff' },
   { theme: 'theme-cyber', mode: 'dark-mode', label: 'Cyber', swatch: '#22e5e5' },
   { theme: 'theme-galaxy', mode: 'dark-mode', label: 'Galaxy', swatch: '#ff5fa2' },
 ];
@@ -1667,12 +1659,35 @@ function toggleThemeDropdown(event) {
   // Color swatch dot per option — previously plain text labels only, so
   // you had to actually pick a theme to see what it looked like. The dot
   // uses each theme's real accent color as a preview before switching.
+  // Light Mode's swatch is white (not a red shade) so it reads as
+  // distinctly different from Crimson at a glance in the dropdown — same
+  // problem the two would otherwise share if both used red dots. White
+  // needs a darker border to stay visible against the menu's own
+  // background (the pale border everything else uses would nearly
+  // disappear against a white dot), so it gets its own border color.
   menu.innerHTML = THEME_CYCLE.map((s, i) => `
     <button onclick="selectThemeFromDropdown(${i})" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:${i === activeIndex ? 'rgba(255,255,255,.08)' : 'none'}; border:none; color:var(--text); font-size:.82rem; font-weight:${i === activeIndex ? '700' : '500'}; padding:8px 10px; border-radius:6px; cursor:pointer;">
-      <span style="width:12px; height:12px; border-radius:50%; background:${s.swatch}; border:1px solid rgba(255,255,255,.25); flex-shrink:0; box-shadow:0 0 6px ${s.swatch}99;"></span>
+      <span style="width:12px; height:12px; border-radius:50%; background:${s.swatch}; border:1px solid ${s.swatch === '#ffffff' ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.25)'}; flex-shrink:0; box-shadow:0 0 6px ${s.swatch}99;"></span>
       <span>${i === activeIndex ? '✓ ' : ''}${s.label}</span>
     </button>
-  `).join('');
+  `).join('')
+  // Help and Install used to be their own separate header buttons — folded
+  // in here instead of a new "settings" icon, so the moon button stays
+  // exactly as-is (untouched, still the one thing people tap to change
+  // themes) while the header itself has fewer competing circles crowding
+  // the row. A thin divider marks these as a different kind of action
+  // (page/app-level, not a theme choice) from the four rows above.
+  + `<div style="height:1px; background:var(--border); margin:5px 2px;"></div>`
+  + `<button onclick="closeThemeDropdownOnOutsideClick(); showHelpTip();" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:.82rem; font-weight:500; padding:8px 10px; border-radius:6px; cursor:pointer;">
+      <span style="width:12px; text-align:center; flex-shrink:0;">❓</span>
+      <span>Help</span>
+    </button>`
+  + (deferredInstallPrompt
+    ? `<button onclick="closeThemeDropdownOnOutsideClick(); triggerInstallPrompt();" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:.82rem; font-weight:500; padding:8px 10px; border-radius:6px; cursor:pointer;">
+      <span style="width:12px; text-align:center; flex-shrink:0;">📲</span>
+      <span>Install app</span>
+    </button>`
+    : '');
   menu.style.display = 'block';
   document.addEventListener('click', closeThemeDropdownOnOutsideClick, { once: true });
 }
@@ -1960,6 +1975,69 @@ function showFavorites(sortBy, siteSortBy) {
   document.getElementById('result-area').innerHTML = html;
   if (favSites.length > 0) applyStatusDots();
 }
+
+// ========== LONG-PRESS TO FAVORITE (directory cards) ==========
+// Complements the small star icon (Item 1's touch-target fix already covers
+// that) with a second, much larger gesture: hold anywhere on a directory
+// card for ~500ms to toggle its favorite, no precision-tapping a tiny icon
+// required. Delegated on #result-area (survives re-renders — cards get
+// rebuilt often via renderSitesDirectory/renderHomepage, a per-card
+// listener would need re-binding every time) instead of attaching to each
+// card individually.
+(function setupLongPressFavorite() {
+  const LONG_PRESS_MS = 500;
+  const MOVE_CANCEL_PX = 10; // finger drifting this far = a scroll, not a hold
+  let pressTimer = null;
+  let pressStartX = 0, pressStartY = 0;
+  let longPressFiredOn = null; // the card element a long-press just completed on
+
+  function cardFromEvent(e) {
+    return e.target.closest ? e.target.closest('.gradient-card-wrapper[data-site-name]') : null;
+  }
+
+  function clearPressTimer() {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    const card = cardFromEvent(e);
+    if (!card || !e.touches || !e.touches[0]) return;
+    pressStartX = e.touches[0].clientX;
+    pressStartY = e.touches[0].clientY;
+    clearPressTimer();
+    pressTimer = setTimeout(() => {
+      pressTimer = null;
+      longPressFiredOn = card;
+      const siteName = card.dataset.siteName;
+      if (siteName) {
+        toggleDirFav({ preventDefault(){}, stopPropagation(){} }, siteName);
+        if (navigator.vibrate) navigator.vibrate(15); // short haptic tick = "action taken"
+      }
+    }, LONG_PRESS_MS);
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!pressTimer || !e.touches || !e.touches[0]) return;
+    const dx = e.touches[0].clientX - pressStartX;
+    const dy = e.touches[0].clientY - pressStartY;
+    if (Math.sqrt(dx * dx + dy * dy) > MOVE_CANCEL_PX) clearPressTimer(); // treat as scroll, not a hold
+  }, { passive: true });
+
+  document.addEventListener('touchend', clearPressTimer, { passive: true });
+  document.addEventListener('touchcancel', clearPressTimer, { passive: true });
+
+  // A completed long-press already performed the favorite toggle — the
+  // browser's own synthesized click that follows touchend would otherwise
+  // also navigate the card's <a href> to the site, which isn't what a
+  // "hold to favorite" gesture should do. Swallow just that one click.
+  document.addEventListener('click', (e) => {
+    const card = cardFromEvent(e);
+    if (card && card === longPressFiredOn) {
+      e.preventDefault();
+      longPressFiredOn = null;
+    }
+  }, true);
+})();
 
 // ========== FILTERING SYSTEM ==========
 let lastSearchResult = null;      // full, unfiltered list from the last search
@@ -3915,7 +3993,8 @@ function renderHomepage() {
          sections' render functions/data are untouched — this just wraps
          each in a show/hide container and adds a tab bar, so switching is
          instant with no extra fetch/re-render. -->
-    <div class="home-tab-bar" role="tablist" aria-label="Browse by">
+    <div class="home-tab-bar" role="tablist" aria-label="Browse by" id="home-tab-bar">
+      <span class="home-tab-indicator" id="home-tab-indicator"></span>
       <button class="home-tab active" id="home-tab-btn-sites" role="tab" aria-selected="true" onclick="switchHomeTab('sites')">Sites</button>
       <button class="home-tab" id="home-tab-btn-genres" role="tab" aria-selected="false" onclick="switchHomeTab('genres')">Genres</button>
     </div>
@@ -3976,6 +4055,7 @@ function switchHomeTab(tab) {
   const genresPane = document.getElementById('home-tab-genres');
   const sitesBtn = document.getElementById('home-tab-btn-sites');
   const genresBtn = document.getElementById('home-tab-btn-genres');
+  const indicator = document.getElementById('home-tab-indicator');
   if (!sitesPane || !genresPane) return;
   const showSites = tab === 'sites';
   sitesPane.style.display = showSites ? '' : 'none';
@@ -3984,6 +4064,11 @@ function switchHomeTab(tab) {
   genresBtn.classList.toggle('active', !showSites);
   sitesBtn.setAttribute('aria-selected', String(showSites));
   genresBtn.setAttribute('aria-selected', String(!showSites));
+  // translateX moves it exactly one slot + the bar's gap over — matches
+  // the indicator's own width formula (calc(50% - 4.5px)) plus the 3px
+  // gap between buttons, so it lands precisely on the second slot instead
+  // of a few px short.
+  if (indicator) indicator.style.transform = showSites ? 'translateX(0)' : 'translateX(calc(100% + 3px))';
 }
 
 function browseGenre(genreId, label, el) {
