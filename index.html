@@ -2293,6 +2293,10 @@ const SUGGEST_MIN_CHARS = 2;
 const SUGGEST_DEBOUNCE_MS = 350;
 let suggestDebounceTimer = null;
 let suggestAbortController = null;
+// Tracks which suggestion (if any) is currently arrow-key-highlighted, so
+// Enter can select it and so re-rendering the list (new keystroke) doesn't
+// leave a stale highlight pointing at a removed item.
+let suggestionHighlightIndex = -1;
 
 // ========== SAFE STRING ESCAPING ==========
 // Used anywhere a title/query gets interpolated into an HTML attribute (like onclick="fn('...')").
@@ -2324,6 +2328,13 @@ function handleSuggestInput() {
     return;
   }
 
+  // Shown immediately (before the debounce delay even elapses) so the
+  // dropdown never looks idle/frozen during the 350ms wait — without this,
+  // there's a visible gap between typing a keystroke and anything
+  // happening on screen, which reads as unresponsive on a slower connection.
+  box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--muted); font-size:.8rem;">Searching…</div>`;
+  box.classList.add('open');
+
   suggestDebounceTimer = setTimeout(() => fetchSuggestions(query), SUGGEST_DEBOUNCE_MS);
 }
 
@@ -2352,20 +2363,37 @@ function fetchSuggestions(query) {
   box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--muted); font-size:.8rem;">Searching…</div>`;
   box.classList.add('open');
 
-  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(cleanSearchQuery(query))}`, {
-    signal: suggestAbortController.signal
-  })
-    .then(r => r.json())
-    .then(tmdb => {
-      const results = (tmdb.results || [])
-        .filter(m => m.media_type === 'movie' || m.media_type === 'tv')
-        .slice(0, 6);
-      if (suggestionCache.size >= SUGGESTION_CACHE_MAX) {
-        suggestionCache.delete(suggestionCache.keys().next().value); // evict oldest
-      }
-      suggestionCache.set(cacheKey, results);
-      renderSuggestions(results, query);
+  function runSuggestFetch(qForApi, isRetry) {
+    return fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(qForApi)}`, {
+      signal: suggestAbortController.signal
     })
+      .then(r => r.json())
+      .then(tmdb => {
+        const results = (tmdb.results || [])
+          .filter(m => m.media_type === 'movie' || m.media_type === 'tv')
+          .slice(0, 6);
+
+        // Same bare-trailing-number fallback as searchMovie()'s runSearch()
+        // — "The Walking Dead 1" (meant as "season 1" without the word)
+        // retries once as "The Walking Dead" if nothing matched. Only fires
+        // when empty, so a real numbered title that already matched
+        // ("Toy Story 3") never gets touched.
+        if (results.length === 0 && !isRetry) {
+          const strippedNumber = qForApi.replace(/\s+\d+\s*$/, '').trim();
+          if (strippedNumber && strippedNumber !== qForApi) {
+            return runSuggestFetch(strippedNumber, true);
+          }
+        }
+
+        if (suggestionCache.size >= SUGGESTION_CACHE_MAX) {
+          suggestionCache.delete(suggestionCache.keys().next().value); // evict oldest
+        }
+        suggestionCache.set(cacheKey, results);
+        renderSuggestions(results, query);
+      });
+  }
+
+  runSuggestFetch(cleanSearchQuery(query), false)
     .catch(err => {
       if (err.name === 'AbortError') return; // superseded by a newer keystroke — just let that one render
       // Show a brief inline message instead of silently closing, so the user knows it failed
@@ -2378,12 +2406,18 @@ function fetchSuggestions(query) {
 
 function renderSuggestions(results, currentQuery) {
   const box = document.getElementById('suggestions-box');
+  suggestionHighlightIndex = -1; // fresh list — no stale highlight carried over
 
   // The input may have changed (or been cleared) while this request was in flight
   if (document.getElementById('search-input').value.trim() !== currentQuery) return;
 
   if (results.length === 0) {
-    closeSuggestions();
+    // Shown instead of silently closing — a dropdown that just vanishes
+    // with no text reads as broken/frozen, same reasoning as the "No
+    // matches" empty state on the full search. Kept short since this is
+    // a small inline dropdown, not a full-page empty state.
+    box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--muted); font-size:.8rem;">No matches for "${escapeAttr(currentQuery)}"</div>`;
+    box.classList.add('open');
     return;
   }
 
@@ -2415,6 +2449,7 @@ function closeSuggestions() {
   const box = document.getElementById('suggestions-box');
   box.classList.remove('open');
   box.innerHTML = '';
+  suggestionHighlightIndex = -1;
 }
 
 // Close the dropdown when tapping/clicking outside the search box
@@ -2937,9 +2972,9 @@ function cleanSearchQuery(q) {
   //  - Bare "S2" / "S 2" shorthand, which is how most people actually type
   //    season shorthand rather than spelling out "season"
   return aliased
-    .replace(/\s*[:\-–—]?\s+season\s*\d*\s+(episode|ep)\.?\s*\d*\s*$/i, '')
+    .replace(/\s*[:\-–—]?\s+season\s*\d*\s+(episodes|episode|eps|ep)\.?\s*\d*\s*$/i, '')
     .replace(/\s*[:\-–—]?\s+final\s+(season|part)\s*$/i, '')
-    .replace(/\s*[:\-–—]?\s+(season|part|episode|ep|volume|vol)\.?\s*\d*\s*$/i, '')
+    .replace(/\s*[:\-–—]?\s+(season|part|episodes|episode|eps|ep|volume|vol)\.?\s*\d*\s*$/i, '')
     .replace(/\s*[:\-–—]?\s+s\s*\d+\s*$/i, '')
     .trim() || aliased;
 }
@@ -4366,8 +4401,43 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // Event listeners
+function moveSuggestionHighlight(direction) {
+  const box = document.getElementById('suggestions-box');
+  const items = box ? Array.from(box.querySelectorAll('.suggestion-item')) : [];
+  if (items.length === 0) return;
+
+  items[suggestionHighlightIndex]?.classList.remove('active');
+  suggestionHighlightIndex += direction;
+  if (suggestionHighlightIndex >= items.length) suggestionHighlightIndex = 0;
+  if (suggestionHighlightIndex < 0) suggestionHighlightIndex = items.length - 1;
+
+  const active = items[suggestionHighlightIndex];
+  active.classList.add('active');
+  active.scrollIntoView({ block: 'nearest' });
+}
+
 document.getElementById('search-input').addEventListener('keydown', (e) => {
+  const box = document.getElementById('suggestions-box');
+  const isOpen = box && box.classList.contains('open');
+
+  if (isOpen && e.key === 'ArrowDown') {
+    e.preventDefault();
+    moveSuggestionHighlight(1);
+    return;
+  }
+  if (isOpen && e.key === 'ArrowUp') {
+    e.preventDefault();
+    moveSuggestionHighlight(-1);
+    return;
+  }
   if (e.key === 'Enter') {
+    // If a suggestion is arrow-key-highlighted, Enter selects that title
+    // directly rather than re-running the search on the raw typed text —
+    // matches how every other search-with-dropdown UI behaves.
+    if (isOpen && suggestionHighlightIndex >= 0) {
+      const active = box.querySelectorAll('.suggestion-item')[suggestionHighlightIndex];
+      if (active) { active.dispatchEvent(new Event('mousedown')); return; }
+    }
     closeSuggestions();
     searchMovie();
   }
