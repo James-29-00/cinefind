@@ -2899,10 +2899,21 @@ function parseTmdbItem(r, fallbackMediaType) {
   };
 }
 
+// TMDB's search endpoint matches on title only — it has no entry literally
+// named "Bleach Season 4", so a query like that returns nothing even though
+// "Bleach" alone matches fine. Stripping trailing season/part/movie noise
+// before the API call (but keeping `query` itself untouched for the cache
+// key, search history, and on-screen "Couldn't find ..." text) fixes that
+// without affecting anything else that reads the original typed query.
+function cleanSearchQuery(q) {
+  return q.replace(/\s*[:\-–—]?\s+(season|part|volume|vol)\.?\s*\d+\s*$/i, '').trim() || q;
+}
+
 function searchMovie() {
   closeSuggestions();
   const query = document.getElementById('search-input').value.trim();
   if (!query) return;
+  const tmdbQuery = cleanSearchQuery(query);
 
   const now = Date.now();
   if (isSearching || now < cooldownUntil) {
@@ -2957,10 +2968,16 @@ function searchMovie() {
     return;
   }
 
-  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
+  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(tmdbQuery)}`, { signal: AbortSignal.timeout(8000) })
     .then(r => r.json())
     .then(tmdb => {
-      const results = tmdb.results?.filter(m => (m.media_type === 'movie' || m.media_type === 'tv') && m.poster_path) || [];
+      // Poster is no longer required — obscure/low-metadata titles on TMDB
+      // (e.g. "Electric Girl" 2019) sometimes have no poster_path at all,
+      // and were being silently dropped here even though TMDB matched them
+      // correctly. parseTmdbItem()/renderResult() already fall back to a
+      // 🎬/📺 emoji when poster is null, so this no longer needs a poster
+      // to produce a usable result.
+      const results = tmdb.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || [];
 
       if (results.length === 0) {
         hideFiltersBar();
