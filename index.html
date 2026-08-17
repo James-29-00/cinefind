@@ -3144,11 +3144,51 @@ function cleanSearchQuery(q) {
     .trim() || aliased;
 }
 
+// Pulls out an explicit season number from the raw typed query (e.g. "The
+// Walking Dead Season 2", "Walking Dead S2") so it can be used to fetch
+// season-specific poster/year/description after the base show is found via
+// the normal title search. Mirrors the same patterns cleanSearchQuery()
+// strips out — this just captures the digit before it's discarded, instead
+// of throwing it away. Returns null when no explicit season number is
+// present (a bare trailing number like "Toy Story 3" is NOT treated as a
+// season — cleanSearchQuery() only strips that via its separate, un-related
+// isRetry fallback in runSearch(), so this stays conservative and only
+// fires on "season"/"part"/"s2"-style wording).
+function extractSeasonNumber(q) {
+  const aliased = resolveSearchAlias(q);
+  const patterns = [
+    /\s*[:\-–—]?\s+season\s*(\d+)\s+(?:episodes|episode|eps|ep)\.?\s*\d*\s*$/i,
+    /\s*[:\-–—]?\s+(?:season|part)\.?\s*(\d+)\s*$/i,
+    /\s*[:\-–—]?\s+s\s*(\d+)\s*$/i,
+  ];
+  for (const p of patterns) {
+    const m = aliased.match(p);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+// Merges season-specific data (poster/air date/overview) from the
+// mode=season proxy response onto an already-parsed TV item. Any field
+// missing from the season response (season pages sometimes lack a poster)
+// falls back to the base show's value instead of blanking it out.
+function applySeasonOverride(item, seasonData) {
+  if (!seasonData) return item;
+  return {
+    ...item,
+    poster: seasonData.poster_path ? `https://image.tmdb.org/t/p/w300${seasonData.poster_path}` : item.poster,
+    year: seasonData.air_date ? parseInt(seasonData.air_date.split('-')[0]) : item.year,
+    description: seasonData.overview || item.description,
+    title: seasonData.name ? `${item.title} — ${seasonData.name}` : item.title,
+  };
+}
+
 function searchMovie() {
   closeSuggestions();
   const query = document.getElementById('search-input').value.trim();
   if (!query) return;
   const tmdbQuery = cleanSearchQuery(query);
+  const seasonNumber = extractSeasonNumber(query);
 
   const now = Date.now();
   if (isSearching || now < cooldownUntil) {
@@ -3264,15 +3304,43 @@ function searchMovie() {
         // an actual list to work with.
         const parsedList = results.map(parseTmdbItem);
 
-        saveToCache(query, parsedList);
-        lastSearchResult = parsedList;
+        function finalizeResults(list) {
+          saveToCache(query, list);
+          lastSearchResult = list;
 
-        if (parsedList.length === 1) {
-          currentDisplayedResults = parsedList;
-          renderResult(parsedList[0], query);
-        } else {
-          renderResultsGrid(parsedList);
+          if (list.length === 1) {
+            currentDisplayedResults = list;
+            renderResult(list[0], query);
+          } else {
+            renderResultsGrid(list);
+          }
         }
+
+        // A season number was typed (e.g. "Walking Dead Season 2") — the
+        // base search above already found the show itself (TMDB has no
+        // per-season title entries), so this makes one more call for the
+        // specific season's poster/air date/overview and swaps it onto the
+        // first TV result before rendering. Movies never have seasons, so
+        // this only looks at the first 'series' match; if the season fetch
+        // fails, the base show's own data is shown instead of failing the
+        // whole search.
+        if (seasonNumber) {
+          const tvIndex = parsedList.findIndex(r => r.type === 'series');
+          if (tvIndex !== -1) {
+            const tvItem = parsedList[tvIndex];
+            return fetch(`${TMDB_PROXY_URL}?mode=season&tv_id=${tvItem.id}&season_number=${seasonNumber}`, { signal: AbortSignal.timeout(8000) })
+              .then(r => r.json())
+              .then(seasonData => {
+                if (seasonData && !seasonData.status_code) {
+                  parsedList[tvIndex] = applySeasonOverride(tvItem, seasonData);
+                }
+                finalizeResults(parsedList);
+              })
+              .catch(() => finalizeResults(parsedList));
+          }
+        }
+
+        finalizeResults(parsedList);
       });
   }
 
