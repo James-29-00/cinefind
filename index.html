@@ -808,6 +808,8 @@
   .badge-year { background: rgba(255,255,255,.07); color: var(--text); }
   .badge-genre { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent2); }
   .badge-rating { background: rgba(255,209,102,.12); color: var(--gold); }
+  /* Category badge — distinguishes lookalike results (e.g. anime "One Piece"
+     vs the live-action series) right on the card, before the user clicks in. */
   .movie-desc { font-size: .85rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
   .movie-desc.expanded { display: block; -webkit-line-clamp: unset; }
   .movie-desc-toggle { font-size: .8rem; color: var(--accent2); font-weight: 600; margin-top: 4px; cursor: pointer; background: none; border: none; padding: 0; }
@@ -3001,6 +3003,8 @@ const MOVIE_SITES = (title) => [
   {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
   {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
   {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
+  {name: 'CineWhale', url: 'https://cinewhale.cc/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Dulo', url: 'https://dulo.sx/', note: 'Search inside site', linkType: 'home'},
 ];
 
 // General (non-anime, non-K-drama) TV series — same free aggregators as movies,
@@ -3013,6 +3017,8 @@ const SERIES_SITES = (title) => [
   {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
   {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
   {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
+  {name: 'CineWhale', url: 'https://cinewhale.cc/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Dulo', url: 'https://dulo.sx/', note: 'Search inside site', linkType: 'home'},
 ];
 
 // K-drama / Asian drama — only real drama-focused sites.
@@ -3042,8 +3048,14 @@ const ANIME_SITES = (title) => [
 // original language/origin country rather than just the movie/series split —
 // so "Iron Man" gets movie sites, an anime movie or series gets anime sites,
 // and a K-drama gets drama sites, regardless of type.
+//
+// Anime = Animation genre (16) alone, NOT gated on original_language === 'ja'
+// anymore. That gate missed anime-style shows made outside Japan with English
+// as the original_language on TMDB — e.g. "Devil May Cry" (2025, Studio Mir/
+// Adi Shankar) and "Castlevania" fell through to the generic series bucket
+// and got movie/series sites instead of anime sites.
 function detectCategory(r, type) {
-  const isAnime = (r.genre_ids || []).includes(16) && r.original_language === 'ja';
+  const isAnime = (r.genre_ids || []).includes(16);
   if (isAnime) return 'anime';
   if (type === 'series') {
     const isKDrama = r.original_language === 'ko' || (r.origin_country || []).includes('KR');
@@ -3429,7 +3441,13 @@ function renderResult(data, query) {
   // False positives are low-risk here — worst case a non-Pinoy title with
   // a coincidental Tagalog-looking word gets a few extra site suggestions
   // mixed in near the top.
-  const TAGALOG_TITLE_MARKERS = /\b(ng|nang|mga|ang|akin|ako|ikaw|iyong|kanya|kaniya|siya|tayo|kami|natin|namin|mo|ko|niya|nila|ninyo|hindi|oo|opo|po|ba|kasi|dahil|para|kung|kapag|saan|paano|bakit|sino|ito|iyan|iyon|dito|diyan|doon|may|meron|wala|gusto|mahal|pagsuyo|puso|iibigin|ligaya|pag-ibig)\b/i;
+  // "may" was removed from this list: it's a common English modal verb
+  // ("May Who?", "May December", "You May Not Kiss the Bride"...), so it
+  // false-triggered Pinoy-site suggestions on non-Filipino titles that
+  // simply contain the English word "may". "ba" was dropped too as a
+  // similarly short, low-signal token. Everything left here is
+  // unambiguously Tagalog with no common-English collision.
+  const TAGALOG_TITLE_MARKERS = /\b(ng|nang|mga|ang|akin|ako|ikaw|iyong|kanya|kaniya|siya|tayo|kami|natin|namin|mo|ko|niya|nila|ninyo|hindi|oo|opo|po|kasi|dahil|para|kung|kapag|saan|paano|bakit|sino|ito|iyan|iyon|dito|diyan|doon|meron|wala|gusto|mahal|pagsuyo|puso|iibigin|ligaya|pag-ibig)\b/i;
   const isPinoyContent = data.original_language === 'tl'
     || (data.origin_country || []).includes('PH')
     || TAGALOG_TITLE_MARKERS.test(data.title || '');
