@@ -1247,15 +1247,24 @@
      the one place status lives. */
   .status-label-mini {
     display: flex; align-items: center; justify-content: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    /* Left/right padding permanently reserve the dot (left) and Report
-       icon (right) widths, whether or not either is actually visible on
-       this card, so the centered text sits at the same spot on every
-       card regardless of status. */
-    padding: 7px 26px 7px 26px;
+    /* Left padding permanently reserves the dot's footprint (always
+       visible on every card). Right padding stays minimal by default —
+       only bumped up via .has-report (added in JS alongside the Report
+       button's own display toggle) on the down/blocked cards that
+       actually show it. Reserving that same 26px on every card even when
+       Report is invisible made the centered text look pushed left,
+       since the left side's reserve is always visibly "spent" on the
+       dot while the right side's was empty dead space nobody could see —
+       an optical asymmetry even though the box math was technically
+       centered. */
+    padding: 7px 8px 7px 30px;
     gap: 6px;
     color: #fff;
     background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
-    transition: background .3s ease;
+    transition: background .3s ease, padding .2s ease;
+  }
+  .status-label-mini.has-report {
+    padding-right: 30px;
   }
   /* Report button pulled out of the centered dot+text group so it doesn't
      throw off the centering — sits pinned to the right edge instead. Only
@@ -3945,15 +3954,15 @@ function speedBadgeIcon(speed) {
     return `<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>`;
   }
   if (speed === 'slow') {
-    // Simplified to shell + head + a hint of hind legs (dropped the earlier
-    // 4-separate-circle "feet" — at 12px those just blurred into a fuzzy dot
-    // cluster instead of reading as a turtle). Bumped size up too since a
-    // rounded silhouette needs to be a bit bigger than an angular one (the
-    // bolt) to register clearly at a glance.
+    // Redesigned — the previous version (separate shell ellipse + head
+    // circle + a stray stroked leg squiggle) blurred into an unrecognizable
+    // blob at 15px; the pieces didn't read as connected. Shapes below
+    // overlap generously so they fuse into one solid silhouette, with a
+    // small tail nub for character — stays legible as a turtle this small.
     return `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
-      <ellipse cx="13" cy="13" rx="8" ry="6"/>
-      <circle cx="4" cy="11" r="2.6"/>
-      <path d="M9.5 18.5c1 1.5 2.3 2.2 3.5 2.2s2.5-.7 3.5-2.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+      <ellipse cx="12.5" cy="12" rx="7" ry="5.5"/>
+      <circle cx="5.2" cy="12" r="2.2"/>
+      <path d="M19.5 10.5 L22.5 9 L22.5 15 L19.5 13.5 Z"/>
     </svg>`;
   }
   return '';
@@ -4100,7 +4109,12 @@ function applyStatusDots() {
         // "Online" card gave no live site a reason to ever be tapped.
         const reportBtn = label.querySelector('[data-report-btn]');
         if (reportBtn) {
-          reportBtn.style.display = (status === 'down' || status === 'blocked') ? 'inline-flex' : 'none';
+          const showReport = status === 'down' || status === 'blocked';
+          reportBtn.style.display = showReport ? 'inline-flex' : 'none';
+          // Only reserve the right-side padding (see .has-report CSS) when
+          // Report is actually on screen, so it doesn't push the centered
+          // text left on every other card for a button nobody sees.
+          label.classList.toggle('has-report', showReport);
         }
       }
     } else {
