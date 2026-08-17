@@ -2925,7 +2925,10 @@ function resolveSearchAlias(q) {
 // even needs to run.
 function cleanSearchQuery(q) {
   const aliased = resolveSearchAlias(q);
-  return aliased.replace(/\s*[:\-–—]?\s+(season|part|volume|vol)\.?\s*\d+\s*$/i, '').trim() || aliased;
+  // Number optional — "One Punch Man Season" (typed before finishing "4")
+  // should strip down to "One Punch Man" too, not just "Season 4" with the
+  // number already there.
+  return aliased.replace(/\s*[:\-–—]?\s+(season|part|volume|vol)\.?\s*\d*\s*$/i, '').trim() || aliased;
 }
 
 function searchMovie() {
