@@ -340,6 +340,18 @@
 
   header { text-align: center; padding: 20px 0 var(--sp-3); position: relative; }
   .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: var(--sp-6); }
+  /* Wraps the wordmark in a real <button> now that it's clickable (acts as
+     Home) — strips all button chrome so it looks pixel-identical to the old
+     plain text, and adds a brief scale-down on press. Most people will
+     learn "tap the logo = home" from convention alone, but this tap
+     feedback confirms *something* happened even before they've learned
+     what — same trick used elsewhere on tap targets in this app. */
+  .logo-btn {
+    background: none; border: none; padding: 0; margin: 0;
+    font: inherit; color: inherit; cursor: pointer;
+    transition: transform .12s ease;
+  }
+  .logo-btn:active { transform: scale(.96); }
   .logo {
     /* Switched from 'Bebas Neue' — that font is an all-caps-only display
        face with no distinct lowercase glyphs, so "Cine"+"Find" always
@@ -1611,7 +1623,7 @@
         <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:150px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
       </div>
     </div>
-    <h1 class="logo">Cine<span>Find</span>
+    <h1 class="logo"><button onclick="resetSearch()" aria-label="CineFind — go to home" class="logo-btn">Cine<span>Find</span></button>
     </h1>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
   </header>
@@ -3181,11 +3193,44 @@ function applySeasonOverride(item, seasonData) {
   };
 }
 
+// Detects a region/drama-type word in the raw query (e.g. "kdrama", "cdrama")
+// and returns both the cleaned text to actually send to TMDB, and the real
+// origin_country/original_language codes to verify results against after
+// they come back — actual TMDB metadata, not just a hopeful text match.
+// This is why "Black kdrama" can correctly find the 2017 Korean drama
+// "Black" instead of either matching nothing (old bug) or matching every
+// unrelated result also named "Black" regardless of country (a plain
+// keyword-strip alone would do that).
+const ORIGIN_FILTERS = {
+  'k-?drama|korean\\s*drama': { countries: ['KR'], languages: ['ko'] },
+  'c-?drama|chinese\\s*drama': { countries: ['CN', 'TW', 'HK'], languages: ['zh', 'cn'] },
+  'j-?drama|japanese\\s*drama': { countries: ['JP'], languages: ['ja'] },
+  'thai\\s*drama': { countries: ['TH'], languages: ['th'] },
+};
+function extractOriginFilter(q) {
+  for (const [pattern, filter] of Object.entries(ORIGIN_FILTERS)) {
+    const re = new RegExp(`^\\s*(${pattern})\\s+|\\s+(${pattern})\\s*$`, 'gi');
+    if (re.test(q)) {
+      return { cleaned: q.replace(re, '').trim(), filter };
+    }
+  }
+  return { cleaned: q, filter: null };
+}
+// True if a parsed TMDB item's real origin_country/original_language
+// matches the requested filter — the actual verification step.
+function matchesOriginFilter(item, filter) {
+  if (!filter) return true;
+  const countryMatch = (item.origin_country || []).some(c => filter.countries.includes(c));
+  const langMatch = filter.languages.includes(item.original_language);
+  return countryMatch || langMatch;
+}
+
 function searchMovie() {
   closeSuggestions();
   const query = document.getElementById('search-input').value.trim();
   if (!query) return;
-  const tmdbQuery = cleanSearchQuery(query);
+  const { cleaned: originCleanedQuery, filter: originFilter } = extractOriginFilter(query);
+  const tmdbQuery = cleanSearchQuery(originCleanedQuery);
   const seasonNumber = extractSeasonNumber(query);
 
   const now = Date.now();
@@ -3300,7 +3345,21 @@ function searchMovie() {
 
         // Map EVERY matching result (not just results[0]) so filters have
         // an actual list to work with.
-        const parsedList = results.map(parseTmdbItem);
+        let parsedList = results.map(parseTmdbItem);
+
+        // If a region/drama-type word was in the query (e.g. "kdrama"),
+        // keep only results whose real TMDB origin_country/original_language
+        // actually matches — filters out same-titled results from the wrong
+        // country instead of just trusting the title text search alone.
+        if (originFilter) {
+          const filteredList = parsedList.filter(item => matchesOriginFilter(item, originFilter));
+          // Only apply if it actually narrowed things down to something —
+          // an empty result here likely means TMDB's origin data is
+          // incomplete for this particular title, not that it's genuinely
+          // the wrong country. Falling back to the unfiltered list avoids
+          // turning a real match into a false "No matches".
+          if (filteredList.length > 0) parsedList = filteredList;
+        }
 
         function finalizeResults(list) {
           saveToCache(query, list);
