@@ -826,7 +826,7 @@
   }
   .site-group-header:not(:first-child) { margin-top: 10px; }
 
-  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
   /* Extra clearance at the bottom of the page so the fixed back-to-top FAB
      (44px, sits bottom:20px/right:16px, plus its shadow) never floats on
      top of the last row's card content once the user scrolls all the way
@@ -841,9 +841,19 @@
   .result-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
   .result-card .result-poster { width: 100%; aspect-ratio: 2/3; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 2rem; overflow: hidden; }
   .result-card .result-poster img { width: 100%; height: 100%; object-fit: cover; }
-  .result-card .result-info { padding: var(--sp-2) var(--sp-3) var(--sp-3); }
-  .result-card .result-title { font-size: var(--fs-sm); font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: var(--fs-info); color: var(--muted); }
+  /* Poster stayed the same 2:3 ratio (that's the right size for a
+     thumbnail) — the height problem was all in this info block: sp-3
+     top/bottom padding plus a loose 1.3 line-height on a 2-line-clamped
+     title was adding ~14px of pure air per card, doubled across two rows
+     of text. Tightened padding and line-height without touching font size,
+     so text stays fully readable but the card stops ballooning. */
+  .result-card .result-info { padding: 8px 10px 10px; }
+  .result-card .result-title { font-size: var(--fs-sm); font-weight: 600; line-height: 1.2; margin-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .result-card .result-meta { display: flex; gap: 5px; flex-wrap: wrap; font-size: var(--fs-info); color: var(--muted); }
+  /* Base .badge padding (3px 10px, defined earlier for other UI badges)
+     was fine full-size, but at this card width two badges side by side
+     were pushing close to wrapping. Trims horizontal padding only. */
+  .result-card .result-meta .badge { padding: 3px 7px; }
   .site-card {
     position: relative;
     background: var(--card); border: 1px solid var(--border); border-radius: var(--sp-4);
@@ -1234,12 +1244,13 @@
     background: rgba(8,8,16,.55);
   }
   .status-dot-mini svg { width: 68%; height: 68%; display: block; }
-  /* Pinned to the bar's left edge, out of flex flow — the text below
-     centers independently of this, per the user's requested layout:
-     circle fixed left, "Online"/"Flagged"/"Down" centered on its own. */
+  /* Back in normal flex flow, grouped with the text/speed-icon that follow
+     it — the whole cluster (dot + "Online" + speed icon) centers together
+     as one unit. A dot fixed to the edge with text centered separately
+     could never look visually balanced (the edge dot has nothing
+     matching it on the other side), so they move together instead. */
   .status-label-mini .status-dot-mini {
-    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
-    flex-shrink: 0;
+    position: static; flex-shrink: 0;
   }
 
   /* Neutral footer strip — freshness text + icon-only Report button, single
@@ -1247,17 +1258,12 @@
      the one place status lives. */
   .status-label-mini {
     display: flex; align-items: center; justify-content: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    /* Left padding permanently reserves the dot's footprint (always
-       visible on every card). Right padding stays minimal by default —
-       only bumped up via .has-report (added in JS alongside the Report
-       button's own display toggle) on the down/blocked cards that
-       actually show it. Reserving that same 26px on every card even when
-       Report is invisible made the centered text look pushed left,
-       since the left side's reserve is always visibly "spent" on the
-       dot while the right side's was empty dead space nobody could see —
-       an optical asymmetry even though the box math was technically
-       centered. */
-    padding: 7px 8px 7px 30px;
+    /* Small symmetric padding by default. Right padding only grows via
+       .has-report (toggled in JS alongside the Report button's own
+       display) on the down/blocked cards that actually show it, so a
+       button nobody sees doesn't reserve dead space and skew the
+       centered group on every other card. */
+    padding: 7px 8px 7px 8px;
     gap: 6px;
     color: #fff;
     background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
@@ -2572,7 +2578,17 @@ function selectSuggestion(title) {
 function closeSuggestions() {
   const box = document.getElementById('suggestions-box');
   box.classList.remove('open');
-  box.innerHTML = '';
+  // Used to clear innerHTML synchronously here. On mobile a tap fires
+  // touchstart -> mousedown -> mouseup -> click in sequence; the tapped
+  // .suggestion-item's onmousedown calls selectSuggestion -> closeSuggestions
+  // -> this clear, wiping the element out of the DOM while that same
+  // gesture was still resolving. Some Android WebViews/browsers don't
+  // reliably deliver the trailing mouseup/click to a node that's already
+  // detached, so the tap intermittently did nothing. Deferring the clear
+  // to the next frame lets the current gesture finish against the still-
+  // present element; display is already hidden via .open removal above so
+  // there's no visible delay.
+  requestAnimationFrame(() => { box.innerHTML = ''; });
   suggestionHighlightIndex = -1;
   const input = document.getElementById('search-input');
   input.setAttribute('aria-expanded', 'false');
@@ -3395,20 +3411,28 @@ function renderResult(data, query) {
   // a badge/grouping that could never actually fire. Simplified to one flat,
   // sorted list instead of pretending a distinction exists that the data
   // never provides.
-  let otherSites = (data.sites || []).sort(byHotThenStatus);
+  let otherSites = data.sites || [];
 
-  // Auto-append Pinoy sources for Filipino/Tagalog content (item: "kunware
-  // Tagalog yung movie, dapat kasama sa dulo yung mga Pinoy websites").
-  // These aren't per-title direct links (no API returns "this exact movie
-  // is on iWantTFC"), so they're added as homepage search-inside-site
-  // links, same treatment as the rest of otherSites, and always LAST so
-  // titles known to actually have this movie/show still show first.
-  // Detection assumes `data` carries the same original_language/
-  // origin_country TMDB fields used elsewhere in this file (see the
-  // isKDrama/isAnime checks) — verify this fires correctly on the live
-  // site, since this file can't confirm the exact shape of `data` at
-  // this point without live-testing your actual API responses.
-  const isPinoyContent = data.original_language === 'tl' || (data.origin_country || []).includes('PH');
+  // Detect Filipino/Tagalog content (item: "kunware Tagalog yung movie,
+  // dapat kasama sa dulo yung mga Pinoy websites" — later feedback: those
+  // sites still weren't surfacing at all near the top even though they
+  // are the actually relevant ones for Pinoy titles, see below).
+  //
+  // Pure TMDB-field detection (original_language==='tl' / origin_country
+  // includes 'PH') turned out unreliable in practice: TMDB's data for
+  // older, community-edited Filipino titles is frequently missing or
+  // mistagged — e.g. "Ang Ibigin Ay Ikaw" (2002) didn't trip either field,
+  // so a plainly Tagalog title got zero Pinoy site suggestions. Added a
+  // title-text fallback: common Tagalog function words/markers (ng, ang,
+  // mo, ako, ikaw, ba, po, etc.) as whole words, case-insensitive. This
+  // catches titles TMDB mis-tags without needing perfect API metadata.
+  // False positives are low-risk here — worst case a non-Pinoy title with
+  // a coincidental Tagalog-looking word gets a few extra site suggestions
+  // mixed in near the top.
+  const TAGALOG_TITLE_MARKERS = /\b(ng|nang|mga|ang|akin|ako|ikaw|iyong|kanya|kaniya|siya|tayo|kami|natin|namin|mo|ko|niya|nila|ninyo|hindi|oo|opo|po|ba|kasi|dahil|para|kung|kapag|saan|paano|bakit|sino|ito|iyan|iyon|dito|diyan|doon|may|meron|wala|gusto|mahal|pagsuyo|puso|iibigin|ligaya|pag-ibig)\b/i;
+  const isPinoyContent = data.original_language === 'tl'
+    || (data.origin_country || []).includes('PH')
+    || TAGALOG_TITLE_MARKERS.test(data.title || '');
   if (isPinoyContent) {
     const alreadyListed = new Set(otherSites.map(s => normalizeSiteName(s.name)));
     // Includes customSites (admin-added via the panel's category checkboxes,
@@ -3417,9 +3441,29 @@ function renderResult(data, query) {
     // immediately, with no code edit needed.
     const pinoySites = [...SITES_DIRECTORY, ...customSites]
       .filter(d => (d.categories || []).includes('pinoy') && !alreadyListed.has(normalizeSiteName(d.name)))
-      .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site' }));
-    otherSites = [...otherSites, ...pinoySites];
+      .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site', _pinoyMatch: true }));
+    // Pinoy titles now show ONLY the Pinoy-tagged sites — the generic
+    // movie-only sites (1Shows/FlickyStream/MovieBox/1Flex/1Tube/Cineby/
+    // FMovies/etc. from CATEGORY_SITES) are dropped entirely rather than
+    // merged in alongside them, per user feedback: those generic sites
+    // aren't the ones people actually want for Pinoy content, so they
+    // shouldn't be suggested at all here — not even lower in the list.
+    // NOTE: if a Pinoy title has zero matching pinoySites, this leaves
+    // otherSites empty (no fallback to the generic list).
+    otherSites = pinoySites;
   }
+  // On Pinoy content, treat a matched Pinoy site like a hot site for
+  // ranking purposes (ahead of ordinary sites, but still behind sites that
+  // are BOTH hot and Pinoy-matched — there are none currently, so this
+  // just means Pinoy relevance now outranks plain popularity for Pinoy
+  // titles, which is what a Pinoy search should surface first).
+  otherSites = otherSites.sort((a, b) => {
+    if (isPinoyContent) {
+      const pinoyDiff = (b._pinoyMatch ? 1 : 0) - (a._pinoyMatch ? 1 : 0);
+      if (pinoyDiff !== 0) return pinoyDiff;
+    }
+    return byHotThenStatus(a, b);
+  });
   const SITES_VISIBLE_INITIAL = 4;
 
   // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
