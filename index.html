@@ -1040,7 +1040,7 @@
     border-radius: var(--sp-4);
     display: flex; flex-direction: column;
     text-decoration: none; color: var(--text);
-    height: 148px;
+    height: 162px;
     position: relative;
     overflow: hidden;
   }
@@ -1165,7 +1165,7 @@
      optional action, not something that needs equal visual weight to status
      or Hot. Bumped .78 → .9 — at .78 the outline star was still reading as
      "barely there" against busy card art, especially in Galaxy/Cyber themes. */
-  .pin-icon:not(.faved) { opacity: .9; }
+  .pin-icon:not(.faved) { opacity: .65; }
   .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
   .pin-icon.faved { opacity: 1; filter: drop-shadow(0 1px 3px rgba(0,0,0,.55)) drop-shadow(0 0 4px rgba(255,207,92,.5)); }
 
@@ -1315,9 +1315,21 @@
 
   .status-label-mini .status-text-mini {
     flex: 1; text-align: center;
-    font-size: var(--fs-info); font-weight: 600; letter-spacing: .01em;
+    font-size: var(--fs-info); font-weight: 450; letter-spacing: .01em;
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: font-weight .2s ease;
+  }
+  /* Progressive disclosure: the dot alone (color-coded) is the primary
+     at-a-glance signal — always full-strength. The text next to it is
+     secondary detail, so it sits at a lighter weight by default and only
+     sharpens to full weight on hover/keyboard-focus, when someone's
+     actually pausing to read it rather than scanning past. Color/opacity
+     is left untouched here (not weight) since dimming color would cut
+     into the contrast ratio already verified for WCAG AA. */
+  .gradient-card-wrapper:hover .status-text-mini,
+  .gradient-card-wrapper:focus-within .status-text-mini {
+    font-weight: 600;
   }
   body.light-mode .status-label-mini .status-text-mini {
     color: var(--card-logo-ink); text-shadow: none; opacity: .75;
@@ -1376,7 +1388,7 @@
        bar below it — a bit of separation reads as less cramped. */
     padding-bottom: 8px;
   }
-  .card-logo > * { max-width: 100%; max-height: 44px; }
+  .card-logo > * { max-width: 100%; max-height: 48px; }
   /* Soft radial glow behind the logo — breaks up the flat empty space in
      the middle of the card without competing with the logo itself. */
   .card-content::before {
@@ -1386,7 +1398,7 @@
     background: radial-gradient(circle, rgba(var(--bg-glow-rgb),.16) 0%, transparent 70%);
     pointer-events: none; z-index: 0;
   }
-  .card-logo svg { width: 40px; height: 28px; display: block; }
+  .card-logo svg { width: 43px; height: 30px; display: block; }
   /* Featured (2x width + taller) sizing removed — with several sites often
      marked hot at once, whichever happened to sort first got blown up into
      a banner while equally-"hot" sites below stayed small. Every card now
@@ -1476,8 +1488,8 @@
      desktop-ish styling to the 500px phone breakpoint below, leaving a
      ~500-768px zone with no tailored spacing. This softens that gap. */
   @media (max-width: 768px) {
-    .wrapper { padding: 0 16px 64px; }
-    .dir-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--sp-3); }
+    .wrapper { padding: 0 14px 64px; }
+    .dir-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
   }
 
   /* Desktop/CP upgrade — the grid was tuned for phone widths (140px min
@@ -1984,7 +1996,6 @@ function buildFavSiteCard(s, i, sortBy, siteSortBy) {
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
-          <span class="speed-badge-mini" data-speed-badge></span>
         </span>
         <button class="pin-icon faved" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name).replace(/'/g, "\\'")}'); showFavorites('${sortBy}', '${siteSortBy}');" aria-label="Remove ${escapeAttr(s.name)} from favorites"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg></button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
@@ -4033,26 +4044,24 @@ function applyStatusDots() {
         // color/truncation behavior already tuned for this card — no new
         // style rules needed, it just reads as part of the same line.
         const freshness = formatRelativeCheck(siteStatusLastRun);
-        textEl.textContent = statusShortLabel(status) + (freshness ? ` · ${freshness}` : '');
+        const speed = getSiteSpeed(el.dataset.siteName);
+        const speedWord = speed === 'fast' ? 'Fast' : speed === 'slow' ? 'Slow' : '';
+        textEl.textContent = statusShortLabel(status)
+          + (freshness ? ` · ${freshness}` : '')
+          + (speedWord ? ` · ${speedWord}` : '');
         label.style.display = 'flex';
-        label.title = tooltipText + (siteStatusLastRun ? ` — checked ${new Date(siteStatusLastRun).toLocaleString()}` : '');
+        label.title = tooltipText
+          + (speed ? ` — ${speedBadgeLabel(speed)}` : '')
+          + (siteStatusLastRun ? ` — checked ${new Date(siteStatusLastRun).toLocaleString()}` : '');
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
         label.classList.add(`status-${status}`);
 
-        const speedEl = label.querySelector('[data-speed-badge]');
-        if (speedEl) {
-          const speed = getSiteSpeed(el.dataset.siteName);
-          if (speed) {
-            speedEl.innerHTML = speedBadgeIcon(speed);
-            speedEl.title = speedBadgeLabel(speed) +
-              ' (measured from our checker, not your connection — actual speed can vary)';
-            speedEl.setAttribute('role', 'img');
-            speedEl.setAttribute('aria-label', speedEl.title);
-            speedEl.style.display = 'inline-flex';
-          } else {
-            speedEl.innerHTML = '';
-            speedEl.style.display = 'none';
-          }
+        // Report button only earns its place on the card when the site
+        // actually needs reporting (down/blocked) — showing it on every
+        // "Online" card gave no live site a reason to ever be tapped.
+        const reportBtn = label.querySelector('[data-report-btn]');
+        if (reportBtn) {
+          reportBtn.style.display = (status === 'down' || status === 'blocked') ? 'inline-flex' : 'none';
         }
       }
     } else {
@@ -4240,8 +4249,7 @@ function renderSitesDirectory() {
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
-          <span class="speed-badge-mini" data-speed-badge></span>
-          <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35;">⋯</button>
+          <button class="report-icon" data-report-btn onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35; display:none;">⋯</button>
         </span>
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
         ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff8f1f"/><stop offset="100%" stop-color="#ffd23f"/></linearGradient></defs><path fill="url(#flameGrad)" d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/><path fill="#1a1a2e" fill-opacity=".35" d="M12 21a3.3 3.3 0 0 1-3.3-3.3c0-1.6 1-2.5 1.9-3.3-.1.7.2 1.3.8 1.3.7 0 1-.6 1-1.3.7.9 1.2 1.8 1.2 3.1A2.6 2.6 0 0 1 12 21Z"/></svg></span>` : ''}
