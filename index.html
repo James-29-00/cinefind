@@ -4046,13 +4046,16 @@ function applyStatusDots() {
         const freshness = formatRelativeCheck(siteStatusLastRun);
         const speed = getSiteSpeed(el.dataset.siteName);
         const speedWord = speed === 'fast' ? 'Fast' : speed === 'slow' ? 'Slow' : '';
+        // Freshness ("3h ago") moved out of the visible line — combined with
+        // status + speed it was running long enough to get truncated on
+        // 2-column mobile width, which defeated the whole point of merging
+        // speed in. It's still available on tap/hover via the tooltip below.
         textEl.textContent = statusShortLabel(status)
-          + (freshness ? ` · ${freshness}` : '')
           + (speedWord ? ` · ${speedWord}` : '');
         label.style.display = 'flex';
         label.title = tooltipText
           + (speed ? ` — ${speedBadgeLabel(speed)}` : '')
-          + (siteStatusLastRun ? ` — checked ${new Date(siteStatusLastRun).toLocaleString()}` : '');
+          + (freshness ? ` — checked ${freshness}` : '');
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
         label.classList.add(`status-${status}`);
 
