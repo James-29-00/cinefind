@@ -3229,7 +3229,11 @@ function renderResult(data, query) {
   // "free"/"search-link" doesn't mean much if it's actually offline right now.
   const statusRank = { up: 0, blocked: 1, down: 3 };
   const resolveCanonicalName = (s) => {
-    const match = [...SITES_DIRECTORY, ...customSites].find(d =>
+    // Array.isArray guard here too (not just at the fetch site) — this is
+    // the actual point where a non-array customSites previously crashed
+    // every search via [...SITES_DIRECTORY, ...customSites], so it's worth
+    // being defensive here as well, not just where customSites is loaded.
+    const match = [...SITES_DIRECTORY, ...(Array.isArray(customSites) ? customSites : [])].find(d =>
       normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
     );
     return match ? match.name : s.name;
@@ -3694,7 +3698,11 @@ let hotSiteNames = [];
 async function loadHotSites() {
   try {
     const res = await fetch('./hot-sites.json?t=' + Date.now());
-    hotSiteNames = res.ok ? await res.json() : [];
+    const parsed = res.ok ? await res.json() : [];
+    // Same defensive reasoning as loadCustomSites() — a malformed hot-sites.json
+    // (e.g. `{}` instead of `[]`) previously crashed every single search via
+    // hotSiteNames.includes() not being a function on a non-array value.
+    hotSiteNames = Array.isArray(parsed) ? parsed : [];
   } catch (err) {
     hotSiteNames = [];
   }
@@ -3702,7 +3710,7 @@ async function loadHotSites() {
 }
 
 function isHotSite(name) {
-  return hotSiteNames.includes(normalizeSiteName(name));
+  return Array.isArray(hotSiteNames) && hotSiteNames.includes(normalizeSiteName(name));
 }
 
 // ========== CUSTOM (ADMIN-ADDED) SITES ==========
@@ -3755,7 +3763,14 @@ function applyPendingRestores(customList, removedList) {
 async function loadCustomSites() {
   try {
     const res = await fetch('./custom-sites.json?t=' + Date.now());
-    customSites = res.ok ? await res.json() : [];
+    const parsed = res.ok ? await res.json() : [];
+    // Defensive: if the file is ever malformed/corrupted (e.g. an admin
+    // panel save leaves it as `{}` instead of `[]`), fall back to an empty
+    // array instead of letting a non-array value silently crash every
+    // single search later (resolveCanonicalName spreads this array —
+    // spreading a non-array throws "customSites is not iterable" and the
+    // search just shows a generic "no results" with no indication why).
+    customSites = Array.isArray(parsed) ? parsed : [];
   } catch (err) {
     customSites = [];
   }
@@ -4619,7 +4634,8 @@ async function loadAdminPanel() {
       const removedRaw = removedRes.ok ? await removedRes.json() : [];
       removedSitesData = removedRaw.map(entry => typeof entry === 'string' ? { name: entry } : entry);
       const customRes = await fetch('./custom-sites.json?t=' + Date.now());
-      freshCustomList = customRes.ok ? await customRes.json() : [];
+      const customParsed = customRes.ok ? await customRes.json() : [];
+      freshCustomList = Array.isArray(customParsed) ? customParsed : [];
       const applied = applyPendingRestores(freshCustomList, removedSitesData);
       freshCustomList = applied.customList;
       removedSitesData = applied.removedList;
