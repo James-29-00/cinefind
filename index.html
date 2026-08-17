@@ -54,18 +54,6 @@
        against that dark circle. */
     --status-green: #06d6a0;
     --status-gold: #ffd166;
-    /* Dedicated colors for text inside .site-logo-box (e.g. .lw-accent,
-       the "Crush"/"TV"/"koto" halves of card logos). That box is always
-       a near-black surface (#14141c dark mode, #262420 light mode — see
-       .site-logo-box below) regardless of theme or mode, so its text
-       can't reuse --accent/--gold: those are tuned against --bg/--card,
-       which DO change with mode, and measured as low as 2.02:1 (crimson
-       light --accent) and 2.30:1 (light-mode --gold) against this fixed
-       dark box. These two stay constant across dark/light for Crimson;
-       Cyber/Galaxy's brighter accents already cleared 4.5:1 unchanged,
-       so no separate override needed for them. */
-    --card-logo-accent: #ff5a67;
-    --card-logo-gold: #ffd166;
     /* Per-brand logo text colors, used by several sites' custom logoHtml
        (e.g. "Studios" in TBA Studios, "Cine" in CineWhale). These were
        hardcoded as inline style="color:#hex" — fine on the dark card they
@@ -195,11 +183,6 @@
   body.light-mode.theme-crimson {
     --accent: #a80f0f; --accent2: #a52a25; --bg-glow-rgb: 168,15,15;
   }
-  /* Note: Cyber and Galaxy have no light-mode variant here on purpose —
-     THEME_CYCLE only defines 4 selectable combos (Crimson dark, Light
-     Mode/Crimson light, Cyber dark, Galaxy dark), so theme-cyber and
-     theme-galaxy are never combined with .light-mode in the UI. No CSS
-     needed for a state the toggle/dropdown can't produce. */
   /* Darkened (same hue/saturation, reduced lightness) versions of each
      --brand-* color, tuned to hit 4.5:1+ against the lightest of the
      three pastel card tones. No theme block ever sets these variables
@@ -340,18 +323,6 @@
 
   header { text-align: center; padding: 20px 0 var(--sp-3); position: relative; }
   .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: var(--sp-6); }
-  /* Wraps the wordmark in a real <button> now that it's clickable (acts as
-     Home) — strips all button chrome so it looks pixel-identical to the old
-     plain text, and adds a brief scale-down on press. Most people will
-     learn "tap the logo = home" from convention alone, but this tap
-     feedback confirms *something* happened even before they've learned
-     what — same trick used elsewhere on tap targets in this app. */
-  .logo-btn {
-    background: none; border: none; padding: 0; margin: 0;
-    font: inherit; color: inherit; cursor: pointer;
-    transition: transform .12s ease;
-  }
-  .logo-btn:active { transform: scale(.96); }
   .logo {
     /* Switched from 'Bebas Neue' — that font is an all-caps-only display
        face with no distinct lowercase glyphs, so "Cine"+"Find" always
@@ -820,8 +791,6 @@
   .badge-year { background: rgba(255,255,255,.07); color: var(--text); }
   .badge-genre { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent2); }
   .badge-rating { background: rgba(255,209,102,.12); color: var(--gold); }
-  /* Category badge — distinguishes lookalike results (e.g. anime "One Piece"
-     vs the live-action series) right on the card, before the user clicks in. */
   .movie-desc { font-size: .85rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
   .movie-desc.expanded { display: block; -webkit-line-clamp: unset; }
   .movie-desc-toggle { font-size: .8rem; color: var(--accent2); font-weight: 600; margin-top: 4px; cursor: pointer; background: none; border: none; padding: 0; }
@@ -840,12 +809,7 @@
   }
   .site-group-header:not(:first-child) { margin-top: 10px; }
 
-  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  /* Extra clearance at the bottom of the page so the fixed back-to-top FAB
-     (44px, sits bottom:20px/right:16px, plus its shadow) never floats on
-     top of the last row's card content once the user scrolls all the way
-     down — this was overlapping cards like Kocowa in the site list. */
-  .results-grid { padding-bottom: 64px; }
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
   .result-card {
     background: var(--card); border: 1px solid var(--border); border-radius: 14px;
     overflow: hidden; cursor: pointer; text-align: left;
@@ -855,19 +819,9 @@
   .result-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
   .result-card .result-poster { width: 100%; aspect-ratio: 2/3; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 2rem; overflow: hidden; }
   .result-card .result-poster img { width: 100%; height: 100%; object-fit: cover; }
-  /* Poster stayed the same 2:3 ratio (that's the right size for a
-     thumbnail) — the height problem was all in this info block: sp-3
-     top/bottom padding plus a loose 1.3 line-height on a 2-line-clamped
-     title was adding ~14px of pure air per card, doubled across two rows
-     of text. Tightened padding and line-height without touching font size,
-     so text stays fully readable but the card stops ballooning. */
-  .result-card .result-info { padding: 8px 10px 10px; }
-  .result-card .result-title { font-size: var(--fs-sm); font-weight: 600; line-height: 1.2; margin-bottom: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .result-card .result-meta { display: flex; gap: 5px; flex-wrap: wrap; font-size: var(--fs-info); color: var(--muted); }
-  /* Base .badge padding (3px 10px, defined earlier for other UI badges)
-     was fine full-size, but at this card width two badges side by side
-     were pushing close to wrapping. Trims horizontal padding only. */
-  .result-card .result-meta .badge { padding: 3px 7px; }
+  .result-card .result-info { padding: var(--sp-2) var(--sp-3) var(--sp-3); }
+  .result-card .result-title { font-size: var(--fs-sm); font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: var(--fs-info); color: var(--muted); }
   .site-card {
     position: relative;
     background: var(--card); border: 1px solid var(--border); border-radius: var(--sp-4);
@@ -911,8 +865,6 @@
   .site-free { font-size: var(--fs-info); font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px var(--sp-2); border-radius: var(--sp-2); white-space: nowrap; }
   .arrow { color: var(--muted); font-size: var(--fs-xs); }
   .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-4); margin-bottom: 20px; align-items: stretch; }
-  /* Same back-to-top FAB clearance as .results-grid — see that comment. */
-  .dir-grid { padding-bottom: 64px; }
 
   /* Home tab bar (Sites / Genres) — item 10. Same pill language as the
      existing genre-pill/filter chips elsewhere on the page (rounded,
@@ -967,16 +919,13 @@
        Removed: with ~30 cards the perf gain was marginal anyway, and a
        visible rendering bug is worse than the jank it was preventing. */
     /* Per-brand accent (--card-accent, set inline per card from the site's
-       logo color) used to tint the border heavily toward the theme accent
-       (80% crimson red) — meant to keep cards "cohesive," but in practice
-       it meant almost every card's border read as the same red regardless
-       of brand, so a grid of 6+ sites looked like a wall of identical red
-       outlines instead of scannable-by-brand. Flipped to mostly neutral
-       --border with just a light wash of the site's own brand color (15%)
-       — enough for a subtle, honest brand hint without every card fighting
-       for the same red spotlight. Hot/Editor's Pick keep their own louder
-       treatment further down, unaffected by this. */
-    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--border)) 15%, var(--border) 85%) 0%, var(--border) 60%);
+       logo color) tints one corner of the border so cards stay scannable
+       by brand at a glance. Blended mostly with the theme accent (not just
+       the neutral border) so raw brand hues (gold, green, etc.) don't fight
+       the page's active palette — cards keep a subtle brand hint while
+       staying visually cohesive across all three themes. Falls back to the
+       theme accent for any site without one (e.g. admin-added custom sites). */
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 20%, var(--accent) 80%) 0%, var(--border) 55%);
     transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
@@ -1074,7 +1023,7 @@
     border-radius: var(--sp-4);
     display: flex; flex-direction: column;
     text-decoration: none; color: var(--text);
-    height: 162px;
+    height: 148px;
     position: relative;
     overflow: hidden;
   }
@@ -1100,21 +1049,6 @@
   body.light-mode .card-pastel-rose {
     background: linear-gradient(155deg, #e9e0de 0%, #ddd0ce 100%);
     box-shadow: 0 8px 20px rgba(20,17,12,.20), inset 0 1px 0 rgba(255,255,255,.3);
-  }
-  /* --card-logo-accent/--card-logo-gold (defined in :root) were only
-     tuned against the fixed dark .site-logo-box (#14141c/#262420) — but
-     the SAME logoHtml/.lw-accent markup also renders inside .card-content
-     (the homepage directory grid AND Favorites cards), which in Light
-     Mode is a LIGHT pastel background (#e4e9ee/#e9e4d5/#e9e0de), not a
-     dark one. The bright constants measured ~2.0-2.5:1 (accent) and
-     ~1.1:1 (gold) there — barely visible, exactly the washed-out "Kiss"
-     text reported. Scoped override with darker values that clear 4.5:1+
-     against all three pastel tones; .site-logo-box lives outside
-     .card-content so it's unaffected and keeps using the bright root
-     values (which still pass there in both modes). */
-  body.light-mode .card-content {
-    --card-logo-accent: #a80f0f;
-    --card-logo-gold: #6b4f05;
   }
   /* Border opacity bumped from .14 → .28: against a page background this
      close in lightness to the card tints, a faint border reads as no
@@ -1199,7 +1133,7 @@
      optional action, not something that needs equal visual weight to status
      or Hot. Bumped .78 → .9 — at .78 the outline star was still reading as
      "barely there" against busy card art, especially in Galaxy/Cyber themes. */
-  .pin-icon:not(.faved) { opacity: .65; }
+  .pin-icon:not(.faved) { opacity: .9; }
   .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
   .pin-icon.faved { opacity: 1; filter: drop-shadow(0 1px 3px rgba(0,0,0,.55)) drop-shadow(0 0 4px rgba(255,207,92,.5)); }
 
@@ -1258,37 +1192,22 @@
     background: rgba(8,8,16,.55);
   }
   .status-dot-mini svg { width: 68%; height: 68%; display: block; }
-  /* Pinned to the left edge of the footer bar, out of the flex flow —
-     "Online" + the speed icon then center together as their own pair
-     across the full bar width, unaffected by the dot's position. */
+  /* Inline variant — used when the dot sits inside the bottom label bar
+     (next to the ONLINE text) instead of floating top-left on its own. */
   .status-label-mini .status-dot-mini {
-    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    position: static; flex-shrink: 0;
   }
 
   /* Neutral footer strip — freshness text + icon-only Report button, single
      row, single line. No per-status color here anymore; the dot above is
      the one place status lives. */
   .status-label-mini {
-    display: flex; align-items: center; justify-content: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    /* Small symmetric padding by default. Right padding only grows via
-       .has-report (toggled in JS alongside the Report button's own
-       display) on the down/blocked cards that actually show it, so a
-       button nobody sees doesn't reserve dead space and skew the
-       centered group on every other card. */
-    padding: 7px 8px 7px 8px;
+    display: flex; align-items: center; justify-content: space-between; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    padding: 7px 6px 7px 8px;
     gap: 6px;
     color: #fff;
     background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
-    transition: background .3s ease, padding .2s ease;
-  }
-  .status-label-mini.has-report {
-    padding-right: 30px;
-  }
-  /* Report button pulled out of the centered dot+text group so it doesn't
-     throw off the centering — sits pinned to the right edge instead. Only
-     shown at all for down/blocked sites (see applyStatusDots()). */
-  .status-label-mini .report-icon {
-    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    transition: background .3s ease;
   }
   /* Light Mode: the dark gradient bar (needed on Dark Mode's near-black
      card for the white status text to read) looks like a jarring smudge
@@ -1363,22 +1282,10 @@
   }
 
   .status-label-mini .status-text-mini {
-    text-align: center; max-width: 100%;
-    font-size: var(--fs-info); font-weight: 450; letter-spacing: .01em;
+    flex: 1; text-align: center;
+    font-size: var(--fs-info); font-weight: 600; letter-spacing: .01em;
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    transition: font-weight .2s ease;
-  }
-  /* Progressive disclosure: the dot alone (color-coded) is the primary
-     at-a-glance signal — always full-strength. The text next to it is
-     secondary detail, so it sits at a lighter weight by default and only
-     sharpens to full weight on hover/keyboard-focus, when someone's
-     actually pausing to read it rather than scanning past. Color/opacity
-     is left untouched here (not weight) since dimming color would cut
-     into the contrast ratio already verified for WCAG AA. */
-  .gradient-card-wrapper:hover .status-text-mini,
-  .gradient-card-wrapper:focus-within .status-text-mini {
-    font-weight: 600;
   }
   body.light-mode .status-label-mini .status-text-mini {
     color: var(--card-logo-ink); text-shadow: none; opacity: .75;
@@ -1437,7 +1344,7 @@
        bar below it — a bit of separation reads as less cramped. */
     padding-bottom: 8px;
   }
-  .card-logo > * { max-width: 100%; max-height: 48px; }
+  .card-logo > * { max-width: 100%; max-height: 44px; }
   /* Soft radial glow behind the logo — breaks up the flat empty space in
      the middle of the card without competing with the logo itself. */
   .card-content::before {
@@ -1447,14 +1354,14 @@
     background: radial-gradient(circle, rgba(var(--bg-glow-rgb),.16) 0%, transparent 70%);
     pointer-events: none; z-index: 0;
   }
-  .card-logo svg { width: 43px; height: 30px; display: block; }
+  .card-logo svg { width: 40px; height: 28px; display: block; }
   /* Featured (2x width + taller) sizing removed — with several sites often
      marked hot at once, whichever happened to sort first got blown up into
      a banner while equally-"hot" sites below stayed small. Every card now
      stays a uniform size regardless of hot status or position. */
   .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: var(--fs-xl); letter-spacing: -.01em; line-height: 1; }
   .lw-white { color: var(--card-logo-ink, #fff); }
-  .lw-accent { color: var(--card-logo-accent); }
+  .lw-accent { color: var(--accent); }
   .lw-outline { color: transparent; -webkit-text-stroke: 1.7px var(--card-logo-outline, #5b8def); font-weight: 800; margin-right: 1px; }
   .logo-mtn, .logo-clapper { display: inline-flex; align-items: center; }
   .logo-tubi { color: #ff5b3a; font-style: italic; font-weight: 800; letter-spacing: -.02em; background: linear-gradient(120deg, #ff7a3d, #ff3d6e); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
@@ -1537,8 +1444,8 @@
      desktop-ish styling to the 500px phone breakpoint below, leaving a
      ~500-768px zone with no tailored spacing. This softens that gap. */
   @media (max-width: 768px) {
-    .wrapper { padding: 0 14px 64px; }
-    .dir-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+    .wrapper { padding: 0 16px 64px; }
+    .dir-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: var(--sp-3); }
   }
 
   /* Desktop/CP upgrade — the grid was tuned for phone widths (140px min
@@ -1623,8 +1530,8 @@
         <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:150px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
       </div>
     </div>
-    <h1 class="logo"><button onclick="resetSearch()" aria-label="CineFind — go to home" class="logo-btn">Cine<span>Find</span></button>
-    </h1>
+    <div class="logo">Cine<span>Find</span>
+    </div>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
   </header>
 
@@ -1651,7 +1558,7 @@
   <!-- ADVANCED FILTERS SECTION — hidden until there's a results list to filter -->
   <div class="filters" id="filters-bar" style="display:none;">
     <div class="filter-group">
-      <label class="filter-label" for="year-filter">Year:</label>
+      <label class="filter-label">Year:</label>
       <select class="filter-select" id="year-filter" onchange="applyFilters()">
         <option value="">All years</option>
         <option value="2010s">2010s</option>
@@ -1660,7 +1567,7 @@
     </div>
 
     <div class="filter-group">
-      <label class="filter-label" for="rating-filter">Rating:</label>
+      <label class="filter-label">Rating:</label>
       <select class="filter-select" id="rating-filter" onchange="applyFilters()">
         <option value="">All ratings</option>
         <option value="9">9.0+</option>
@@ -1671,7 +1578,7 @@
     </div>
 
     <div class="filter-group">
-      <label class="filter-label" for="type-filter">Type:</label>
+      <label class="filter-label">Type:</label>
       <select class="filter-select" id="type-filter" onchange="applyFilters()">
         <option value="">All types</option>
         <option value="movie">Movie</option>
@@ -2030,7 +1937,7 @@ function updateFavCount() {
 // Small card for a favorited website, reused inside the "My Favorites" page.
 // Mirrors the homepage directory card's look (logo, status dot/label) but
 // standalone since renderSitesDirectory()'s buildCard is scoped locally.
-function buildFavSiteCard(s, i, sortBy, siteSortBy) {
+function buildFavSiteCard(s, i) {
   const liveUrl = getOverriddenUrl(s.name, s.url);
   // Same pastel-tint cycling as the homepage directory cards (buildCard).
   // IMPORTANT: this class must go on .card-content (the <a> below), not
@@ -2047,7 +1954,8 @@ function buildFavSiteCard(s, i, sortBy, siteSortBy) {
           <span class="status-text-mini" data-status-text></span>
           <span class="speed-badge-mini" data-speed-badge></span>
         </span>
-        <button class="pin-icon faved" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name).replace(/'/g, "\\'")}'); showFavorites('${sortBy}', '${siteSortBy}');" aria-label="Remove ${escapeAttr(s.name)} from favorites"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg></button>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
+        </button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
       </a>
     </div>`;
@@ -2095,7 +2003,7 @@ function showFavorites(sortBy, siteSortBy) {
     <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <button class="pop-chip" onclick="resetSearch()">← Back to search</button>
       ${favs.length > 0 ? `
-      <select class="filter-select" onchange="showFavorites(this.value, '${siteSortBy}')" style="width:auto;" aria-label="Sort favorite movies and shows">
+      <select class="filter-select" onchange="showFavorites(this.value, '${siteSortBy}')" style="width:auto;">
         <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>Newest added</option>
         <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>Oldest added</option>
         <option value="rating-desc" ${sortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
@@ -2107,14 +2015,14 @@ function showFavorites(sortBy, siteSortBy) {
   html += `<div style="display:flex; justify-content:space-between; align-items:center; margin:0 0 12px;">
     <h3 style="font-size:1rem; margin:0;">🌐 Favorite Websites</h3>
     ${favSites.length > 1 ? `
-    <select class="filter-select" onchange="showFavorites('${sortBy}', this.value)" style="width:auto; font-size:.75rem;" aria-label="Sort favorite websites">
+    <select class="filter-select" onchange="showFavorites('${sortBy}', this.value)" style="width:auto; font-size:.75rem;">
       <option value="az" ${siteSortBy === 'az' ? 'selected' : ''}>Name A–Z</option>
       <option value="za" ${siteSortBy === 'za' ? 'selected' : ''}>Name Z–A</option>
       <option value="status" ${siteSortBy === 'status' ? 'selected' : ''}>Online first</option>
     </select>` : ''}
   </div>`;
   html += favSites.length > 0
-    ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map((s, i) => buildFavSiteCard(s, i, sortBy, siteSortBy)).join('')}</div>`
+    ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map((s, i) => buildFavSiteCard(s, i)).join('')}</div>`
     : `<p style="color:var(--muted); font-size:.85rem; margin-bottom:28px;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>`;
 
   if (favs.length > 0) html += `<h3 style="font-size:1rem; margin:0 0 12px;">🎬 Favorite Movies &amp; Shows</h3>`;
@@ -2360,7 +2268,7 @@ function renderVisibleResults() {
   const visible = movies.slice(0, visibleResultsCount);
 
   const cards = visible.map((m, i) => `
-    <div class="result-card" onclick="selectMovie(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectMovie(${i});}" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}" style="animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
+    <div class="result-card" onclick="selectMovie(${i})" style="animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
       <div class="result-poster${m.poster ? ' poster-loading' : ''}">
         ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
       </div>
@@ -2503,7 +2411,7 @@ function fetchSuggestions(query) {
   box.classList.add('open');
   document.getElementById('search-input').setAttribute('aria-expanded', 'true');
 
-  function runSuggestFetch(qForApi, isRetry) {
+  function runSuggestFetch(qForApi, retryStage) {
     return fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(qForApi)}`, {
       signal: suggestAbortController.signal
     })
@@ -2513,15 +2421,25 @@ function fetchSuggestions(query) {
           .filter(m => m.media_type === 'movie' || m.media_type === 'tv')
           .slice(0, 6);
 
-        // Same bare-trailing-number fallback as searchMovie()'s runSearch()
-        // — "The Walking Dead 1" (meant as "season 1" without the word)
-        // retries once as "The Walking Dead" if nothing matched. Only fires
-        // when empty, so a real numbered title that already matched
-        // ("Toy Story 3") never gets touched.
-        if (results.length === 0 && !isRetry) {
-          const strippedNumber = qForApi.replace(/\s+\d+\s*$/, '').trim();
-          if (strippedNumber && strippedNumber !== qForApi) {
-            return runSuggestFetch(strippedNumber, true);
+        // Same two-stage fallback as searchMovie()'s runSearch() — see the
+        // comment there for the full reasoning (stage 1: bare trailing
+        // number meant as "season 1"; stage 2: drop the last leftover word
+        // as a noise-reduction retry, not real spell-correction). Only
+        // fires when nothing matched, so an already-successful query never
+        // gets touched.
+        if (results.length === 0) {
+          if (retryStage === 0) {
+            const strippedNumber = qForApi.replace(/\s+\d+\s*$/, '').trim();
+            if (strippedNumber && strippedNumber !== qForApi) {
+              return runSuggestFetch(strippedNumber, 1);
+            }
+          }
+          if (retryStage <= 1) {
+            const words = qForApi.trim().split(/\s+/);
+            if (words.length > 1) {
+              const droppedLastWord = words.slice(0, -1).join(' ');
+              return runSuggestFetch(droppedLastWord, 2);
+            }
           }
         }
 
@@ -2533,7 +2451,7 @@ function fetchSuggestions(query) {
       });
   }
 
-  runSuggestFetch(stripPartialSuffixWord(cleanSearchQuery(query)), false)
+  runSuggestFetch(stripPartialSuffixWord(cleanSearchQuery(query)), 0)
     .catch(err => {
       if (err.name === 'AbortError') return; // superseded by a newer keystroke — just let that one render
       // Show a brief inline message instead of silently closing, so the user knows it failed
@@ -2590,17 +2508,7 @@ function selectSuggestion(title) {
 function closeSuggestions() {
   const box = document.getElementById('suggestions-box');
   box.classList.remove('open');
-  // Used to clear innerHTML synchronously here. On mobile a tap fires
-  // touchstart -> mousedown -> mouseup -> click in sequence; the tapped
-  // .suggestion-item's onmousedown calls selectSuggestion -> closeSuggestions
-  // -> this clear, wiping the element out of the DOM while that same
-  // gesture was still resolving. Some Android WebViews/browsers don't
-  // reliably deliver the trailing mouseup/click to a node that's already
-  // detached, so the tap intermittently did nothing. Deferring the clear
-  // to the next frame lets the current gesture finish against the still-
-  // present element; display is already hidden via .open removal above so
-  // there's no visible delay.
-  requestAnimationFrame(() => { box.innerHTML = ''; });
+  box.innerHTML = '';
   suggestionHighlightIndex = -1;
   const input = document.getElementById('search-input');
   input.setAttribute('aria-expanded', 'false');
@@ -3013,8 +2921,6 @@ const MOVIE_SITES = (title) => [
   {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
   {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
   {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
-  {name: 'CineWhale', url: 'https://cinewhale.cc/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Dulo', url: 'https://dulo.sx/', note: 'Search inside site', linkType: 'home'},
 ];
 
 // General (non-anime, non-K-drama) TV series — same free aggregators as movies,
@@ -3027,8 +2933,6 @@ const SERIES_SITES = (title) => [
   {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
   {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
   {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
-  {name: 'CineWhale', url: 'https://cinewhale.cc/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Dulo', url: 'https://dulo.sx/', note: 'Search inside site', linkType: 'home'},
 ];
 
 // K-drama / Asian drama — only real drama-focused sites.
@@ -3058,14 +2962,8 @@ const ANIME_SITES = (title) => [
 // original language/origin country rather than just the movie/series split —
 // so "Iron Man" gets movie sites, an anime movie or series gets anime sites,
 // and a K-drama gets drama sites, regardless of type.
-//
-// Anime = Animation genre (16) alone, NOT gated on original_language === 'ja'
-// anymore. That gate missed anime-style shows made outside Japan with English
-// as the original_language on TMDB — e.g. "Devil May Cry" (2025, Studio Mir/
-// Adi Shankar) and "Castlevania" fell through to the generic series bucket
-// and got movie/series sites instead of anime sites.
 function detectCategory(r, type) {
-  const isAnime = (r.genre_ids || []).includes(16);
+  const isAnime = (r.genre_ids || []).includes(16) && r.original_language === 'ja';
   if (isAnime) return 'anime';
   if (type === 'series') {
     const isKDrama = r.original_language === 'ko' || (r.origin_country || []).includes('KR');
@@ -3136,6 +3034,17 @@ function resolveSearchAlias(q) {
 function cleanSearchQuery(q) {
   const aliased = resolveSearchAlias(q);
   // Strips, in order:
+  //  - Genre/category qualifier words people naturally tack on when they
+  //    don't remember the exact title ("Black kdrama", "Titanic movie") —
+  //    TMDB only does literal title matching, so these words alone are
+  //    enough to turn an otherwise-findable title into zero results. Runs
+  //    FIRST, before the season/episode strippers below, so something like
+  //    "Squid Game Season 2 kdrama" has "kdrama" removed first, leaving
+  //    "Squid Game Season 2" for the season stripper to clean normally
+  //    instead of failing to match with "kdrama" trailing after the "2".
+  //  - Same genre/category words, but LEADING instead of trailing
+  //    ("anime: Attack on Titan", "kdrama Black") — same reasoning, just
+  //    the other end of the string. Runs right after the trailing version.
   //  - "Season 4 Episode 3" as one combined unit — has to run before the
   //    single-pattern strippers below, since those only match one
   //    season/part/episode marker at the very end of the string and would
@@ -3147,6 +3056,8 @@ function cleanSearchQuery(q) {
   //  - Bare "S2" / "S 2" shorthand, which is how most people actually type
   //    season shorthand rather than spelling out "season"
   return aliased
+    .replace(/\s*[:\-–—]?\s+(korean drama|japanese drama|chinese drama|k-drama|j-drama|c-drama|kdrama|jdrama|cdrama|tv series|tv show|anime|drama|movie|film|series|show)\s*$/i, '')
+    .replace(/^\s*(korean drama|japanese drama|chinese drama|k-drama|j-drama|c-drama|kdrama|jdrama|cdrama|tv series|tv show|anime|drama|movie|film|series|show)\s*[:\-–—]?\s+/i, '')
     .replace(/\s*[:\-–—]?\s+season\s*\d*\s+(episodes|episode|eps|ep)\.?\s*\d*\s*$/i, '')
     .replace(/\s*[:\-–—]?\s+final\s+(season|part)\s*$/i, '')
     .replace(/\s*[:\-–—]?\s+(season|part|episodes|episode|eps|ep|volume|vol)\.?\s*\d*\s*$/i, '')
@@ -3154,84 +3065,11 @@ function cleanSearchQuery(q) {
     .trim() || aliased;
 }
 
-// Pulls out an explicit season number from the raw typed query (e.g. "The
-// Walking Dead Season 2", "Walking Dead S2") so it can be used to fetch
-// season-specific poster/year/description after the base show is found via
-// the normal title search. Mirrors the same patterns cleanSearchQuery()
-// strips out — this just captures the digit before it's discarded, instead
-// of throwing it away. Returns null when no explicit season number is
-// present (a bare trailing number like "Toy Story 3" is NOT treated as a
-// season — cleanSearchQuery() only strips that via its separate, un-related
-// isRetry fallback in runSearch(), so this stays conservative and only
-// fires on "season"/"part"/"s2"-style wording).
-function extractSeasonNumber(q) {
-  const aliased = resolveSearchAlias(q);
-  const patterns = [
-    /\s*[:\-–—]?\s+season\s*(\d+)\s+(?:episodes|episode|eps|ep)\.?\s*\d*\s*$/i,
-    /\s*[:\-–—]?\s+(?:season|part)\.?\s*(\d+)\s*$/i,
-    /\s*[:\-–—]?\s+s\s*(\d+)\s*$/i,
-  ];
-  for (const p of patterns) {
-    const m = aliased.match(p);
-    if (m) return parseInt(m[1], 10);
-  }
-  return null;
-}
-
-// Merges season-specific data (poster/air date/overview) from the
-// mode=season proxy response onto an already-parsed TV item. Any field
-// missing from the season response (season pages sometimes lack a poster)
-// falls back to the base show's value instead of blanking it out.
-function applySeasonOverride(item, seasonData) {
-  if (!seasonData) return item;
-  return {
-    ...item,
-    poster: seasonData.poster_path ? `https://image.tmdb.org/t/p/w300${seasonData.poster_path}` : item.poster,
-    year: seasonData.air_date ? parseInt(seasonData.air_date.split('-')[0]) : item.year,
-    description: seasonData.overview || item.description,
-    title: seasonData.name ? `${item.title} — ${seasonData.name}` : item.title,
-  };
-}
-
-// Detects a region/drama-type word in the raw query (e.g. "kdrama", "cdrama")
-// and returns both the cleaned text to actually send to TMDB, and the real
-// origin_country/original_language codes to verify results against after
-// they come back — actual TMDB metadata, not just a hopeful text match.
-// This is why "Black kdrama" can correctly find the 2017 Korean drama
-// "Black" instead of either matching nothing (old bug) or matching every
-// unrelated result also named "Black" regardless of country (a plain
-// keyword-strip alone would do that).
-const ORIGIN_FILTERS = {
-  'k-?drama|korean\\s*drama': { countries: ['KR'], languages: ['ko'] },
-  'c-?drama|chinese\\s*drama': { countries: ['CN', 'TW', 'HK'], languages: ['zh', 'cn'] },
-  'j-?drama|japanese\\s*drama': { countries: ['JP'], languages: ['ja'] },
-  'thai\\s*drama': { countries: ['TH'], languages: ['th'] },
-};
-function extractOriginFilter(q) {
-  for (const [pattern, filter] of Object.entries(ORIGIN_FILTERS)) {
-    const re = new RegExp(`^\\s*(${pattern})\\s+|\\s+(${pattern})\\s*$`, 'gi');
-    if (re.test(q)) {
-      return { cleaned: q.replace(re, '').trim(), filter };
-    }
-  }
-  return { cleaned: q, filter: null };
-}
-// True if a parsed TMDB item's real origin_country/original_language
-// matches the requested filter — the actual verification step.
-function matchesOriginFilter(item, filter) {
-  if (!filter) return true;
-  const countryMatch = (item.origin_country || []).some(c => filter.countries.includes(c));
-  const langMatch = filter.languages.includes(item.original_language);
-  return countryMatch || langMatch;
-}
-
 function searchMovie() {
   closeSuggestions();
   const query = document.getElementById('search-input').value.trim();
   if (!query) return;
-  const { cleaned: originCleanedQuery, filter: originFilter } = extractOriginFilter(query);
-  const tmdbQuery = cleanSearchQuery(originCleanedQuery);
-  const seasonNumber = extractSeasonNumber(query);
+  const tmdbQuery = cleanSearchQuery(query);
 
   const now = Date.now();
   if (isSearching || now < cooldownUntil) {
@@ -3292,9 +3130,32 @@ function searchMovie() {
     return;
   }
 
-  function runSearch(qForApi, isRetry, triedOriginal) {
+  function runSearch(qForApi, retryStage) {
     return fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(qForApi)}`, { signal: AbortSignal.timeout(8000) })
       .then(r => r.json())
+      .then(tmdb => {
+        // TMDB caps each page at ~20 results, sorted by popularity — a real
+        // match can rank just outside page 1 next to several more
+        // mainstream same-word results (e.g. searching "Black" surfaces
+        // Black Sails/Beauty in Black/etc. on page 1, while a smaller 2017
+        // Korean drama also just titled "Black" sits on page 2) and never
+        // surfaces via "Load More" even though it exists on TMDB. This is
+        // NOT the zero-results case the retry stages below handle — page 1
+        // already has plenty of results — so it has to be merged in here,
+        // unconditionally, on the first attempt. Capped at one extra page
+        // (not chased indefinitely) to keep this to one extra request.
+        if (!retryStage && tmdb.total_pages > 1) {
+          return fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(qForApi)}&page=2`, { signal: AbortSignal.timeout(8000) })
+            .then(r2 => r2.json())
+            .then(tmdb2 => {
+              const seen = new Set((tmdb.results || []).map(m => `${m.media_type}-${m.id}`));
+              const extra = (tmdb2.results || []).filter(m => !seen.has(`${m.media_type}-${m.id}`));
+              return { ...tmdb, results: [...(tmdb.results || []), ...extra] };
+            })
+            .catch(() => tmdb); // page 2 failing shouldn't break page 1's already-good results
+        }
+        return tmdb;
+      })
       .then(tmdb => {
         // Poster is no longer required — obscure/low-metadata titles on TMDB
         // (e.g. "Electric Girl" 2019) sometimes have no poster_path at all,
@@ -3305,26 +3166,31 @@ function searchMovie() {
         const results = tmdb.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || [];
 
         if (results.length === 0) {
-          // If an origin/category word was stripped from the query (e.g.
-          // "kdrama" removed from "Black kdrama"), some real TMDB titles
-          // actually embed that exact wording as part of their literal
-          // title — e.g. the 2017 series "Black" is listed on TMDB as
-          // "Black Korean Drama" — so stripping it can turn a specific,
-          // matchable title into a vaguer one that fails to surface it.
-          // Retry once with the completely untouched original text before
-          // falling through to the other fallbacks below.
-          if (originFilter && qForApi !== query && !triedOriginal) {
-            return runSearch(query, isRetry, true);
-          }
-          // Second (and last) attempt: some people type a bare trailing
-          // number to mean "season 1" without the word "season" (e.g.
-          // "Walking Dead 1"). Only retried once, and only when nothing
-          // matched at all, so a real numbered title ("Toy Story 3") never
-          // gets touched — it already matched correctly on the first try.
-          if (!isRetry) {
+          // Up to two follow-up attempts, in order, only when nothing
+          // matched at all:
+          //  Stage 1: strip a bare trailing number some people type to mean
+          //    "season 1" without the word "season" (e.g. "Walking Dead 1").
+          //  Stage 2: drop the last remaining word entirely. This is NOT
+          //    real spell-correction (it can't fix a typo'd word like
+          //    "Sqiud" -> "Squid") — it only helps when one extra/unknown
+          //    trailing word (not already caught by cleanSearchQuery) is
+          //    diluting an otherwise-matchable title, e.g. a qualifier word
+          //    not on our known list. A real typo-tolerant search would
+          //    need a bundled title dictionary or a third-party spellcheck
+          //    API, which this app doesn't have.
+          // A real numbered/multi-word title ("Toy Story 3") never reaches
+          // either stage — it already matched correctly on the first try.
+          if (retryStage === 0) {
             const strippedNumber = qForApi.replace(/\s+\d+\s*$/, '').trim();
             if (strippedNumber && strippedNumber !== qForApi) {
-              return runSearch(strippedNumber, true);
+              return runSearch(strippedNumber, 1);
+            }
+          }
+          if (retryStage <= 1) {
+            const words = qForApi.trim().split(/\s+/);
+            if (words.length > 1) {
+              const droppedLastWord = words.slice(0, -1).join(' ');
+              return runSearch(droppedLastWord, 2);
             }
           }
           hideFiltersBar();
@@ -3356,63 +3222,21 @@ function searchMovie() {
 
         // Map EVERY matching result (not just results[0]) so filters have
         // an actual list to work with.
-        let parsedList = results.map(parseTmdbItem);
+        const parsedList = results.map(parseTmdbItem);
 
-        // If a region/drama-type word was in the query (e.g. "kdrama"),
-        // keep only results whose real TMDB origin_country/original_language
-        // actually matches — filters out same-titled results from the wrong
-        // country instead of just trusting the title text search alone.
-        if (originFilter) {
-          const filteredList = parsedList.filter(item => matchesOriginFilter(item, originFilter));
-          // Only apply if it actually narrowed things down to something —
-          // an empty result here likely means TMDB's origin data is
-          // incomplete for this particular title, not that it's genuinely
-          // the wrong country. Falling back to the unfiltered list avoids
-          // turning a real match into a false "No matches".
-          if (filteredList.length > 0) parsedList = filteredList;
+        saveToCache(query, parsedList);
+        lastSearchResult = parsedList;
+
+        if (parsedList.length === 1) {
+          currentDisplayedResults = parsedList;
+          renderResult(parsedList[0], query);
+        } else {
+          renderResultsGrid(parsedList);
         }
-
-        function finalizeResults(list) {
-          saveToCache(query, list);
-          lastSearchResult = list;
-
-          if (list.length === 1) {
-            currentDisplayedResults = list;
-            renderResult(list[0], query);
-          } else {
-            renderResultsGrid(list);
-          }
-        }
-
-        // A season number was typed (e.g. "Walking Dead Season 2") — the
-        // base search above already found the show itself (TMDB has no
-        // per-season title entries), so this makes one more call for the
-        // specific season's poster/air date/overview and swaps it onto the
-        // first TV result before rendering. Movies never have seasons, so
-        // this only looks at the first 'series' match; if the season fetch
-        // fails, the base show's own data is shown instead of failing the
-        // whole search.
-        if (seasonNumber) {
-          const tvIndex = parsedList.findIndex(r => r.type === 'series');
-          if (tvIndex !== -1) {
-            const tvItem = parsedList[tvIndex];
-            return fetch(`${TMDB_PROXY_URL}?mode=season&tv_id=${tvItem.id}&season_number=${seasonNumber}`, { signal: AbortSignal.timeout(8000) })
-              .then(r => r.json())
-              .then(seasonData => {
-                if (seasonData && !seasonData.status_code) {
-                  parsedList[tvIndex] = applySeasonOverride(tvItem, seasonData);
-                }
-                finalizeResults(parsedList);
-              })
-              .catch(() => finalizeResults(parsedList));
-          }
-        }
-
-        finalizeResults(parsedList);
       });
   }
 
-  runSearch(tmdbQuery, false)
+  runSearch(tmdbQuery, 0)
     .catch(err => {
       console.error('Search failed:', err);
       let userMessage = 'Something went wrong. Please try again.';
@@ -3559,34 +3383,20 @@ function renderResult(data, query) {
   // a badge/grouping that could never actually fire. Simplified to one flat,
   // sorted list instead of pretending a distinction exists that the data
   // never provides.
-  let otherSites = data.sites || [];
+  let otherSites = (data.sites || []).sort(byHotThenStatus);
 
-  // Detect Filipino/Tagalog content (item: "kunware Tagalog yung movie,
-  // dapat kasama sa dulo yung mga Pinoy websites" — later feedback: those
-  // sites still weren't surfacing at all near the top even though they
-  // are the actually relevant ones for Pinoy titles, see below).
-  //
-  // Pure TMDB-field detection (original_language==='tl' / origin_country
-  // includes 'PH') turned out unreliable in practice: TMDB's data for
-  // older, community-edited Filipino titles is frequently missing or
-  // mistagged — e.g. "Ang Ibigin Ay Ikaw" (2002) didn't trip either field,
-  // so a plainly Tagalog title got zero Pinoy site suggestions. Added a
-  // title-text fallback: common Tagalog function words/markers (ng, ang,
-  // mo, ako, ikaw, ba, po, etc.) as whole words, case-insensitive. This
-  // catches titles TMDB mis-tags without needing perfect API metadata.
-  // False positives are low-risk here — worst case a non-Pinoy title with
-  // a coincidental Tagalog-looking word gets a few extra site suggestions
-  // mixed in near the top.
-  // "may" was removed from this list: it's a common English modal verb
-  // ("May Who?", "May December", "You May Not Kiss the Bride"...), so it
-  // false-triggered Pinoy-site suggestions on non-Filipino titles that
-  // simply contain the English word "may". "ba" was dropped too as a
-  // similarly short, low-signal token. Everything left here is
-  // unambiguously Tagalog with no common-English collision.
-  const TAGALOG_TITLE_MARKERS = /\b(ng|nang|mga|ang|akin|ako|ikaw|iyong|kanya|kaniya|siya|tayo|kami|natin|namin|mo|ko|niya|nila|ninyo|hindi|oo|opo|po|kasi|dahil|para|kung|kapag|saan|paano|bakit|sino|ito|iyan|iyon|dito|diyan|doon|meron|wala|gusto|mahal|pagsuyo|puso|iibigin|ligaya|pag-ibig)\b/i;
-  const isPinoyContent = data.original_language === 'tl'
-    || (data.origin_country || []).includes('PH')
-    || TAGALOG_TITLE_MARKERS.test(data.title || '');
+  // Auto-append Pinoy sources for Filipino/Tagalog content (item: "kunware
+  // Tagalog yung movie, dapat kasama sa dulo yung mga Pinoy websites").
+  // These aren't per-title direct links (no API returns "this exact movie
+  // is on iWantTFC"), so they're added as homepage search-inside-site
+  // links, same treatment as the rest of otherSites, and always LAST so
+  // titles known to actually have this movie/show still show first.
+  // Detection assumes `data` carries the same original_language/
+  // origin_country TMDB fields used elsewhere in this file (see the
+  // isKDrama/isAnime checks) — verify this fires correctly on the live
+  // site, since this file can't confirm the exact shape of `data` at
+  // this point without live-testing your actual API responses.
+  const isPinoyContent = data.original_language === 'tl' || (data.origin_country || []).includes('PH');
   if (isPinoyContent) {
     const alreadyListed = new Set(otherSites.map(s => normalizeSiteName(s.name)));
     // Includes customSites (admin-added via the panel's category checkboxes,
@@ -3595,29 +3405,9 @@ function renderResult(data, query) {
     // immediately, with no code edit needed.
     const pinoySites = [...SITES_DIRECTORY, ...customSites]
       .filter(d => (d.categories || []).includes('pinoy') && !alreadyListed.has(normalizeSiteName(d.name)))
-      .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site', _pinoyMatch: true }));
-    // Pinoy titles now show ONLY the Pinoy-tagged sites — the generic
-    // movie-only sites (1Shows/FlickyStream/MovieBox/1Flex/1Tube/Cineby/
-    // FMovies/etc. from CATEGORY_SITES) are dropped entirely rather than
-    // merged in alongside them, per user feedback: those generic sites
-    // aren't the ones people actually want for Pinoy content, so they
-    // shouldn't be suggested at all here — not even lower in the list.
-    // NOTE: if a Pinoy title has zero matching pinoySites, this leaves
-    // otherSites empty (no fallback to the generic list).
-    otherSites = pinoySites;
+      .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site' }));
+    otherSites = [...otherSites, ...pinoySites];
   }
-  // On Pinoy content, treat a matched Pinoy site like a hot site for
-  // ranking purposes (ahead of ordinary sites, but still behind sites that
-  // are BOTH hot and Pinoy-matched — there are none currently, so this
-  // just means Pinoy relevance now outranks plain popularity for Pinoy
-  // titles, which is what a Pinoy search should surface first).
-  otherSites = otherSites.sort((a, b) => {
-    if (isPinoyContent) {
-      const pinoyDiff = (b._pinoyMatch ? 1 : 0) - (a._pinoyMatch ? 1 : 0);
-      if (pinoyDiff !== 0) return pinoyDiff;
-    }
-    return byHotThenStatus(a, b);
-  });
   const SITES_VISIBLE_INITIAL = 4;
 
   // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
@@ -3729,7 +3519,7 @@ function loadSimilar(movie) {
       }
 
       grid.innerHTML = results.map((m, i) => `
-        <div class="result-card" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSimilar(${i});}" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}" style="animation-delay:${i * 0.05}s">
+        <div class="result-card" onclick="selectSimilar(${i})" style="animation-delay:${i * 0.05}s">
           <div class="result-poster${m.poster ? ' poster-loading' : ''}">
             ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
           </div>
@@ -4152,15 +3942,15 @@ function speedBadgeIcon(speed) {
     return `<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>`;
   }
   if (speed === 'slow') {
-    // Redesigned — the previous version (separate shell ellipse + head
-    // circle + a stray stroked leg squiggle) blurred into an unrecognizable
-    // blob at 15px; the pieces didn't read as connected. Shapes below
-    // overlap generously so they fuse into one solid silhouette, with a
-    // small tail nub for character — stays legible as a turtle this small.
+    // Simplified to shell + head + a hint of hind legs (dropped the earlier
+    // 4-separate-circle "feet" — at 12px those just blurred into a fuzzy dot
+    // cluster instead of reading as a turtle). Bumped size up too since a
+    // rounded silhouette needs to be a bit bigger than an angular one (the
+    // bolt) to register clearly at a glance.
     return `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
-      <ellipse cx="12.5" cy="12" rx="7" ry="5.5"/>
-      <circle cx="5.2" cy="12" r="2.2"/>
-      <path d="M19.5 10.5 L22.5 9 L22.5 15 L19.5 13.5 Z"/>
+      <ellipse cx="13" cy="13" rx="8" ry="6"/>
+      <circle cx="4" cy="11" r="2.6"/>
+      <path d="M9.5 18.5c1 1.5 2.3 2.2 3.5 2.2s2.5-.7 3.5-2.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>
     </svg>`;
   }
   return '';
@@ -4274,45 +4064,26 @@ function applyStatusDots() {
         // color/truncation behavior already tuned for this card — no new
         // style rules needed, it just reads as part of the same line.
         const freshness = formatRelativeCheck(siteStatusLastRun);
-        const speed = getSiteSpeed(el.dataset.siteName);
-        // Freshness ("3h ago") moved out of the visible line — combined with
-        // status + speed it was running long enough to get truncated on
-        // 2-column mobile width, which defeated the whole point of merging
-        // speed in. It's still available on tap/hover via the tooltip below.
-        textEl.textContent = statusShortLabel(status);
-        // Speed shown as the existing in-house bolt/turtle SVG (currentColor,
-        // theme-matched) rather than an emoji glyph — keeps it visually
-        // consistent across devices/OSes instead of relying on each
-        // platform's own emoji rendering.
-        const speedEl = label.querySelector('[data-speed-badge]');
-        if (speedEl) {
-          if (speed === 'fast' || speed === 'slow') {
-            speedEl.innerHTML = speedBadgeIcon(speed);
-            speedEl.style.display = 'inline-flex';
-            speedEl.title = speedBadgeLabel(speed);
-          } else {
-            speedEl.style.display = 'none';
-            speedEl.innerHTML = '';
-          }
-        }
+        textEl.textContent = statusShortLabel(status) + (freshness ? ` · ${freshness}` : '');
         label.style.display = 'flex';
-        label.title = tooltipText
-          + (speed ? ` — ${speedBadgeLabel(speed)}` : '')
-          + (freshness ? ` — checked ${freshness}` : '');
+        label.title = tooltipText + (siteStatusLastRun ? ` — checked ${new Date(siteStatusLastRun).toLocaleString()}` : '');
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
         label.classList.add(`status-${status}`);
 
-        // Report button only earns its place on the card when the site
-        // actually needs reporting (down/blocked) — showing it on every
-        // "Online" card gave no live site a reason to ever be tapped.
-        const reportBtn = label.querySelector('[data-report-btn]');
-        if (reportBtn) {
-          const showReport = status === 'down' || status === 'blocked';
-          reportBtn.style.display = showReport ? 'inline-flex' : 'none';
-          // Only reserve the right-side padding (see .has-report CSS) when
-          // Report is actually on screen, so it doesn't push the centered
-          // text left on every other card for a button nobody sees.
-          label.classList.toggle('has-report', showReport);
+        const speedEl = label.querySelector('[data-speed-badge]');
+        if (speedEl) {
+          const speed = getSiteSpeed(el.dataset.siteName);
+          if (speed) {
+            speedEl.innerHTML = speedBadgeIcon(speed);
+            speedEl.title = speedBadgeLabel(speed) +
+              ' (measured from our checker, not your connection — actual speed can vary)';
+            speedEl.setAttribute('role', 'img');
+            speedEl.setAttribute('aria-label', speedEl.title);
+            speedEl.style.display = 'inline-flex';
+          } else {
+            speedEl.innerHTML = '';
+            speedEl.style.display = 'none';
+          }
         }
       }
     } else {
@@ -4340,7 +4111,7 @@ const SITES_DIRECTORY = [
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'], accent: '#ff4d8f',
     logoHtml: `<span class="logo-word"><span style="color:var(--brand-pink);">Kiss</span><span class="lw-white">KH</span></span>` },
   { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'], accent: '#8b5cf6',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-accent);">Crush</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
   { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'], accent: '#00c2b8',
     logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:var(--brand-cyan);">ki</span></span>` },
   { name: 'Viu',           url: 'https://www.viu.com/',         domain: 'viu.com',              categories: ['drama'], accent: '#00b8a9',
@@ -4348,17 +4119,17 @@ const SITES_DIRECTORY = [
   { name: 'Kocowa',        url: 'https://www.kocowa.com/',      domain: 'kocowa.com',           categories: ['drama'], accent: '#ff7a59',
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--brand-coral);">Ko</span><span class="lw-white">cowa</span></span>` },
   { name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', domain: 'ondemandkorea.com',  categories: ['drama'], accent: '#4a5fc1',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.7rem;letter-spacing:.06em;color:rgba(255,255,255,.5);text-transform:uppercase;">OnDemand</span><span style="font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:1.5rem;letter-spacing:.04em;color:var(--card-logo-accent);">KOREA</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.7rem;letter-spacing:.06em;color:rgba(255,255,255,.5);text-transform:uppercase;">OnDemand</span><span style="font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:1.5rem;letter-spacing:.04em;color:var(--accent);">KOREA</span></div>` },
   { name: 'WeTV',          url: 'https://wetv.vip/',            domain: 'wetv.vip',             categories: ['drama'], accent: '#06d6a0',
     logoHtml: `<span class="logo-word"><span class="lw-white">We</span><span style="color:var(--brand-teal);">TV</span></span>` },
   { name: 'Amasian TV',    url: 'https://amasiantv.com/',       domain: 'amasiantv.com',        categories: ['drama'], accent: '#f5a623',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--card-logo-accent);letter-spacing:.03em;">TV</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
   { name: '1Shows',        url: 'https://1shows.org/',          domain: '1shows.org',           categories: ['movie'], accent: '#4da6ff',
     logoHtml: `<span class="logo-word"><span style="color:var(--brand-blue);">1</span><span class="lw-white">Shows</span></span>` },
   { name: 'FlickyStream',  url: 'https://flickystream.dad/',    domain: 'flickystream.dad',     categories: ['movie'], accent: '#c084fc',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.3rem;line-height:1.05;background:linear-gradient(90deg,#5b8def,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">flicky</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.1rem;line-height:1.05;background:linear-gradient(90deg,#c084fc,#ff6b9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">stream</span></div>` },
   { name: 'MovieBox',      url: 'https://movie-box.co/',        domain: 'movie-box.co',         categories: ['movie'], accent: '#f4c430',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-gold);">Box</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
   { name: '1Flex',         url: 'https://1flex.org/',           domain: '1flex.org',            categories: ['movie'], accent: '#ef4444',
     logoHtml: `<span class="logo-word" style="font-style:italic;transform:skewX(-6deg);display:inline-block;color:var(--brand-red);">1FLEX</span>` },
   { name: '1Tube',         url: 'https://1tube.org/',           domain: '1tube.org',            categories: ['movie'], accent: '#a855f7',
@@ -4366,15 +4137,15 @@ const SITES_DIRECTORY = [
   { name: 'Cineby',        url: 'https://cineby.at/',           domain: 'cineby.at',            categories: ['movie'], accent: '#06d6a0',
     logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:var(--brand-teal);">by</span></span>` },
   { name: 'FMovies',       url: 'https://fmovies-hd.to/',       domain: 'fmovies-hd.to',        categories: ['movie'], accent: '#3b82f6',
-    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--card-logo-accent);">F</span><span class="lw-white">Movies</span></span>` },
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--accent);">F</span><span class="lw-white">Movies</span></span>` },
   { name: 'ReAnime',       url: 'https://reanime.to/',          domain: 'reanime.to',           categories: ['anime'], accent: '#10b981',
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--brand-teal);">Re</span><span class="lw-white">Anime</span></span>` },
   { name: 'Animepahe',     url: 'https://animepahe.pw/',        domain: 'animepahe.pw',         categories: ['anime'], accent: '#e6b800',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-gold);">pahe</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">pahe</span></div>` },
   { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'], accent: '#9333ea',
     logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:var(--brand-purple);">ro</span></span>` },
   { name: 'Anikoto',       url: 'https://anikototv.to/',        domain: 'anikototv.to',         categories: ['anime'], accent: '#22d3ee',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-accent);">koto</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'], accent: '#ff8a3d',
     logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:var(--brand-orange);">ma</span></span>` },
   // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
@@ -4383,15 +4154,15 @@ const SITES_DIRECTORY = [
   // streaming their own library for free (ad-supported), so links stay
   // working long-term instead of rotting in a few months.
   { name: 'iWantTFC',      url: 'https://www.iwanttfc.com/',    domain: 'iwanttfc.com',         categories: ['pinoy'], accent: '#d0021b',
-    logoHtml: `<span class="logo-word"><span class="lw-white">iWant</span><span style="color:var(--card-logo-accent);">TFC</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white">iWant</span><span style="color:var(--accent);">TFC</span></span>` },
   { name: 'Star Cinema',   url: 'https://www.youtube.com/@ABSstarcinema', domain: 'youtube.com', categories: ['pinoy'], accent: '#ffd166',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--card-logo-gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:var(--card-logo-ink,#fff);text-transform:uppercase;">Cinema</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:var(--card-logo-ink,#fff);text-transform:uppercase;">Cinema</span></div>` },
   { name: 'Viva Films',    url: 'https://www.youtube.com/@VIVAFilms/videos', domain: 'youtube.com', categories: ['pinoy'], accent: '#dc2626',
     logoHtml: `<span class="logo-word"><span style="color:var(--brand-red);">VIVA</span><span class="lw-white" style="font-size:1rem;"> Films</span></span>` },
   { name: 'Regal Entertainment', url: 'https://www.youtube.com/@RegalEntertainmentInc/', domain: 'youtube.com', categories: ['pinoy'], accent: '#b91c1c',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Regal</span></div>` },
   { name: 'Cinema One',    url: 'https://www.youtube.com/@CinemaOnePH/', domain: 'youtube.com',   categories: ['pinoy'], accent: '#e0a300',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--card-logo-accent);"> One</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
   { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'], accent: '#059669',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--brand-teal);">Studios</span></div>` },
   { name: 'CineWhale',     url: 'https://cinewhale.cc/',        domain: 'cinewhale.cc',         categories: ['movie'], accent: '#1e9edb',
@@ -4501,7 +4272,7 @@ function renderSitesDirectory() {
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
           <span class="speed-badge-mini" data-speed-badge></span>
-          <button class="report-icon" data-report-btn onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35; display:none;">⋯</button>
+          <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35;">⋯</button>
         </span>
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
         ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff8f1f"/><stop offset="100%" stop-color="#ffd23f"/></linearGradient></defs><path fill="url(#flameGrad)" d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/><path fill="#1a1a2e" fill-opacity=".35" d="M12 21a3.3 3.3 0 0 1-3.3-3.3c0-1.6 1-2.5 1.9-3.3-.1.7.2 1.3.8 1.3.7 0 1-.6 1-1.3.7.9 1.2 1.8 1.2 3.1A2.6 2.6 0 0 1 12 21Z"/></svg></span>` : ''}
@@ -4572,11 +4343,7 @@ function syncDirFilterChipsUI() {
 }
 
 function dismissDirTip() {
-  // sessionStorage (not localStorage) on purpose — the ad-blocker safety
-  // tip should stay dismissed for the rest of THIS visit/tab, but come
-  // back on the next visit so it's not silently gone forever for
-  // returning users who happened to tap X once.
-  try { sessionStorage.setItem('cinefind-dir-tip-dismissed', '1'); } catch (e) { /* storage full/unavailable */ }
+  try { localStorage.setItem('cinefind-dir-tip-dismissed', '1'); } catch (e) { /* storage full/unavailable */ }
   const el = document.getElementById('dir-safety-tip');
   if (el) el.remove();
 }
@@ -4585,7 +4352,7 @@ function renderHomepage() {
   hideFiltersBar();
   renderRecentlyViewed();
   let dirTipDismissed;
-  try { dirTipDismissed = sessionStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
+  try { dirTipDismissed = localStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
     <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;" class="popular-label">
       <span>🌐 Free Websites</span>
