@@ -2352,7 +2352,7 @@ function fetchSuggestions(query) {
   box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--muted); font-size:.8rem;">Searching…</div>`;
   box.classList.add('open');
 
-  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(query)}`, {
+  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(cleanSearchQuery(query))}`, {
     signal: suggestAbortController.signal
   })
     .then(r => r.json())
