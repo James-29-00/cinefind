@@ -2899,14 +2899,33 @@ function parseTmdbItem(r, fallbackMediaType) {
   };
 }
 
+// Fan-nickname / commonly-mistyped titles that don't exist as literal TMDB
+// entries — e.g. "May Who?" (2015) is widely known among Filipino viewers
+// as "Electric Girl", but TMDB only has it under its real title. Add more
+// entries here (lowercase key -> real TMDB title) whenever a search turns
+// up empty for a title people clearly know by a different name.
+const SEARCH_ALIASES = {
+  'electric girl': 'May Who',
+  'my electric girl': 'May Who',
+};
+
+function resolveSearchAlias(q) {
+  const hit = SEARCH_ALIASES[q.toLowerCase().trim()];
+  return hit || q;
+}
+
 // TMDB's search endpoint matches on title only — it has no entry literally
 // named "Bleach Season 4", so a query like that returns nothing even though
 // "Bleach" alone matches fine. Stripping trailing season/part/movie noise
 // before the API call (but keeping `query` itself untouched for the cache
 // key, search history, and on-screen "Couldn't find ..." text) fixes that
 // without affecting anything else that reads the original typed query.
+// Alias resolution runs first so "electric girl season 2" (hypothetically)
+// would still resolve to the real title before the season-stripping regex
+// even needs to run.
 function cleanSearchQuery(q) {
-  return q.replace(/\s*[:\-–—]?\s+(season|part|volume|vol)\.?\s*\d+\s*$/i, '').trim() || q;
+  const aliased = resolveSearchAlias(q);
+  return aliased.replace(/\s*[:\-–—]?\s+(season|part|volume|vol)\.?\s*\d+\s*$/i, '').trim() || aliased;
 }
 
 function searchMovie() {
