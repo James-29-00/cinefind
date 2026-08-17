@@ -1246,13 +1246,11 @@
     background: rgba(8,8,16,.55);
   }
   .status-dot-mini svg { width: 68%; height: 68%; display: block; }
-  /* Back in normal flex flow, grouped with the text/speed-icon that follow
-     it — the whole cluster (dot + "Online" + speed icon) centers together
-     as one unit. A dot fixed to the edge with text centered separately
-     could never look visually balanced (the edge dot has nothing
-     matching it on the other side), so they move together instead. */
+  /* Pinned to the left edge of the footer bar, out of the flex flow —
+     "Online" + the speed icon then center together as their own pair
+     across the full bar width, unaffected by the dot's position. */
   .status-label-mini .status-dot-mini {
-    position: static; flex-shrink: 0;
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
   }
 
   /* Neutral footer strip — freshness text + icon-only Report button, single
@@ -4504,7 +4502,11 @@ function syncDirFilterChipsUI() {
 }
 
 function dismissDirTip() {
-  try { localStorage.setItem('cinefind-dir-tip-dismissed', '1'); } catch (e) { /* storage full/unavailable */ }
+  // sessionStorage (not localStorage) on purpose — the ad-blocker safety
+  // tip should stay dismissed for the rest of THIS visit/tab, but come
+  // back on the next visit so it's not silently gone forever for
+  // returning users who happened to tap X once.
+  try { sessionStorage.setItem('cinefind-dir-tip-dismissed', '1'); } catch (e) { /* storage full/unavailable */ }
   const el = document.getElementById('dir-safety-tip');
   if (el) el.remove();
 }
@@ -4513,7 +4515,7 @@ function renderHomepage() {
   hideFiltersBar();
   renderRecentlyViewed();
   let dirTipDismissed;
-  try { dirTipDismissed = localStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
+  try { dirTipDismissed = sessionStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
     <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;" class="popular-label">
       <span>🌐 Free Websites</span>
