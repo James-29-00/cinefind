@@ -91,6 +91,9 @@
        now pick the nearest step instead of an arbitrary .95rem/.88rem/.7rem
        mix. */
     --fs-xs: .75rem;   /* 12px */
+    --fs-info: .8125rem; /* 13px — minimum for real info (site notes, badges,
+                             status text), never smaller even where the old
+                             12px --fs-xs scale step would otherwise apply */
     --fs-sm: .875rem;  /* 14px */
     --fs-base: 1rem;   /* 16px */
     --fs-lg: 1.25rem;  /* 20px */
@@ -621,7 +624,7 @@
     background: transparent; color: #C9C6D6; font-family: 'Space Grotesk', sans-serif;
     font-size: .8rem; cursor: pointer; transition: all .2s;
   }
-  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(var(--bg-glow-rgb),.08); }
+  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent2); background: rgba(var(--bg-glow-rgb),.08); }
   .filter-chip.fav-chip { color: var(--accent2); border-color: rgba(var(--bg-glow-rgb),.35); }
   .filter-chip.fav-chip:hover { background: rgba(var(--bg-glow-rgb),.1); }
   .fav-quick-link {
@@ -784,13 +787,13 @@
   .movie-info { flex: 1; }
   .movie-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
   .movie-meta { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; font-size: .8rem; color: var(--muted); }
-  .badge { padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: var(--fs-info); font-weight: 600; }
   .badge-year { background: rgba(255,255,255,.07); color: var(--text); }
   .badge-genre { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent2); }
   .badge-rating { background: rgba(255,209,102,.12); color: var(--gold); }
   .movie-desc { font-size: .85rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
   .movie-desc.expanded { display: block; -webkit-line-clamp: unset; }
-  .movie-desc-toggle { font-size: .8rem; color: var(--accent); font-weight: 600; margin-top: 4px; cursor: pointer; background: none; border: none; padding: 0; }
+  .movie-desc-toggle { font-size: .8rem; color: var(--accent2); font-weight: 600; margin-top: 4px; cursor: pointer; background: none; border: none; padding: 0; }
 
   .section-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
   .sites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -818,7 +821,7 @@
   .result-card .result-poster img { width: 100%; height: 100%; object-fit: cover; }
   .result-card .result-info { padding: var(--sp-2) var(--sp-3) var(--sp-3); }
   .result-card .result-title { font-size: var(--fs-sm); font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--muted); }
+  .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: var(--fs-info); color: var(--muted); }
   .site-card {
     position: relative;
     background: var(--card); border: 1px solid var(--border); border-radius: var(--sp-4);
@@ -858,8 +861,8 @@
   .site-logo-box > * { transform: scale(.62); transform-origin: center; }
   .site-info { flex: 1; min-width: 0; }
   .site-name { font-weight: 600; font-size: var(--fs-base); overflow-wrap: break-word; }
-  .site-note { font-size: var(--fs-xs); color: var(--muted); margin-top: 2px; overflow-wrap: break-word; }
-  .site-free { font-size: var(--fs-xs); font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px var(--sp-2); border-radius: var(--sp-2); white-space: nowrap; }
+  .site-note { font-size: var(--fs-info); color: var(--muted); margin-top: 2px; overflow-wrap: break-word; }
+  .site-free { font-size: var(--fs-info); font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px var(--sp-2); border-radius: var(--sp-2); white-space: nowrap; }
   .arrow { color: var(--muted); font-size: var(--fs-xs); }
   .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-4); margin-bottom: 20px; align-items: stretch; }
 
@@ -1084,6 +1087,19 @@
   body.light-mode .gradient-card-wrapper.is-hot:hover {
     box-shadow: 0 12px 28px rgba(20,17,12,.28), 0 0 12px color-mix(in srgb, var(--hot-color) 45%, transparent);
   }
+  /* ===== Unified small icon-button base ===== */
+  /* Shared foundation for every small action button in the app — favorite/
+     pin, copy link, report, and the quick-test/reason chips. Each keeps its
+     own size, border-radius, and color identity in its own rule below (they
+     genuinely differ: circular icon-only vs. labeled pill); this just pulls
+     the boilerplate every one of them was redeclaring — cursor, flex
+     centering, default transition — into one place instead of four. */
+  .pin-icon, .copy-link-btn, .quick-test-btn, .report-icon {
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .2s ease, color .2s ease, border-color .2s ease, opacity .2s ease;
+  }
+
   .pin-icon {
     color: rgba(255,255,255,.85); cursor: pointer; transition: color .2s ease, opacity .2s ease;
     background: none; border: none; line-height: 1; padding: 0;
@@ -1096,6 +1112,15 @@
     content: ''; position: absolute;
     top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: 44px; height: 44px;
+  }
+  /* The visible badge is only 16x16 (by design, so it reads as a small
+     corner indicator rather than a second full-size button) — this
+     invisible ::before brings its actual tap target up to WCAG 2.5.8's
+     24x24px minimum without changing how it looks. */
+  .theme-dropdown-arrow-btn::before {
+    content: ''; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 24px; height: 24px;
   }
   .pin-icon:hover, .pin-icon.faved { color: var(--accent); }
   /* Light Mode fix: the default white-ish star (tuned for dark cards) has
@@ -1121,7 +1146,6 @@
      quiet plain icon, so it reads as the rarer/secondary action it is
      instead of visually competing 1:1 with the favorite star next to it. */
   .report-icon {
-    display: inline-flex; align-items: center; justify-content: center;
     flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
     color: rgba(255,255,255,.4); background: transparent;
     position: relative;
@@ -1259,7 +1283,7 @@
 
   .status-label-mini .status-text-mini {
     flex: 1; text-align: center;
-    font-size: .7rem; font-weight: 600; letter-spacing: .01em;
+    font-size: var(--fs-info); font-weight: 600; letter-spacing: .01em;
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
@@ -1350,8 +1374,8 @@
 
   .copy-link-btn {
     background: rgba(255,255,255,.06); border: none; border-radius: 8px;
-    width: 30px; height: 30px; flex-shrink: 0; cursor: pointer;
-    font-size: .85rem; display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; flex-shrink: 0;
+    font-size: .85rem;
     color: var(--muted); transition: background .2s, color .2s;
   }
   .copy-link-btn:hover { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent); }
@@ -1369,7 +1393,7 @@
      adapts across Light Mode and all three color themes automatically. */
   .quick-test-btn {
     background: var(--surface); border: 1px solid var(--border); color: var(--text);
-    border-radius: 8px; padding: 6px 12px; font-size: .8rem; cursor: pointer;
+    border-radius: 8px; padding: 6px 12px; font-size: .8rem;
     transition: background .15s ease, border-color .15s ease;
   }
   .quick-test-btn:hover { border-color: var(--accent); }
@@ -1499,7 +1523,7 @@
           <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
             <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </button>
-          <button id="theme-dropdown-arrow" title="Theme, help, install" aria-label="Open menu" onclick="toggleThemeDropdown(event)" style="position:absolute; bottom:-3px; right:-3px; width:16px; height:16px; background:var(--card); border:1px solid var(--border); border-radius:50%; cursor:pointer; color:var(--text); padding:0; display:flex; align-items:center; justify-content:center; line-height:1;">
+          <button id="theme-dropdown-arrow" class="theme-dropdown-arrow-btn" title="Theme, help, install" aria-label="Open menu" onclick="toggleThemeDropdown(event)" style="position:absolute; bottom:-3px; right:-3px; width:16px; height:16px; background:var(--card); border:1px solid var(--border); border-radius:50%; cursor:pointer; color:var(--text); padding:0; display:flex; align-items:center; justify-content:center; line-height:1;">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
           </button>
         </div>
@@ -4296,7 +4320,7 @@ function renderHomepage() {
     ${dirTipDismissed ? '' : `
     <div class="safety-tip" id="dir-safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
       <span class="tip-icon">🛡️</span>
-      <span>Use an ad-blocking browser like <strong>Brave</strong> and avoid pop-ups/"download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" class="brave-dl-link" style="color:var(--accent); font-weight:600; text-decoration:underline;">Get Brave →</a></span>
+      <span>Use an ad-blocking browser like <strong>Brave</strong> and avoid pop-ups/"download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" class="brave-dl-link" style="color:var(--accent2); font-weight:600; text-decoration:underline;">Get Brave →</a></span>
       <button class="tip-close" onclick="dismissDirTip()" aria-label="Dismiss tip">✕</button>
     </div>
     `}
