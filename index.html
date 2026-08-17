@@ -2925,10 +2925,23 @@ function resolveSearchAlias(q) {
 // even needs to run.
 function cleanSearchQuery(q) {
   const aliased = resolveSearchAlias(q);
-  // Number optional — "One Punch Man Season" (typed before finishing "4")
-  // should strip down to "One Punch Man" too, not just "Season 4" with the
-  // number already there.
-  return aliased.replace(/\s*[:\-–—]?\s+(season|part|volume|vol)\.?\s*\d*\s*$/i, '').trim() || aliased;
+  // Strips, in order:
+  //  - "Season 4 Episode 3" as one combined unit — has to run before the
+  //    single-pattern strippers below, since those only match one
+  //    season/part/episode marker at the very end of the string and would
+  //    leave "Season 4" dangling if "Episode 3" comes after it.
+  //  - "Final Season" / "Final Part" as one unit (so "Final" doesn't get
+  //    left dangling — matched before the plain season/part case below)
+  //  - "Season 4" / "Season" / "Part 5" / "Episode 12" / "Vol. 3" etc,
+  //    number optional (covers mid-typing before the number is finished)
+  //  - Bare "S2" / "S 2" shorthand, which is how most people actually type
+  //    season shorthand rather than spelling out "season"
+  return aliased
+    .replace(/\s*[:\-–—]?\s+season\s*\d*\s+(episode|ep)\.?\s*\d*\s*$/i, '')
+    .replace(/\s*[:\-–—]?\s+final\s+(season|part)\s*$/i, '')
+    .replace(/\s*[:\-–—]?\s+(season|part|episode|ep|volume|vol)\.?\s*\d*\s*$/i, '')
+    .replace(/\s*[:\-–—]?\s+s\s*\d+\s*$/i, '')
+    .trim() || aliased;
 }
 
 function searchMovie() {
@@ -2990,59 +3003,74 @@ function searchMovie() {
     return;
   }
 
-  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(tmdbQuery)}`, { signal: AbortSignal.timeout(8000) })
-    .then(r => r.json())
-    .then(tmdb => {
-      // Poster is no longer required — obscure/low-metadata titles on TMDB
-      // (e.g. "Electric Girl" 2019) sometimes have no poster_path at all,
-      // and were being silently dropped here even though TMDB matched them
-      // correctly. parseTmdbItem()/renderResult() already fall back to a
-      // 🎬/📺 emoji when poster is null, so this no longer needs a poster
-      // to produce a usable result.
-      const results = tmdb.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || [];
+  function runSearch(qForApi, isRetry) {
+    return fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(qForApi)}`, { signal: AbortSignal.timeout(8000) })
+      .then(r => r.json())
+      .then(tmdb => {
+        // Poster is no longer required — obscure/low-metadata titles on TMDB
+        // (e.g. "Electric Girl" 2019) sometimes have no poster_path at all,
+        // and were being silently dropped here even though TMDB matched them
+        // correctly. parseTmdbItem()/renderResult() already fall back to a
+        // 🎬/📺 emoji when poster is null, so this no longer needs a poster
+        // to produce a usable result.
+        const results = tmdb.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || [];
 
-      if (results.length === 0) {
-        hideFiltersBar();
-        const suggestions = tmdb.results?.slice(0, 3).map(r => r.title || r.name) || [];
-        const suggestionCards = suggestions.map(s => `
-          <button class="pop-chip" onclick="quickSearch('${escapeAttr(s)}')" style="margin-right:8px; margin-top:8px;">
-            🔍 ${escapeAttr(s)}
-          </button>`).join('');
-        // TMDB itself found nothing even loosely related (not just no
-        // poster-having match) — "Did you mean..." would be misleading with
-        // an empty list under it, so this shows different, more actionable
-        // copy instead of a dead-end.
-        area.innerHTML = suggestions.length > 0 ? `
-          <div class="empty">
-            <div class="big">🤔</div>
-            <p style="margin-bottom:20px;">Couldn't find "<strong>${escapeAttr(query)}</strong>". Did you mean...</p>
-            ${suggestionCards}
-            <div style="margin-top:14px;"><button class="pop-chip" onclick="renderHomepage()">🗂️ Browse free sites directory</button></div>
-          </div>` : `
-          <div class="empty">
-            <div class="big">🔍</div>
-            <p style="margin-bottom:6px;">No matches for "<strong>${escapeAttr(query)}</strong>".</p>
-            <p style="color:var(--muted); font-size:.8rem; margin-bottom:20px;">Double-check the spelling, try the original (non-translated) title, or search a shorter keyword.</p>
-            <button class="pop-chip" onclick="document.getElementById('search-input').value=''; document.getElementById('search-input').focus();">✏️ Edit search</button>
-            <button class="pop-chip" onclick="renderHomepage()" style="margin-left:8px;">🗂️ Browse directory</button>
-          </div>`;
-        return;
-      }
+        if (results.length === 0) {
+          // Second (and last) attempt: some people type a bare trailing
+          // number to mean "season 1" without the word "season" (e.g.
+          // "Walking Dead 1"). Only retried once, and only when nothing
+          // matched at all, so a real numbered title ("Toy Story 3") never
+          // gets touched — it already matched correctly on the first try.
+          if (!isRetry) {
+            const strippedNumber = qForApi.replace(/\s+\d+\s*$/, '').trim();
+            if (strippedNumber && strippedNumber !== qForApi) {
+              return runSearch(strippedNumber, true);
+            }
+          }
+          hideFiltersBar();
+          const suggestions = tmdb.results?.slice(0, 3).map(r => r.title || r.name) || [];
+          const suggestionCards = suggestions.map(s => `
+            <button class="pop-chip" onclick="quickSearch('${escapeAttr(s)}')" style="margin-right:8px; margin-top:8px;">
+              🔍 ${escapeAttr(s)}
+            </button>`).join('');
+          // TMDB itself found nothing even loosely related (not just no
+          // poster-having match) — "Did you mean..." would be misleading with
+          // an empty list under it, so this shows different, more actionable
+          // copy instead of a dead-end.
+          area.innerHTML = suggestions.length > 0 ? `
+            <div class="empty">
+              <div class="big">🤔</div>
+              <p style="margin-bottom:20px;">Couldn't find "<strong>${escapeAttr(query)}</strong>". Did you mean...</p>
+              ${suggestionCards}
+              <div style="margin-top:14px;"><button class="pop-chip" onclick="renderHomepage()">🗂️ Browse free sites directory</button></div>
+            </div>` : `
+            <div class="empty">
+              <div class="big">🔍</div>
+              <p style="margin-bottom:6px;">No matches for "<strong>${escapeAttr(query)}</strong>".</p>
+              <p style="color:var(--muted); font-size:.8rem; margin-bottom:20px;">Double-check the spelling, try the original (non-translated) title, or search a shorter keyword.</p>
+              <button class="pop-chip" onclick="document.getElementById('search-input').value=''; document.getElementById('search-input').focus();">✏️ Edit search</button>
+              <button class="pop-chip" onclick="renderHomepage()" style="margin-left:8px;">🗂️ Browse directory</button>
+            </div>`;
+          return;
+        }
 
-      // Map EVERY matching result (not just results[0]) so filters have
-      // an actual list to work with.
-      const parsedList = results.map(parseTmdbItem);
+        // Map EVERY matching result (not just results[0]) so filters have
+        // an actual list to work with.
+        const parsedList = results.map(parseTmdbItem);
 
-      saveToCache(query, parsedList);
-      lastSearchResult = parsedList;
+        saveToCache(query, parsedList);
+        lastSearchResult = parsedList;
 
-      if (parsedList.length === 1) {
-        currentDisplayedResults = parsedList;
-        renderResult(parsedList[0], query);
-      } else {
-        renderResultsGrid(parsedList);
-      }
-    })
+        if (parsedList.length === 1) {
+          currentDisplayedResults = parsedList;
+          renderResult(parsedList[0], query);
+        } else {
+          renderResultsGrid(parsedList);
+        }
+      });
+  }
+
+  runSearch(tmdbQuery, false)
     .catch(err => {
       console.error('Search failed:', err);
       let userMessage = 'Something went wrong. Please try again.';
