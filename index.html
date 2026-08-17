@@ -1234,10 +1234,12 @@
     background: rgba(8,8,16,.55);
   }
   .status-dot-mini svg { width: 68%; height: 68%; display: block; }
-  /* Inline variant — used when the dot sits inside the bottom label bar
-     (next to the ONLINE text) instead of floating top-left on its own. */
+  /* Pinned to the bar's left edge, out of flex flow — the text below
+     centers independently of this, per the user's requested layout:
+     circle fixed left, "Online"/"Flagged"/"Down" centered on its own. */
   .status-label-mini .status-dot-mini {
-    position: static; flex-shrink: 0;
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    flex-shrink: 0;
   }
 
   /* Neutral footer strip — freshness text + icon-only Report button, single
@@ -1245,14 +1247,11 @@
      the one place status lives. */
   .status-label-mini {
     display: flex; align-items: center; justify-content: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    /* Right padding permanently reserves the Report icon's width+gap (22px
-       icon + 6px gap + 6px edge margin ≈ 30px), whether or not that icon
-       is actually visible on this card. This is what keeps the dot+text
-       group's centering identical across every card — if the padding only
-       applied when Report showed, an "Online" card and a "Down" card would
-       center at two different spots side-by-side in the grid, and long
-       words like "Flagged" would risk running into the icon. */
-    padding: 7px 30px 7px 8px;
+    /* Left/right padding permanently reserve the dot (left) and Report
+       icon (right) widths, whether or not either is actually visible on
+       this card, so the centered text sits at the same spot on every
+       card regardless of status. */
+    padding: 7px 26px 7px 26px;
     gap: 6px;
     color: #fff;
     background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
@@ -1337,7 +1336,7 @@
   }
 
   .status-label-mini .status-text-mini {
-    text-align: left; max-width: 100%;
+    text-align: center; max-width: 100%;
     font-size: var(--fs-info); font-weight: 450; letter-spacing: .01em;
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -2019,6 +2018,7 @@ function buildFavSiteCard(s, i, sortBy, siteSortBy) {
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
+          <span class="speed-badge-mini" data-speed-badge></span>
         </span>
         <button class="pin-icon faved" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name).replace(/'/g, "\\'")}'); showFavorites('${sortBy}', '${siteSortBy}');" aria-label="Remove ${escapeAttr(s.name)} from favorites"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg></button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
@@ -4068,17 +4068,26 @@ function applyStatusDots() {
         // style rules needed, it just reads as part of the same line.
         const freshness = formatRelativeCheck(siteStatusLastRun);
         const speed = getSiteSpeed(el.dataset.siteName);
-        // Only "Slow" earns a place on the card — nearly every site measures
-        // as fast, so printing "Fast" on every card added zero information
-        // and just became repeated wallpaper text across the grid. "Slow"
-        // is the one value worth a heads-up before someone taps in.
-        const speedWord = speed === 'slow' ? 'Slow' : '';
         // Freshness ("3h ago") moved out of the visible line — combined with
         // status + speed it was running long enough to get truncated on
         // 2-column mobile width, which defeated the whole point of merging
         // speed in. It's still available on tap/hover via the tooltip below.
-        textEl.textContent = statusShortLabel(status)
-          + (speedWord ? ` · ${speedWord}` : '');
+        textEl.textContent = statusShortLabel(status);
+        // Speed shown as the existing in-house bolt/turtle SVG (currentColor,
+        // theme-matched) rather than an emoji glyph — keeps it visually
+        // consistent across devices/OSes instead of relying on each
+        // platform's own emoji rendering.
+        const speedEl = label.querySelector('[data-speed-badge]');
+        if (speedEl) {
+          if (speed === 'fast' || speed === 'slow') {
+            speedEl.innerHTML = speedBadgeIcon(speed);
+            speedEl.style.display = 'inline-flex';
+            speedEl.title = speedBadgeLabel(speed);
+          } else {
+            speedEl.style.display = 'none';
+            speedEl.innerHTML = '';
+          }
+        }
         label.style.display = 'flex';
         label.title = tooltipText
           + (speed ? ` — ${speedBadgeLabel(speed)}` : '')
@@ -4279,6 +4288,7 @@ function renderSitesDirectory() {
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
+          <span class="speed-badge-mini" data-speed-badge></span>
           <button class="report-icon" data-report-btn onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35; display:none;">⋯</button>
         </span>
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
