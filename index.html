@@ -3292,7 +3292,7 @@ function searchMovie() {
     return;
   }
 
-  function runSearch(qForApi, isRetry) {
+  function runSearch(qForApi, isRetry, triedOriginal) {
     return fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(qForApi)}`, { signal: AbortSignal.timeout(8000) })
       .then(r => r.json())
       .then(tmdb => {
@@ -3305,6 +3305,17 @@ function searchMovie() {
         const results = tmdb.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || [];
 
         if (results.length === 0) {
+          // If an origin/category word was stripped from the query (e.g.
+          // "kdrama" removed from "Black kdrama"), some real TMDB titles
+          // actually embed that exact wording as part of their literal
+          // title — e.g. the 2017 series "Black" is listed on TMDB as
+          // "Black Korean Drama" — so stripping it can turn a specific,
+          // matchable title into a vaguer one that fails to surface it.
+          // Retry once with the completely untouched original text before
+          // falling through to the other fallbacks below.
+          if (originFilter && qForApi !== query && !triedOriginal) {
+            return runSearch(query, isRetry, true);
+          }
           // Second (and last) attempt: some people type a bare trailing
           // number to mean "season 1" without the word "season" (e.g.
           // "Walking Dead 1"). Only retried once, and only when nothing
