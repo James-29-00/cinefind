@@ -1244,12 +1244,25 @@
      row, single line. No per-status color here anymore; the dot above is
      the one place status lives. */
   .status-label-mini {
-    display: flex; align-items: center; justify-content: space-between; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    padding: 7px 6px 7px 8px;
+    display: flex; align-items: center; justify-content: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    /* Right padding permanently reserves the Report icon's width+gap (22px
+       icon + 6px gap + 6px edge margin ≈ 30px), whether or not that icon
+       is actually visible on this card. This is what keeps the dot+text
+       group's centering identical across every card — if the padding only
+       applied when Report showed, an "Online" card and a "Down" card would
+       center at two different spots side-by-side in the grid, and long
+       words like "Flagged" would risk running into the icon. */
+    padding: 7px 30px 7px 8px;
     gap: 6px;
     color: #fff;
     background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
     transition: background .3s ease;
+  }
+  /* Report button pulled out of the centered dot+text group so it doesn't
+     throw off the centering — sits pinned to the right edge instead. Only
+     shown at all for down/blocked sites (see applyStatusDots()). */
+  .status-label-mini .report-icon {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
   }
   /* Light Mode: the dark gradient bar (needed on Dark Mode's near-black
      card for the white status text to read) looks like a jarring smudge
@@ -1324,7 +1337,7 @@
   }
 
   .status-label-mini .status-text-mini {
-    flex: 1; text-align: center;
+    text-align: left; max-width: 100%;
     font-size: var(--fs-info); font-weight: 450; letter-spacing: .01em;
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
