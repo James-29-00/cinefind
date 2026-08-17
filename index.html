@@ -827,6 +827,11 @@
   .site-group-header:not(:first-child) { margin-top: 10px; }
 
   .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  /* Extra clearance at the bottom of the page so the fixed back-to-top FAB
+     (44px, sits bottom:20px/right:16px, plus its shadow) never floats on
+     top of the last row's card content once the user scrolls all the way
+     down — this was overlapping cards like Kocowa in the site list. */
+  .results-grid { padding-bottom: 64px; }
   .result-card {
     background: var(--card); border: 1px solid var(--border); border-radius: 14px;
     overflow: hidden; cursor: pointer; text-align: left;
@@ -882,6 +887,8 @@
   .site-free { font-size: var(--fs-info); font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px var(--sp-2); border-radius: var(--sp-2); white-space: nowrap; }
   .arrow { color: var(--muted); font-size: var(--fs-xs); }
   .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-4); margin-bottom: 20px; align-items: stretch; }
+  /* Same back-to-top FAB clearance as .results-grid — see that comment. */
+  .dir-grid { padding-bottom: 64px; }
 
   /* Home tab bar (Sites / Genres) — item 10. Same pill language as the
      existing genre-pill/filter chips elsewhere on the page (rounded,
@@ -936,13 +943,16 @@
        Removed: with ~30 cards the perf gain was marginal anyway, and a
        visible rendering bug is worse than the jank it was preventing. */
     /* Per-brand accent (--card-accent, set inline per card from the site's
-       logo color) tints one corner of the border so cards stay scannable
-       by brand at a glance. Blended mostly with the theme accent (not just
-       the neutral border) so raw brand hues (gold, green, etc.) don't fight
-       the page's active palette — cards keep a subtle brand hint while
-       staying visually cohesive across all three themes. Falls back to the
-       theme accent for any site without one (e.g. admin-added custom sites). */
-    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 20%, var(--accent) 80%) 0%, var(--border) 55%);
+       logo color) used to tint the border heavily toward the theme accent
+       (80% crimson red) — meant to keep cards "cohesive," but in practice
+       it meant almost every card's border read as the same red regardless
+       of brand, so a grid of 6+ sites looked like a wall of identical red
+       outlines instead of scannable-by-brand. Flipped to mostly neutral
+       --border with just a light wash of the site's own brand color (15%)
+       — enough for a subtle, honest brand hint without every card fighting
+       for the same red spotlight. Hot/Editor's Pick keep their own louder
+       treatment further down, unaffected by this. */
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--border)) 15%, var(--border) 85%) 0%, var(--border) 60%);
     transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
@@ -4045,7 +4055,11 @@ function applyStatusDots() {
         // style rules needed, it just reads as part of the same line.
         const freshness = formatRelativeCheck(siteStatusLastRun);
         const speed = getSiteSpeed(el.dataset.siteName);
-        const speedWord = speed === 'fast' ? 'Fast' : speed === 'slow' ? 'Slow' : '';
+        // Only "Slow" earns a place on the card — nearly every site measures
+        // as fast, so printing "Fast" on every card added zero information
+        // and just became repeated wallpaper text across the grid. "Slow"
+        // is the one value worth a heads-up before someone taps in.
+        const speedWord = speed === 'slow' ? 'Slow' : '';
         // Freshness ("3h ago") moved out of the visible line — combined with
         // status + speed it was running long enough to get truncated on
         // 2-column mobile width, which defeated the whole point of merging
