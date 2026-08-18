@@ -567,7 +567,7 @@
 
   .search-wrap { position: relative; margin: var(--sp-4) 0 var(--sp-3); }
   .search-wrap input {
-    width: 100%; padding: 18px 62px 18px 22px;
+    width: 100%; padding: 18px 96px 18px 22px;
     /* Dialed back from an earlier pass that overcorrected — 22px padding +
        2px border + a heavy shadow made the search bar visually louder than
        everything else on the page instead of just "clearly the primary
@@ -1537,8 +1537,16 @@
 
   <div class="search-wrap">
     <input type="text" id="search-input" placeholder="Search any movie or drama..." aria-label="Search any movie or drama" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-haspopup="listbox" aria-controls="suggestions-box">
+    <button class="mic-btn" id="mic-btn" onclick="startVoiceSearch()" aria-label="Search by voice" style="display:none; position:absolute; right:52px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:6px; color:var(--muted);">
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
     <button class="search-btn" onclick="searchMovie()" aria-label="Search"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg></button>
     <div class="suggestions-box" id="suggestions-box" role="listbox" aria-label="Search suggestions"></div>
+  </div>
+  <div class="search-mode-pills" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 8px;">
+    <button class="pop-chip" onclick="searchByPerson()" style="font-size:.72rem; padding:6px 12px;" title="Type an actor or director's name above, then tap this">🎭 Actor/Director</button>
+    <button class="pop-chip" onclick="searchByCollection()" style="font-size:.72rem; padding:6px 12px;" title="Type a franchise name above, then tap this">🎬 Franchise</button>
+    <button class="pop-chip" onclick="searchByVibe()" style="font-size:.72rem; padding:6px 12px;" title="Type a vibe/tag like 'time travel' above, then tap this">🏷️ Vibe/Tag</button>
   </div>
   <div style="display:flex; justify-content:center; margin:-6px 2px 10px 0;">
     <button onclick="showHelpTip()" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--muted); font-size:.74rem; cursor:pointer; padding:4px 8px; opacity:.8;">
@@ -1557,6 +1565,10 @@
 
   <!-- ADVANCED FILTERS SECTION — hidden until there's a results list to filter -->
   <div class="filters" id="filters-bar" style="display:none;">
+    <div class="filter-group">
+      <label class="filter-label">Filter these:</label>
+      <input type="text" class="filter-select" id="quick-filter-input" placeholder="Type to filter titles shown..." oninput="applyFilters()" style="width:auto; min-width:150px;">
+    </div>
     <div class="filter-group">
       <label class="filter-label">Year:</label>
       <select class="filter-select" id="year-filter" onchange="applyFilters()">
@@ -2143,8 +2155,16 @@ function applyFilters() {
   const yearFilter = document.getElementById('year-filter').value;
   const ratingFilter = document.getElementById('rating-filter').value;
   const typeFilter = document.getElementById('type-filter').value;
+  const quickFilterEl = document.getElementById('quick-filter-input');
+  const quickFilter = quickFilterEl ? quickFilterEl.value.trim().toLowerCase() : '';
 
   let filtered = lastSearchResult;
+
+  // Instant title filter within the already-loaded results — pure client-side,
+  // no new TMDB call, so it updates as the person types.
+  if (quickFilter) {
+    filtered = filtered.filter(m => m.title && m.title.toLowerCase().includes(quickFilter));
+  }
 
   if (yearFilter) {
     const year = parseInt(yearFilter);
@@ -2186,6 +2206,14 @@ let visibleResultsCount = RESULTS_PER_PAGE;
 let currentResultsLabel = null; // optional custom header, e.g. "🎭 Comedy"
 let currentResultsRaw = null;   // original, unsorted order — kept so sorting can always start fresh
 let currentSortBy = 'default';
+// "Search Deeper" state — the search itself always fetches+merges TMDB
+// pages 1-2 automatically (see runSearch()); these track manual on-demand
+// fetches beyond that, since always auto-fetching many pages on every
+// search would multiply API calls for the common case where page 1-2
+// already has what the person wants.
+let currentSearchQueryForApi = null; // the cleaned query actually sent to TMDB (qForApi), for re-fetching further pages
+let currentSearchPagesFetched = 0;   // 2 once the initial page1+2 merge completes; bumped by searchDeeper()
+const MAX_SEARCH_PAGES = 5;          // hard cap so this can't spiral into dozens of requests
 
 // Genre browsing used to only ever fetch TMDB's first results page (~20
 // titles before the poster filter), so "Load More" would reveal all of
@@ -2282,6 +2310,7 @@ function renderVisibleResults() {
     </div>`).join('');
 
   const hasMore = visibleResultsCount < movies.length;
+  const canSearchDeeper = !hasMore && currentSearchQueryForApi && currentSearchPagesFetched < MAX_SEARCH_PAGES;
   const headerText = currentResultsLabel || `✅ Found ${movies.length} result(s) — tap one to see streaming links`;
 
   area.innerHTML = `
@@ -2302,7 +2331,44 @@ function renderVisibleResults() {
     ${hasMore ? `
       <div style="text-align:center; margin-top:18px;">
         <button class="pop-chip" onclick="loadMoreResults()">Load More (${movies.length - visibleResultsCount} left)</button>
+      </div>` : canSearchDeeper ? `
+      <div style="text-align:center; margin-top:18px;" id="search-deeper-wrap">
+        <p style="font-size:.78rem; color:var(--muted); margin-bottom:8px;">Not seeing what you're looking for?</p>
+        <button class="pop-chip" id="search-deeper-btn" onclick="searchDeeper()">🔍 Search Deeper (more results)</button>
       </div>` : ''}`;
+}
+
+// On-demand only (not automatic on every search) — fetches one more TMDB
+// page beyond what runSearch() already auto-merges (pages 1-2), for when
+// the wanted title is ranked further down by TMDB's own popularity sort
+// than that covers. Capped at MAX_SEARCH_PAGES total so repeatedly
+// clicking can't spiral into dozens of requests for one search.
+function searchDeeper() {
+  const btn = document.getElementById('search-deeper-btn');
+  if (!currentSearchQueryForApi || !btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Searching...';
+
+  const nextPage = currentSearchPagesFetched + 1;
+  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(currentSearchQueryForApi)}&page=${nextPage}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(tmdb => {
+      currentSearchPagesFetched = nextPage;
+      const seen = new Set((currentResultsRaw || []).map(m => `${m.type}-${m.id}`));
+      const newResults = (tmdb.results || [])
+        .filter(m => m.media_type === 'movie' || m.media_type === 'tv')
+        .map(parseTmdbItem)
+        .filter(m => !seen.has(`${m.type}-${m.id}`));
+
+      currentResultsRaw = [...(currentResultsRaw || []), ...newResults];
+      lastSearchResult = currentResultsRaw;
+      currentDisplayedResults = sortMovies(currentResultsRaw, currentSortBy);
+      visibleResultsCount += newResults.length; // reveal the newly-fetched page immediately
+      renderVisibleResults();
+    })
+    .catch(() => {
+      if (btn) { btn.disabled = false; btn.textContent = '🔍 Search Deeper (more results)'; }
+    });
 }
 
 function loadMoreResults() {
@@ -2411,14 +2477,41 @@ function fetchSuggestions(query) {
   box.classList.add('open');
   document.getElementById('search-input').setAttribute('aria-expanded', 'true');
 
+  // Same year-hint extraction searchMovie() does before hitting TMDB — lets
+  // the dropdown boost same-year matches too (e.g. "Black 2017" while
+  // still typing), not just the full search.
+  const { text: yearStrippedQuery, year: suggestYearHint } = extractYearHint(query);
+
   function runSuggestFetch(qForApi, retryStage) {
     return fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(qForApi)}`, {
       signal: suggestAbortController.signal
     })
       .then(r => r.json())
       .then(tmdb => {
+        // Same exact-title-match -> year-hint -> Asian-origin sort order as
+        // searchMovie()'s runSearch() (see the comments there for the full
+        // reasoning) — applied BEFORE the slice(0, 6) so a real match
+        // buried behind more-popular same-word results still makes it into
+        // the visible dropdown instead of getting cut off.
+        const qExactMatch = qForApi.trim().toLowerCase();
         const results = (tmdb.results || [])
           .filter(m => m.media_type === 'movie' || m.media_type === 'tv')
+          .sort((a, b) => {
+            const aExact = (a.title || a.name || '').trim().toLowerCase() === qExactMatch ? 0 : 1;
+            const bExact = (b.title || b.name || '').trim().toLowerCase() === qExactMatch ? 0 : 1;
+            if (aExact !== bExact) return aExact - bExact;
+            if (suggestYearHint) {
+              const aYear = (a.release_date || a.first_air_date || '').slice(0, 4);
+              const bYear = (b.release_date || b.first_air_date || '').slice(0, 4);
+              const aYearMatch = aYear === String(suggestYearHint) ? 0 : 1;
+              const bYearMatch = bYear === String(suggestYearHint) ? 0 : 1;
+              if (aYearMatch !== bYearMatch) return aYearMatch - bYearMatch;
+            }
+            const aAsian = isAsianOrigin(a) ? 0 : 1;
+            const bAsian = isAsianOrigin(b) ? 0 : 1;
+            if (aAsian !== bAsian) return aAsian - bAsian;
+            return 0;
+          })
           .slice(0, 6);
 
         // Same two-stage fallback as searchMovie()'s runSearch() — see the
@@ -2447,11 +2540,12 @@ function fetchSuggestions(query) {
           suggestionCache.delete(suggestionCache.keys().next().value); // evict oldest
         }
         suggestionCache.set(cacheKey, results);
+        rememberKnownTitles(results.map(r => r.title || r.name));
         renderSuggestions(results, query);
       });
   }
 
-  runSuggestFetch(stripPartialSuffixWord(cleanSearchQuery(query)), 0)
+  runSuggestFetch(stripPartialSuffixWord(cleanSearchQuery(yearStrippedQuery)), 0)
     .catch(err => {
       if (err.name === 'AbortError') return; // superseded by a newer keystroke — just let that one render
       // Show a brief inline message instead of silently closing, so the user knows it failed
@@ -2470,6 +2564,23 @@ function renderSuggestions(results, currentQuery) {
   if (document.getElementById('search-input').value.trim() !== currentQuery) return;
 
   if (results.length === 0) {
+    // Same last-resort fuzzy typo-check as the full search's zero-results
+    // branch (see findFuzzyMatches()) — only reached once TMDB itself
+    // returned nothing for this partial query.
+    const fuzzyMatches = findFuzzyMatches(currentQuery, 3);
+    if (fuzzyMatches.length > 0) {
+      box.innerHTML = fuzzyMatches.map((s, i) => `
+        <div class="suggestion-item" id="suggest-opt-${i}" role="option" aria-selected="false" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(s)}')">
+          <div class="suggestion-poster">✨</div>
+          <div class="suggestion-text">
+            <div class="suggestion-title">${escapeAttr(s)}</div>
+            <div class="suggestion-meta">Did you mean this?</div>
+          </div>
+        </div>`).join('');
+      box.classList.add('open');
+      document.getElementById('search-input').setAttribute('aria-expanded', 'true');
+      return;
+    }
     // Shown instead of silently closing — a dropdown that just vanishes
     // with no text reads as broken/frozen, same reasoning as the "No
     // matches" empty state on the full search. Kept short since this is
@@ -2972,6 +3083,18 @@ function detectCategory(r, type) {
   return 'movie';
 }
 
+// Used as a sort tiebreaker (never a filter) to nudge ambiguous results
+// toward the K-drama/anime/Asian-content audience this app is actually
+// built for, instead of TMDB's raw popularity order which skews Western.
+// Only checked after exact-title-match and year-hint already failed to
+// separate two results — see the sort comparators below.
+function isAsianOrigin(r) {
+  const ASIAN_COUNTRIES = ['KR', 'JP', 'CN', 'TW', 'HK', 'PH', 'TH'];
+  const ASIAN_LANGS = ['ko', 'ja', 'zh', 'tl', 'th'];
+  return (r.origin_country || []).some(c => ASIAN_COUNTRIES.includes(c)) ||
+    ASIAN_LANGS.includes(r.original_language);
+}
+
 const CATEGORY_SITES = {
   movie: MOVIE_SITES,
   series: SERIES_SITES,
@@ -3007,6 +3130,138 @@ function parseTmdbItem(r, fallbackMediaType) {
   };
 }
 
+// ===== VOICE SEARCH (Web Speech API — free, browser-native, no backend) =====
+// Chrome/Edge/Android WebView support this; Firefox and some browsers don't,
+// so the mic button is hidden entirely (via detectVoiceSearchSupport()) on
+// browsers where it wouldn't work, rather than showing a button that fails.
+function detectVoiceSearchSupport() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn = document.getElementById('mic-btn');
+  if (SpeechRecognition && micBtn) micBtn.style.display = 'flex';
+}
+
+function startVoiceSearch() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return; // button is hidden in this case anyway
+  const micBtn = document.getElementById('mic-btn');
+  const input = document.getElementById('search-input');
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  if (micBtn) { micBtn.style.color = 'var(--accent)'; micBtn.setAttribute('aria-label', 'Listening...'); }
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    input.value = transcript;
+    searchMovie();
+  };
+  recognition.onerror = () => {
+    if (micBtn) { micBtn.style.color = ''; micBtn.setAttribute('aria-label', 'Search by voice'); }
+  };
+  recognition.onend = () => {
+    if (micBtn) { micBtn.style.color = ''; micBtn.setAttribute('aria-label', 'Search by voice'); }
+  };
+
+  try { recognition.start(); } catch (e) {
+    if (micBtn) { micBtn.style.color = ''; }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', detectVoiceSearchSupport);
+
+// ===== ACTOR / DIRECTOR / FRANCHISE / VIBE SEARCH =====
+// Each reuses parseTmdbItem() + renderResultsGrid() so results look and
+// behave exactly like a normal title search (same cards, sort dropdown,
+// filters, Load More). All three call new proxy `mode`s that must exist
+// on the Worker (search_person/person_credits, search_collection/collection,
+// search_keyword/discover_keyword) — see cinefind-proxy-worker.js.
+function _modeSearchBusy(area, query) {
+  area.innerHTML = `<div class="empty"><div class="big">🔎</div><p>Searching for "${escapeAttr(query)}"...</p></div>`;
+}
+function _modeSearchEmpty(area, msg) {
+  area.innerHTML = `<div class="empty"><div class="big">🔍</div><p>${msg}</p></div>`;
+}
+function _modeSearchError(area) {
+  area.innerHTML = `<div class="empty"><div class="big">⚠️</div><p>Something went wrong. Please try again.</p></div>`;
+}
+
+function searchByPerson() {
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+  const area = document.getElementById('result-area');
+  _modeSearchBusy(area, query);
+  fetch(`${TMDB_PROXY_URL}?mode=search_person&query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(data => {
+      const person = (data.results || [])[0];
+      if (!person) return _modeSearchEmpty(area, `No actor/director found for "${escapeAttr(query)}".`);
+      return fetch(`${TMDB_PROXY_URL}?mode=person_credits&person_id=${person.id}`, { signal: AbortSignal.timeout(8000) })
+        .then(r => r.json())
+        .then(credits => {
+          const seen = new Set();
+          const movies = [...(credits.cast || []), ...(credits.crew || [])]
+            .filter(c => (c.media_type === 'movie' || c.media_type === 'tv') && (c.poster_path || c.title || c.name))
+            .filter(c => { const k = `${c.media_type}-${c.id}`; if (seen.has(k)) return false; seen.add(k); return true; })
+            .map(c => parseTmdbItem(c, c.media_type))
+            .sort((a, b) => (b.year || 0) - (a.year || 0));
+          if (movies.length === 0) return _modeSearchEmpty(area, `No titles found for ${escapeAttr(person.name)}.`);
+          renderResultsGrid(movies, `🎭 ${escapeAttr(person.name)} — ${movies.length} title(s)`);
+        });
+    })
+    .catch(() => _modeSearchError(area));
+}
+
+function searchByCollection() {
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+  const area = document.getElementById('result-area');
+  _modeSearchBusy(area, query);
+  fetch(`${TMDB_PROXY_URL}?mode=search_collection&query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(data => {
+      const collection = (data.results || [])[0];
+      if (!collection) return _modeSearchEmpty(area, `No franchise/collection found for "${escapeAttr(query)}".`);
+      return fetch(`${TMDB_PROXY_URL}?mode=collection&collection_id=${collection.id}`, { signal: AbortSignal.timeout(8000) })
+        .then(r => r.json())
+        .then(details => {
+          const movies = (details.parts || [])
+            .map(p => parseTmdbItem(p, 'movie'))
+            .sort((a, b) => (a.year || 0) - (b.year || 0));
+          if (movies.length === 0) return _modeSearchEmpty(area, `No titles found in ${escapeAttr(collection.name)}.`);
+          renderResultsGrid(movies, `🎬 ${escapeAttr(collection.name)} — ${movies.length} title(s)`);
+        });
+    })
+    .catch(() => _modeSearchError(area));
+}
+
+function searchByVibe() {
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+  const area = document.getElementById('result-area');
+  _modeSearchBusy(area, query);
+  fetch(`${TMDB_PROXY_URL}?mode=search_keyword&query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(data => {
+      const keyword = (data.results || [])[0];
+      if (!keyword) return _modeSearchEmpty(area, `No tag/vibe found for "${escapeAttr(query)}".`);
+      return Promise.all([
+        fetch(`${TMDB_PROXY_URL}?mode=discover_keyword&keyword_id=${keyword.id}&media_type=movie`, { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
+        fetch(`${TMDB_PROXY_URL}?mode=discover_keyword&keyword_id=${keyword.id}&media_type=tv`, { signal: AbortSignal.timeout(8000) }).then(r => r.json())
+      ]).then(([movieData, tvData]) => {
+        const movies = [
+          ...(movieData.results || []).map(r => parseTmdbItem(r, 'movie')),
+          ...(tvData.results || []).map(r => parseTmdbItem(r, 'tv'))
+        ].sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+        if (movies.length === 0) return _modeSearchEmpty(area, `No titles found for "${escapeAttr(keyword.name)}".`);
+        renderResultsGrid(movies, `🏷️ "${escapeAttr(keyword.name)}" — ${movies.length} title(s)`);
+      });
+    })
+    .catch(() => _modeSearchError(area));
+}
+
 // Fan-nickname / commonly-mistyped titles that don't exist as literal TMDB
 // entries — e.g. "May Who?" (2015) is widely known among Filipino viewers
 // as "Electric Girl", but TMDB only has it under its real title. Add more
@@ -3015,11 +3270,125 @@ function parseTmdbItem(r, fallbackMediaType) {
 const SEARCH_ALIASES = {
   'electric girl': 'May Who',
   'my electric girl': 'May Who',
+  // K-drama shorthand/nicknames
+  'sg': 'Squid Game',
+  'got': 'Game of Thrones',
+  'goblin': 'Guardian: The Lonely and Great God',
+  'dotscom': 'Descendants of the Sun',
+  'dots': 'Descendants of the Sun',
+  'w': 'W: Two Worlds',
+  'itaewon class': 'Itaewon Class',
+  'hotel del luna': 'Hotel Del Luna',
+  'crash landing': 'Crash Landing on You',
+  'clay': 'Crash Landing on You',
+  'reply 1988': 'Reply 1988',
+  'mr sunshine': 'Mr. Sunshine',
+  'strong woman': 'Strong Woman Do Bong-soon',
+  'true beauty': 'True Beauty',
+  'business proposal': 'A Business Proposal',
+  'vincenzo': 'Vincenzo',
+  'moon lovers': 'Moon Lovers: Scarlet Heart Ryeo',
+  'sky castle': 'SKY Castle',
+  // Anime shorthand/nicknames
+  'aot': 'Attack on Titan',
+  'snk': 'Attack on Titan',
+  'mha': 'My Hero Academia',
+  'bnha': 'My Hero Academia',
+  'jjk': 'Jujutsu Kaisen',
+  'demon slayer': 'Demon Slayer: Kimetsu no Yaiba',
+  'kny': 'Demon Slayer: Kimetsu no Yaiba',
+  'fma': 'Fullmetal Alchemist',
+  'fmab': 'Fullmetal Alchemist: Brotherhood',
+  'op': 'One Piece',
+  'sao': 'Sword Art Online',
+  'hxh': 'Hunter x Hunter',
+  'db': 'Dragon Ball',
+  'dbz': 'Dragon Ball Z',
+  'toradora': 'Toradora!',
+  'evangelion': 'Neon Genesis Evangelion',
+  'eva': 'Neon Genesis Evangelion',
+  'jojo': "JoJo's Bizarre Adventure",
+  'csm': 'Chainsaw Man',
+  'opm': 'One Punch Man',
+  'tokyo revengers': 'Tokyo Revengers',
+  'spy family': 'Spy x Family',
+  'sxf': 'Spy x Family',
 };
 
 function resolveSearchAlias(q) {
   const hit = SEARCH_ALIASES[q.toLowerCase().trim()];
   return hit || q;
+}
+
+// ===== TYPO / FUZZY MATCH (client-side only — no dictionary, no paid API) =====
+// A lightweight typo-correction layer for the true dead-end case: TMDB
+// found literally nothing, not even a loosely-related result. It only
+// checks the query against titles THIS APP already knows about — the
+// alias dictionary, the popular-searches list, and titles that showed up
+// in real, successful TMDB results before (remembered in localStorage). It
+// can't catch a typo of a title nobody has ever successfully searched
+// yet — there's no bundled title database — but the pool grows for free
+// as real searches happen, so it gets more useful over time at no cost.
+const KNOWN_TITLES_KEY = 'cinefind-known-titles';
+const KNOWN_TITLES_MAX = 500;
+
+// Called after any successful search/suggestion fetch to grow the fuzzy-
+// match pool with real titles TMDB actually confirmed exist.
+function rememberKnownTitles(titles) {
+  try {
+    const stored = new Set(JSON.parse(localStorage.getItem(KNOWN_TITLES_KEY) || '[]'));
+    titles.forEach(t => { if (t) stored.add(t); });
+    let arr = [...stored];
+    if (arr.length > KNOWN_TITLES_MAX) arr = arr.slice(arr.length - KNOWN_TITLES_MAX); // drop oldest
+    localStorage.setItem(KNOWN_TITLES_KEY, JSON.stringify(arr));
+  } catch (e) { /* storage unavailable — skip silently */ }
+}
+
+function getKnownTitlesPool() {
+  const pool = new Set([
+    ...Object.values(SEARCH_ALIASES),
+    '0.5 no Otoko', 'Squid Game', 'Your Name', 'Parasite', 'Demon Slayer',
+    'My Love from the Star', 'Attack on Titan', 'Crash Landing on You',
+  ]);
+  try {
+    JSON.parse(localStorage.getItem(KNOWN_TITLES_KEY) || '[]').forEach(t => pool.add(t));
+  } catch (e) { /* storage unavailable */ }
+  return [...pool];
+}
+
+// Standard Levenshtein (edit distance) between two strings, case-insensitive.
+function levenshtein(a, b) {
+  a = a.toLowerCase(); b = b.toLowerCase();
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = a[i - 1] === b[j - 1]
+        ? prev[j - 1]
+        : 1 + Math.min(prev[j - 1], prev[j], cur[j - 1]);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+// Finds up to `limit` known titles close enough to be a likely typo of the
+// query. The distance threshold scales with query length — a short query
+// needs an almost-exact match, a longer title tolerates a couple more
+// typo'd characters — so this doesn't start matching unrelated titles.
+function findFuzzyMatches(query, limit) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const maxDistance = Math.max(1, Math.floor(q.length * 0.3));
+  return getKnownTitlesPool()
+    .map(title => ({ title, dist: levenshtein(q, title) }))
+    .filter(({ dist }) => dist > 0 && dist <= maxDistance) // dist 0 = already an exact match elsewhere
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, limit)
+    .map(m => m.title);
 }
 
 // TMDB's search endpoint matches on title only — it has no entry literally
@@ -3065,11 +3434,58 @@ function cleanSearchQuery(q) {
     .trim() || aliased;
 }
 
+// Pulls a leading/trailing 4-digit year (1900-2099) out of the query, e.g.
+// "Black 2017" -> { text: "Black", year: 2017 }. TMDB's /search/multi
+// (unlike /search/movie or /search/tv) has no year-filter parameter, so
+// this can't be sent to TMDB directly — instead the year is stripped
+// before the text hits TMDB (so it doesn't hurt the title match) and used
+// afterward, client-side, to boost same-year results when several
+// different titles share the same name (see runSearch()'s sort step).
+function extractYearHint(q) {
+  const trailing = q.match(/\s+((19|20)\d{2})\s*$/);
+  if (trailing) return { text: q.slice(0, trailing.index).trim(), year: parseInt(trailing[1]) };
+  const leading = q.match(/^\s*((19|20)\d{2})\s+/);
+  if (leading) return { text: q.slice(leading[0].length).trim(), year: parseInt(leading[1]) };
+  return { text: q, year: null };
+}
+
+// Bare genre/category words typed ALONE (no actual title) — TMDB's search
+// endpoint only does literal title matching, so "anime" or "kdrama" by
+// itself returns nothing useful even though the site clearly has an anime/
+// K-drama audience. These route straight to the Sites directory with the
+// matching category filter instead of wasting an API call that can't work.
+// null = still redirect to the directory, but don't apply any one filter
+// (ambiguous between the site's own categories).
+const BARE_CATEGORY_REDIRECTS = {
+  'anime': 'anime', 'animes': 'anime', 'animé': 'anime',
+  'kdrama': 'drama', 'k-drama': 'drama', 'korean drama': 'drama', 'koreandrama': 'drama',
+  'jdrama': 'drama', 'j-drama': 'drama', 'japanese drama': 'drama',
+  'cdrama': 'drama', 'c-drama': 'drama', 'chinese drama': 'drama',
+  'drama': 'drama', 'dramas': 'drama',
+  'movie': 'movie', 'movies': 'movie', 'film': 'movie', 'films': 'movie',
+  'series': null, 'tv show': null, 'tv series': null, 'show': null,
+};
+
 function searchMovie() {
   closeSuggestions();
   const query = document.getElementById('search-input').value.trim();
   if (!query) return;
-  const tmdbQuery = cleanSearchQuery(query);
+
+  const bareCategory = BARE_CATEGORY_REDIRECTS[query.toLowerCase().trim()];
+  if (bareCategory !== undefined) {
+    renderHomepage();
+    switchHomeTab('sites');
+    if (bareCategory) {
+      activeDirFilters = [bareCategory];
+      syncDirFilterChipsUI();
+      renderSitesDirectory();
+    }
+    document.getElementById('home-tab-sites')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  const { text: yearStrippedQuery, year: yearHint } = extractYearHint(query);
+  const tmdbQuery = cleanSearchQuery(yearStrippedQuery);
 
   const now = Date.now();
   if (isSearching || now < cooldownUntil) {
@@ -3081,6 +3497,7 @@ function searchMovie() {
   }
 
   saveSearchHistory(query);
+  logPopularSearch(query);
   isSearching = true;
   const searchBtn = document.querySelector('.search-btn');
   if (searchBtn) {
@@ -3130,7 +3547,7 @@ function searchMovie() {
     return;
   }
 
-  function runSearch(qForApi, retryStage) {
+  function runSearch(qForApi, retryStage, yearHint) {
     return fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(qForApi)}`, { signal: AbortSignal.timeout(8000) })
       .then(r => r.json())
       .then(tmdb => {
@@ -3163,7 +3580,50 @@ function searchMovie() {
         // correctly. parseTmdbItem()/renderResult() already fall back to a
         // 🎬/📺 emoji when poster is null, so this no longer needs a poster
         // to produce a usable result.
-        const results = tmdb.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || [];
+        //
+        // Exact-title-match priority: TMDB's own ordering is popularity, not
+        // relevance — a big Western show can easily outrank a smaller
+        // foreign title that's a word-for-word match for what was actually
+        // typed (e.g. searching "Black" surfaces "Beauty in Black"/"Black
+        // Sails" ahead of a 2017 Korean drama literally titled "Black").
+        // This re-sorts so anything whose title/name exactly equals the
+        // (cleaned) search query — case-insensitive — always lands first,
+        // regardless of which page it came from or how TMDB itself ranked
+        // it.
+        //
+        // Year-match tiebreaker: a common word like "Black" can match
+        // thousands of TMDB entries (movies, shows, even ones where it's
+        // just part of a longer title) — exact-title-match alone isn't
+        // always enough to disambiguate between several different things
+        // that happen to share the exact same title. When the person typed
+        // a year ("Black 2017"), same-year results are boosted next, after
+        // exact-title but before everything else. No effect at all when no
+        // year was typed — falls through to TMDB's original relative order
+        // (stable sort) same as before.
+        const qExactMatch = qForApi.trim().toLowerCase();
+        const results = (tmdb.results?.filter(m => m.media_type === 'movie' || m.media_type === 'tv') || [])
+          .sort((a, b) => {
+            const aExact = (a.title || a.name || '').trim().toLowerCase() === qExactMatch ? 0 : 1;
+            const bExact = (b.title || b.name || '').trim().toLowerCase() === qExactMatch ? 0 : 1;
+            if (aExact !== bExact) return aExact - bExact;
+            if (yearHint) {
+              const aYear = (a.release_date || a.first_air_date || '').slice(0, 4);
+              const bYear = (b.release_date || b.first_air_date || '').slice(0, 4);
+              const aYearMatch = aYear === String(yearHint) ? 0 : 1;
+              const bYearMatch = bYear === String(yearHint) ? 0 : 1;
+              if (aYearMatch !== bYearMatch) return aYearMatch - bYearMatch;
+            }
+            // Asian-origin tiebreaker: only reached once exact-title and
+            // year-hint (if any) left two results still tied — nudges
+            // K-drama/anime/Asian titles ahead of a same-tier Western
+            // result, matching this app's actual audience instead of
+            // TMDB's Western-leaning popularity order. Never overrides a
+            // real exact-title or year match above.
+            const aAsian = isAsianOrigin(a) ? 0 : 1;
+            const bAsian = isAsianOrigin(b) ? 0 : 1;
+            if (aAsian !== bAsian) return aAsian - bAsian;
+            return 0;
+          });
 
         if (results.length === 0) {
           // Up to two follow-up attempts, in order, only when nothing
@@ -3183,21 +3643,29 @@ function searchMovie() {
           if (retryStage === 0) {
             const strippedNumber = qForApi.replace(/\s+\d+\s*$/, '').trim();
             if (strippedNumber && strippedNumber !== qForApi) {
-              return runSearch(strippedNumber, 1);
+              return runSearch(strippedNumber, 1, yearHint);
             }
           }
           if (retryStage <= 1) {
             const words = qForApi.trim().split(/\s+/);
             if (words.length > 1) {
               const droppedLastWord = words.slice(0, -1).join(' ');
-              return runSearch(droppedLastWord, 2);
+              return runSearch(droppedLastWord, 2, yearHint);
             }
           }
           hideFiltersBar();
           const suggestions = tmdb.results?.slice(0, 3).map(r => r.title || r.name) || [];
+          // Only tried once TMDB itself found nothing loosely related —
+          // see the block comment above findFuzzyMatches() for what this
+          // pool is built from and its limits.
+          const fuzzyMatches = suggestions.length === 0 ? findFuzzyMatches(query, 3) : [];
           const suggestionCards = suggestions.map(s => `
             <button class="pop-chip" onclick="quickSearch('${escapeAttr(s)}')" style="margin-right:8px; margin-top:8px;">
               🔍 ${escapeAttr(s)}
+            </button>`).join('');
+          const fuzzyCards = fuzzyMatches.map(s => `
+            <button class="pop-chip" onclick="quickSearch('${escapeAttr(s)}')" style="margin-right:8px; margin-top:8px;">
+              ✨ ${escapeAttr(s)}
             </button>`).join('');
           // TMDB itself found nothing even loosely related (not just no
           // poster-having match) — "Did you mean..." would be misleading with
@@ -3208,6 +3676,12 @@ function searchMovie() {
               <div class="big">🤔</div>
               <p style="margin-bottom:20px;">Couldn't find "<strong>${escapeAttr(query)}</strong>". Did you mean...</p>
               ${suggestionCards}
+              <div style="margin-top:14px;"><button class="pop-chip" onclick="renderHomepage()">🗂️ Browse free sites directory</button></div>
+            </div>` : fuzzyMatches.length > 0 ? `
+            <div class="empty">
+              <div class="big">✨</div>
+              <p style="margin-bottom:20px;">Couldn't find "<strong>${escapeAttr(query)}</strong>". Did you mean...</p>
+              ${fuzzyCards}
               <div style="margin-top:14px;"><button class="pop-chip" onclick="renderHomepage()">🗂️ Browse free sites directory</button></div>
             </div>` : `
             <div class="empty">
@@ -3225,7 +3699,10 @@ function searchMovie() {
         const parsedList = results.map(parseTmdbItem);
 
         saveToCache(query, parsedList);
+        rememberKnownTitles(parsedList.map(m => m.title));
         lastSearchResult = parsedList;
+        currentSearchQueryForApi = qForApi;
+        currentSearchPagesFetched = tmdb.total_pages > 1 ? 2 : 1;
 
         if (parsedList.length === 1) {
           currentDisplayedResults = parsedList;
@@ -3236,7 +3713,7 @@ function searchMovie() {
       });
   }
 
-  runSearch(tmdbQuery, 0)
+  runSearch(tmdbQuery, 0, yearHint)
     .catch(err => {
       console.error('Search failed:', err);
       let userMessage = 'Something went wrong. Please try again.';
@@ -3574,6 +4051,8 @@ function resetSearch() {
   document.getElementById('year-filter').value = '';
   document.getElementById('rating-filter').value = '';
   document.getElementById('type-filter').value = '';
+  const quickFilterEl = document.getElementById('quick-filter-input');
+  if (quickFilterEl) quickFilterEl.value = '';
   pushViewState('home');
   renderHomepage();
   lastSearchResult = null;
@@ -4406,7 +4885,7 @@ function renderHomepage() {
     </div>
 
     <div style="margin:24px 0 12px" class="popular-label">🔎 Popular searches</div>
-    <div class="popular-chips">
+    <div class="popular-chips" id="popular-searches-chips">
       <button class="pop-chip" onclick="quickSearch('0.5 no Otoko')">0.5 no Otoko</button>
       <button class="pop-chip" onclick="quickSearch('Squid Game')">Squid Game</button>
       <button class="pop-chip" onclick="quickSearch('Your Name')">Your Name</button>
@@ -4418,6 +4897,49 @@ function renderHomepage() {
     </div>
     </div>`;
   renderSitesDirectory();
+  loadTrendingSearches();
+}
+
+// Swaps the static "Popular searches" fallback chips above for real
+// usage-based ones, fetched from the Worker's KV-backed query log (see
+// mode=log-query / mode=popular-searches in the Worker). Runs after
+// renderHomepage() already painted the static list, so there's no loading
+// flicker — the chips just get replaced in place once real data arrives.
+function loadTrendingSearches() {
+  const box = document.getElementById('popular-searches-chips');
+  if (!box) return;
+  fetch(`${TMDB_PROXY_URL}?mode=popular-searches&limit=8`, { signal: AbortSignal.timeout(5000) })
+    .then(r => r.json())
+    .then(data => {
+      const results = Array.isArray(data?.results) ? data.results : [];
+      // Only swap in real data once there's enough of it to be meaningful —
+      // a handful of early clicks isn't a trend yet, and replacing a solid
+      // static list with 1-2 noisy real queries would be a downgrade.
+      if (results.length < 4) return;
+      // Box may have been re-rendered/removed by a tab switch while this
+      // request was in flight (e.g. user tapped "Sites" then back).
+      const stillMounted = document.getElementById('popular-searches-chips');
+      if (!stillMounted) return;
+      stillMounted.innerHTML = results
+        .map(q => `<button class="pop-chip" onclick="quickSearch('${escapeAttr(q)}')">${escapeAttr(q)}</button>`)
+        .join('');
+    })
+    .catch(() => {}); // Worker/KV not set up yet, or request failed — static fallback list stays as-is
+}
+
+// Fire-and-forget: tells the Worker's KV-backed counter that this query was
+// searched, so it can power the "Trending searches" chips above for
+// everyone. Never awaited and never allowed to affect the actual search —
+// a failure here should be invisible to the person searching.
+function logPopularSearch(query) {
+  try {
+    fetch(`${TMDB_PROXY_URL}?mode=log-query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+      keepalive: true
+    }).catch(() => {});
+  } catch (e) { /* fetch unavailable in this context — skip silently */ }
 }
 
 // Item 10 tab switcher — pure show/hide, no data fetch or re-render, so
