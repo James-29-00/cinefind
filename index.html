@@ -357,6 +357,14 @@
     flex: 1;
   }
   .logo span { color: var(--accent); font-weight: 800; }
+  /* Reset native button chrome now that .logo is a <button> (was a <div>) —
+     .logo above already sets all the text styling (family/size/weight/
+     color/etc), so this only strips button-specific defaults, no font
+     shorthand here (that would reset .logo's properties via cascade order). */
+  .logo-btn {
+    background: none; border: none; padding: 0; margin: 0;
+    cursor: pointer; text-align: inherit; display: inline-block;
+  }
   body.theme-crimson .logo span {
     filter: drop-shadow(0 0 12px rgba(230,57,70,.6));
   }
@@ -925,7 +933,7 @@
        the page's active palette — cards keep a subtle brand hint while
        staying visually cohesive across all three themes. Falls back to the
        theme accent for any site without one (e.g. admin-added custom sites). */
-    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--accent)) 20%, var(--accent) 80%) 0%, var(--border) 55%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent, var(--border)) 15%, var(--border) 85%) 0%, var(--border) 60%);
     transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
     animation: fadeUp .4s ease forwards;
     height: 100%;
@@ -1023,7 +1031,7 @@
     border-radius: var(--sp-4);
     display: flex; flex-direction: column;
     text-decoration: none; color: var(--text);
-    height: 148px;
+    height: 162px;
     position: relative;
     overflow: hidden;
   }
@@ -1049,6 +1057,21 @@
   body.light-mode .card-pastel-rose {
     background: linear-gradient(155deg, #e9e0de 0%, #ddd0ce 100%);
     box-shadow: 0 8px 20px rgba(20,17,12,.20), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  /* --card-logo-accent/--card-logo-gold (defined in :root) were only
+     tuned against the fixed dark .site-logo-box (#14141c/#262420) — but
+     the SAME logoHtml/.lw-accent markup also renders inside .card-content
+     (the homepage directory grid AND Favorites cards), which in Light
+     Mode is a LIGHT pastel background (#e4e9ee/#e9e4d5/#e9e0de), not a
+     dark one. The bright constants measured ~2.0-2.5:1 (accent) and
+     ~1.1:1 (gold) there — barely visible, exactly the washed-out "Kiss"
+     text reported. Scoped override with darker values that clear 4.5:1+
+     against all three pastel tones; .site-logo-box lives outside
+     .card-content so it's unaffected and keeps using the bright root
+     values (which still pass there in both modes). */
+  body.light-mode .card-content {
+    --card-logo-accent: #a80f0f;
+    --card-logo-gold: #6b4f05;
   }
   /* Border opacity bumped from .14 → .28: against a page background this
      close in lightness to the card tints, a faint border reads as no
@@ -1133,7 +1156,7 @@
      optional action, not something that needs equal visual weight to status
      or Hot. Bumped .78 → .9 — at .78 the outline star was still reading as
      "barely there" against busy card art, especially in Galaxy/Cyber themes. */
-  .pin-icon:not(.faved) { opacity: .9; }
+  .pin-icon:not(.faved) { opacity: .65; }
   .pin-icon:not(.faved):hover, .pin-icon:not(.faved):focus-visible { opacity: 1; }
   .pin-icon.faved { opacity: 1; filter: drop-shadow(0 1px 3px rgba(0,0,0,.55)) drop-shadow(0 0 4px rgba(255,207,92,.5)); }
 
@@ -1192,22 +1215,37 @@
     background: rgba(8,8,16,.55);
   }
   .status-dot-mini svg { width: 68%; height: 68%; display: block; }
-  /* Inline variant — used when the dot sits inside the bottom label bar
-     (next to the ONLINE text) instead of floating top-left on its own. */
+  /* Pinned to the left edge of the footer bar, out of the flex flow —
+     "Online" + the speed icon then center together as their own pair
+     across the full bar width, unaffected by the dot's position. */
   .status-label-mini .status-dot-mini {
-    position: static; flex-shrink: 0;
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
   }
 
   /* Neutral footer strip — freshness text + icon-only Report button, single
      row, single line. No per-status color here anymore; the dot above is
      the one place status lives. */
   .status-label-mini {
-    display: flex; align-items: center; justify-content: space-between; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    padding: 7px 6px 7px 8px;
+    display: flex; align-items: center; justify-content: center; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    /* Small symmetric padding by default. Right padding only grows via
+       .has-report (toggled in JS alongside the Report button's own
+       display) on the down/blocked cards that actually show it, so a
+       button nobody sees doesn't reserve dead space and skew the
+       centered group on every other card. */
+    padding: 7px 8px 7px 8px;
     gap: 6px;
     color: #fff;
     background: linear-gradient(0deg, rgba(0,0,0,.5), rgba(0,0,0,.05));
-    transition: background .3s ease;
+    transition: background .3s ease, padding .2s ease;
+  }
+  .status-label-mini.has-report {
+    padding-right: 30px;
+  }
+  /* Report button pulled out of the centered dot+text group so it doesn't
+     throw off the centering — sits pinned to the right edge instead. Only
+     shown at all for down/blocked sites (see applyStatusDots()). */
+  .status-label-mini .report-icon {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
   }
   /* Light Mode: the dark gradient bar (needed on Dark Mode's near-black
      card for the white status text to read) looks like a jarring smudge
@@ -1283,9 +1321,21 @@
 
   .status-label-mini .status-text-mini {
     flex: 1; text-align: center;
-    font-size: var(--fs-info); font-weight: 600; letter-spacing: .01em;
+    font-size: var(--fs-info); font-weight: 450; letter-spacing: .01em;
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: font-weight .2s ease;
+  }
+  /* Progressive disclosure: the dot alone (color-coded) is the primary
+     at-a-glance signal — always full-strength. The text next to it is
+     secondary detail, so it sits at a lighter weight by default and only
+     sharpens to full weight on hover/keyboard-focus, when someone's
+     actually pausing to read it rather than scanning past. Color/opacity
+     is left untouched here (not weight) since dimming color would cut
+     into the contrast ratio already verified for WCAG AA. */
+  .gradient-card-wrapper:hover .status-text-mini,
+  .gradient-card-wrapper:focus-within .status-text-mini {
+    font-weight: 600;
   }
   body.light-mode .status-label-mini .status-text-mini {
     color: var(--card-logo-ink); text-shadow: none; opacity: .75;
@@ -1530,8 +1580,8 @@
         <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:150px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
       </div>
     </div>
-    <div class="logo">Cine<span>Find</span>
-    </div>
+    <button type="button" class="logo logo-btn" onclick="resetSearch()" aria-label="CineFind — back to home">Cine<span>Find</span>
+    </button>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
   </header>
 
@@ -2626,9 +2676,16 @@ function closeSuggestions() {
   input.removeAttribute('aria-activedescendant');
 }
 
-// Close the dropdown when tapping/clicking outside the search box
+// Close the dropdown when tapping/clicking outside the search box.
+// Deferred via requestAnimationFrame — on some Android WebViews this
+// document-level click can fire and close the box before a tap on a
+// suggestion item (mousedown -> selectSuggestion) finishes registering,
+// intermittently swallowing the tap. Waiting a frame lets that tap's own
+// handler run first.
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.search-wrap')) closeSuggestions();
+  requestAnimationFrame(() => {
+    if (!e.target.closest('.search-wrap')) closeSuggestions();
+  });
 });
 
 // ========== FIRST-VISIT ONBOARDING ==========
@@ -3867,6 +3924,25 @@ function injectMovieStructuredData(data) {
   document.head.appendChild(script);
 }
 
+// Fallback Tagalog-title word detector — TMDB's original_language/
+// origin_country fields don't always come back accurate (dubbed entries,
+// international co-productions mislabeled 'en', etc.), so this catches
+// Pinoy content by title even when the API metadata alone would miss it.
+// Kept short and to distinctive whole Tagalog words (not fragments that
+// could false-positive inside unrelated English titles) and matched with
+// word boundaries, case-insensitive.
+const TAGALOG_TITLE_MARKERS = [
+  'puso', 'pusong', 'pag-ibig', 'pagibig', 'mahal', 'ikaw',
+  'buhay', 'pamilya', 'anak', 'lola', 'lolo', 'bayan',
+  'bagong', 'pangarap', 'bituin', 'kapatid', 'lihim',
+  'probinsyano', 'mga', 'akin', 'saan'
+];
+function hasTagalogTitleMarker(title) {
+  if (!title) return false;
+  const words = title.toLowerCase().split(/[^a-z-]+/);
+  return TAGALOG_TITLE_MARKERS.some(marker => words.includes(marker));
+}
+
 function renderResult(data, query) {
   hideFiltersBar(); // filters apply to result lists, not a single detail view
   saveRecentlyViewed(data);
@@ -3919,24 +3995,21 @@ function renderResult(data, query) {
   // Tagalog yung movie, dapat kasama sa dulo yung mga Pinoy websites").
   // These aren't per-title direct links (no API returns "this exact movie
   // is on iWantTFC"), so they're added as homepage search-inside-site
-  // links, same treatment as the rest of otherSites, and always LAST so
-  // titles known to actually have this movie/show still show first.
-  // Detection assumes `data` carries the same original_language/
-  // origin_country TMDB fields used elsewhere in this file (see the
-  // isKDrama/isAnime checks) — verify this fires correctly on the live
-  // site, since this file can't confirm the exact shape of `data` at
-  // this point without live-testing your actual API responses.
-  const isPinoyContent = data.original_language === 'tl' || (data.origin_country || []).includes('PH');
+  // links, same treatment as the rest of otherSites.
+  // Detection: TMDB's original_language/origin_country first; falls back
+  // to a Tagalog-word title check (see TAGALOG_TITLE_MARKERS above) since
+  // those fields aren't always accurate for Filipino titles.
+  const isPinoyContent = data.original_language === 'tl'
+    || (data.origin_country || []).includes('PH')
+    || hasTagalogTitleMarker(data.title);
   if (isPinoyContent) {
-    const alreadyListed = new Set(otherSites.map(s => normalizeSiteName(s.name)));
-    // Includes customSites (admin-added via the panel's category checkboxes,
-    // saved to custom-sites.json) alongside the built-in SITES_DIRECTORY —
-    // so a site added and tagged 🇵🇭 Pinoy in the admin panel shows up here
-    // immediately, with no code edit needed.
-    const pinoySites = [...SITES_DIRECTORY, ...customSites]
-      .filter(d => (d.categories || []).includes('pinoy') && !alreadyListed.has(normalizeSiteName(d.name)))
+    // Pinoy-only sites once detected — no generic/international sites
+    // mixed in below them. A Filipino movie's actual home is almost
+    // always one of these, not a random foreign streaming site, so
+    // showing both just buries the useful links under noise.
+    otherSites = [...SITES_DIRECTORY, ...customSites]
+      .filter(d => (d.categories || []).includes('pinoy'))
       .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site' }));
-    otherSites = [...otherSites, ...pinoySites];
   }
   const SITES_VISIBLE_INITIAL = 4;
 
@@ -4049,7 +4122,7 @@ function loadSimilar(movie) {
       }
 
       grid.innerHTML = results.map((m, i) => `
-        <div class="result-card" onclick="selectSimilar(${i})" style="animation-delay:${i * 0.05}s">
+        <div class="result-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="animation-delay:${i * 0.05}s">
           <div class="result-poster${m.poster ? ' poster-loading' : ''}">
             ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
           </div>
@@ -4617,6 +4690,19 @@ function applyStatusDots() {
             speedEl.style.display = 'none';
           }
         }
+
+        // Report button only earns its place on the card when the site
+        // actually needs reporting (down/blocked) — an "Online" site gives
+        // no one a reason to tap it.
+        const reportBtn = label.querySelector('[data-report-btn]');
+        if (reportBtn) {
+          const showReport = status === 'down' || status === 'blocked';
+          reportBtn.style.display = showReport ? 'inline-flex' : 'none';
+          // Only reserve the right-side padding (see .has-report CSS) when
+          // Report is actually on screen, so it doesn't push the centered
+          // text left on every other card for a button nobody sees.
+          label.classList.toggle('has-report', showReport);
+        }
       }
     } else {
       if (dot) {
@@ -4804,7 +4890,7 @@ function renderSitesDirectory() {
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
           <span class="speed-badge-mini" data-speed-badge></span>
-          <button class="report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35;">⋯</button>
+          <button class="report-icon" data-report-btn onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35; display:none;">⋯</button>
         </span>
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
         ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff8f1f"/><stop offset="100%" stop-color="#ffd23f"/></linearGradient></defs><path fill="url(#flameGrad)" d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/><path fill="#1a1a2e" fill-opacity=".35" d="M12 21a3.3 3.3 0 0 1-3.3-3.3c0-1.6 1-2.5 1.9-3.3-.1.7.2 1.3.8 1.3.7 0 1-.6 1-1.3.7.9 1.2 1.8 1.2 3.1A2.6 2.6 0 0 1 12 21Z"/></svg></span>` : ''}
@@ -4875,7 +4961,7 @@ function syncDirFilterChipsUI() {
 }
 
 function dismissDirTip() {
-  try { localStorage.setItem('cinefind-dir-tip-dismissed', '1'); } catch (e) { /* storage full/unavailable */ }
+  try { sessionStorage.setItem('cinefind-dir-tip-dismissed', '1'); } catch (e) { /* storage full/unavailable */ }
   const el = document.getElementById('dir-safety-tip');
   if (el) el.remove();
 }
@@ -4884,7 +4970,7 @@ function renderHomepage() {
   hideFiltersBar();
   renderRecentlyViewed();
   let dirTipDismissed;
-  try { dirTipDismissed = localStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
+  try { dirTipDismissed = sessionStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
     <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;" class="popular-label">
       <span>🌐 Free Websites</span>
