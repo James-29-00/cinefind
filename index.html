@@ -3434,6 +3434,47 @@ function cleanSearchQuery(q) {
     .trim() || aliased;
 }
 
+// Reads a season number the user typed ("season 2", "s2", or a bare
+// trailing number like "A Shop for Killers 2") WITHOUT touching the query
+// used for cleanSearchQuery/TMDB matching — this only tells the search
+// which season to fetch season-specific data for AFTER a TV show is
+// matched normally. Safe by construction: enrichWithSeasonData() only
+// ever acts on this for type === 'series' results, and silently keeps the
+// original show-level data if TMDB has no such season — so a false-
+// positive guess on a movie title with a trailing number (e.g. "Kill Bill
+// 2", "Ocean's 11") never changes anything, since movies never reach the
+// fetch at all.
+function extractSeasonNumber(q) {
+  const explicit = q.match(/\s+(?:season|s)\s*(\d+)\s*$/i);
+  if (explicit) return parseInt(explicit[1], 10);
+  const bare = q.match(/\s+(\d+)\s*$/);
+  if (bare) return parseInt(bare[1], 10);
+  return null;
+}
+
+// Fetches season-specific poster/air-date/overview from the Worker's
+// `mode=season` endpoint and merges it into one already-parsed result.
+// Never rejects — any failure (network error, or TMDB returning no such
+// season) just resolves with the original item untouched, so a wrong
+// season-number guess can only ever fall back to what search already
+// showed, never break it.
+function enrichWithSeasonData(item, seasonNumber) {
+  if (!item || item.type !== 'series' || !seasonNumber) return Promise.resolve(item);
+  return fetch(`${TMDB_PROXY_URL}?mode=season&tv_id=${item.id}&season_number=${seasonNumber}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(season => {
+      if (!season || season.success === false || !season.id) return item; // no such season on TMDB — keep original
+      return {
+        ...item,
+        title: `${item.title} — Season ${seasonNumber}`,
+        year: parseInt((season.air_date || '').split('-')[0]) || item.year,
+        poster: season.poster_path ? `https://image.tmdb.org/t/p/w300${season.poster_path}` : item.poster,
+        description: season.overview || item.description,
+      };
+    })
+    .catch(() => item);
+}
+
 // Pulls a leading/trailing 4-digit year (1900-2099) out of the query, e.g.
 // "Black 2017" -> { text: "Black", year: 2017 }. TMDB's /search/multi
 // (unlike /search/movie or /search/tv) has no year-filter parameter, so
@@ -3486,6 +3527,7 @@ function searchMovie() {
 
   const { text: yearStrippedQuery, year: yearHint } = extractYearHint(query);
   const tmdbQuery = cleanSearchQuery(yearStrippedQuery);
+  const seasonHint = extractSeasonNumber(yearStrippedQuery);
 
   const now = Date.now();
   if (isSearching || now < cooldownUntil) {
@@ -3698,18 +3740,29 @@ function searchMovie() {
         // an actual list to work with.
         const parsedList = results.map(parseTmdbItem);
 
-        saveToCache(query, parsedList);
-        rememberKnownTitles(parsedList.map(m => m.title));
-        lastSearchResult = parsedList;
-        currentSearchQueryForApi = qForApi;
-        currentSearchPagesFetched = tmdb.total_pages > 1 ? 2 : 1;
+        // If a season number was detected (e.g. "A Shop for Killers 2"),
+        // fetch that season's actual poster/date/description for the top
+        // result and merge it in before caching/rendering — see
+        // enrichWithSeasonData() for why this is safe to attempt even when
+        // the number guess turns out wrong.
+        const enrichPromise = seasonHint
+          ? enrichWithSeasonData(parsedList[0], seasonHint).then(enriched => { parsedList[0] = enriched; })
+          : Promise.resolve();
 
-        if (parsedList.length === 1) {
-          currentDisplayedResults = parsedList;
-          renderResult(parsedList[0], query);
-        } else {
-          renderResultsGrid(parsedList);
-        }
+        return enrichPromise.then(() => {
+          saveToCache(query, parsedList);
+          rememberKnownTitles(parsedList.map(m => m.title));
+          lastSearchResult = parsedList;
+          currentSearchQueryForApi = qForApi;
+          currentSearchPagesFetched = tmdb.total_pages > 1 ? 2 : 1;
+
+          if (parsedList.length === 1) {
+            currentDisplayedResults = parsedList;
+            renderResult(parsedList[0], query);
+          } else {
+            renderResultsGrid(parsedList);
+          }
+        });
       });
   }
 
