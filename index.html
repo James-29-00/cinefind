@@ -3942,7 +3942,8 @@ function renderResult(data, query) {
     // showing both just buries the useful links under noise.
     otherSites = [...SITES_DIRECTORY, ...customSites]
       .filter(d => (d.categories || []).includes('pinoy'))
-      .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site' }));
+      .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site' }))
+      .sort(byHotThenStatus);
   }
   const SITES_VISIBLE_INITIAL = 4;
 
