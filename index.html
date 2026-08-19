@@ -1593,11 +1593,6 @@
     <button class="search-btn" onclick="searchMovie()" aria-label="Search"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg></button>
     <div class="suggestions-box" id="suggestions-box" role="listbox" aria-label="Search suggestions"></div>
   </div>
-  <div class="search-mode-pills" style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0 0 8px;">
-    <button class="pop-chip" onclick="searchByPerson()" style="font-size:.72rem; padding:6px 12px;" title="Type an actor or director's name above, then tap this">🎭 Actor/Director</button>
-    <button class="pop-chip" onclick="searchByCollection()" style="font-size:.72rem; padding:6px 12px;" title="Type a franchise name above, then tap this">🎬 Franchise</button>
-    <button class="pop-chip" onclick="searchByVibe()" style="font-size:.72rem; padding:6px 12px;" title="Type a vibe/tag like 'time travel' above, then tap this">🏷️ Vibe/Tag</button>
-  </div>
   <div style="display:flex; justify-content:center; margin:-6px 2px 10px 0;">
     <button onclick="showHelpTip()" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--muted); font-size:.74rem; cursor:pointer; padding:4px 8px; opacity:.8;">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.5"/><path d="M12 17h.01"/></svg>
@@ -3229,96 +3224,6 @@ function startVoiceSearch() {
 
 document.addEventListener('DOMContentLoaded', detectVoiceSearchSupport);
 
-// ===== ACTOR / DIRECTOR / FRANCHISE / VIBE SEARCH =====
-// Each reuses parseTmdbItem() + renderResultsGrid() so results look and
-// behave exactly like a normal title search (same cards, sort dropdown,
-// filters, Load More). All three call new proxy `mode`s that must exist
-// on the Worker (search_person/person_credits, search_collection/collection,
-// search_keyword/discover_keyword) — see cinefind-proxy-worker.js.
-function _modeSearchBusy(area, query) {
-  area.innerHTML = `<div class="empty"><div class="big">🔎</div><p>Searching for "${escapeAttr(query)}"...</p></div>`;
-}
-function _modeSearchEmpty(area, msg) {
-  area.innerHTML = `<div class="empty"><div class="big">🔍</div><p>${msg}</p></div>`;
-}
-function _modeSearchError(area) {
-  area.innerHTML = `<div class="empty"><div class="big">⚠️</div><p>Something went wrong. Please try again.</p></div>`;
-}
-
-function searchByPerson() {
-  const query = document.getElementById('search-input').value.trim();
-  if (!query) return;
-  const area = document.getElementById('result-area');
-  _modeSearchBusy(area, query);
-  fetch(`${TMDB_PROXY_URL}?mode=search_person&query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
-    .then(r => r.json())
-    .then(data => {
-      const person = (data.results || [])[0];
-      if (!person) return _modeSearchEmpty(area, `No actor/director found for "${escapeAttr(query)}".`);
-      return fetch(`${TMDB_PROXY_URL}?mode=person_credits&person_id=${person.id}`, { signal: AbortSignal.timeout(8000) })
-        .then(r => r.json())
-        .then(credits => {
-          const seen = new Set();
-          const movies = [...(credits.cast || []), ...(credits.crew || [])]
-            .filter(c => (c.media_type === 'movie' || c.media_type === 'tv') && (c.poster_path || c.title || c.name))
-            .filter(c => { const k = `${c.media_type}-${c.id}`; if (seen.has(k)) return false; seen.add(k); return true; })
-            .map(c => parseTmdbItem(c, c.media_type))
-            .sort((a, b) => (b.year || 0) - (a.year || 0));
-          if (movies.length === 0) return _modeSearchEmpty(area, `No titles found for ${escapeAttr(person.name)}.`);
-          renderResultsGrid(movies, `🎭 ${escapeAttr(person.name)} — ${movies.length} title(s)`);
-        });
-    })
-    .catch(() => _modeSearchError(area));
-}
-
-function searchByCollection() {
-  const query = document.getElementById('search-input').value.trim();
-  if (!query) return;
-  const area = document.getElementById('result-area');
-  _modeSearchBusy(area, query);
-  fetch(`${TMDB_PROXY_URL}?mode=search_collection&query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
-    .then(r => r.json())
-    .then(data => {
-      const collection = (data.results || [])[0];
-      if (!collection) return _modeSearchEmpty(area, `No franchise/collection found for "${escapeAttr(query)}".`);
-      return fetch(`${TMDB_PROXY_URL}?mode=collection&collection_id=${collection.id}`, { signal: AbortSignal.timeout(8000) })
-        .then(r => r.json())
-        .then(details => {
-          const movies = (details.parts || [])
-            .map(p => parseTmdbItem(p, 'movie'))
-            .sort((a, b) => (a.year || 0) - (b.year || 0));
-          if (movies.length === 0) return _modeSearchEmpty(area, `No titles found in ${escapeAttr(collection.name)}.`);
-          renderResultsGrid(movies, `🎬 ${escapeAttr(collection.name)} — ${movies.length} title(s)`);
-        });
-    })
-    .catch(() => _modeSearchError(area));
-}
-
-function searchByVibe() {
-  const query = document.getElementById('search-input').value.trim();
-  if (!query) return;
-  const area = document.getElementById('result-area');
-  _modeSearchBusy(area, query);
-  fetch(`${TMDB_PROXY_URL}?mode=search_keyword&query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
-    .then(r => r.json())
-    .then(data => {
-      const keyword = (data.results || [])[0];
-      if (!keyword) return _modeSearchEmpty(area, `No tag/vibe found for "${escapeAttr(query)}".`);
-      return Promise.all([
-        fetch(`${TMDB_PROXY_URL}?mode=discover_keyword&keyword_id=${keyword.id}&media_type=movie`, { signal: AbortSignal.timeout(8000) }).then(r => r.json()),
-        fetch(`${TMDB_PROXY_URL}?mode=discover_keyword&keyword_id=${keyword.id}&media_type=tv`, { signal: AbortSignal.timeout(8000) }).then(r => r.json())
-      ]).then(([movieData, tvData]) => {
-        const movies = [
-          ...(movieData.results || []).map(r => parseTmdbItem(r, 'movie')),
-          ...(tvData.results || []).map(r => parseTmdbItem(r, 'tv'))
-        ].sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
-        if (movies.length === 0) return _modeSearchEmpty(area, `No titles found for "${escapeAttr(keyword.name)}".`);
-        renderResultsGrid(movies, `🏷️ "${escapeAttr(keyword.name)}" — ${movies.length} title(s)`);
-      });
-    })
-    .catch(() => _modeSearchError(area));
-}
-
 // Fan-nickname / commonly-mistyped titles that don't exist as literal TMDB
 // entries — e.g. "May Who?" (2015) is widely known among Filipino viewers
 // as "Electric Girl", but TMDB only has it under its real title. Add more
@@ -4618,21 +4523,6 @@ function statusDotIcon(status, color) {
 // (homepage directory or a movie's site list) once status.json has loaded.
 // Cards render before this data is ready, so dots get filled in afterward
 // rather than delaying the initial paint.
-// "Last checked" freshness text (item 9) — status.json is only re-run once
-// a day by the GitHub Action checker, so this is one shared batch
-// timestamp for every site, not a per-site check time. Kept compact
-// ("3h ago") since it's appended inline after the status word on a small
-// card — a full date/time only shows in the tooltip (see applyStatusDots).
-function formatRelativeCheck(ms) {
-  if (!ms) return '';
-  const diffMin = Math.round((Date.now() - ms) / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.round(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.round(diffHr / 24);
-  return `${diffDay}d ago`;
-}
 
 function applyStatusDots() {
   if (!siteStatusMap) return;
@@ -4662,14 +4552,10 @@ function applyStatusDots() {
         // Shows the status word (Online/Warning/Down) directly, so users
         // don't have to interpret the dot's color on their own.
         const textEl = label.querySelector('[data-status-text]') || label;
-        // "Last checked" freshness text (item 9) — the batch timestamp was
-        // already being captured (siteStatusLastRun) but never actually
-        // shown anywhere. Appended in the same small muted text run as the
-        // status word itself, so it inherits the exact same font-size/
-        // color/truncation behavior already tuned for this card — no new
-        // style rules needed, it just reads as part of the same line.
-        const freshness = formatRelativeCheck(siteStatusLastRun);
-        textEl.textContent = statusShortLabel(status) + (freshness ? ` · ${freshness}` : '');
+        // Status word only (Online/Flagged/Down) — the "· Xh ago" freshness
+        // suffix was removed so this centers cleanly with the speed icon
+        // as a single short pair (e.g. "Online ⚡") instead of wrapping.
+        textEl.textContent = statusShortLabel(status);
         label.style.display = 'flex';
         label.title = tooltipText + (siteStatusLastRun ? ` — checked ${new Date(siteStatusLastRun).toLocaleString()}` : '');
         label.classList.remove('status-loading', 'status-up', 'status-blocked', 'status-down');
