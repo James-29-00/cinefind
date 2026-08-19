@@ -34,7 +34,30 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
+  /* Standard visually-hidden utility — content stays in the accessibility
+     tree (screen readers) but takes no visual space and doesn't affect
+     any layout, sizing, or card styling anywhere else on the page. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
   :root {
+    /* Radius scale — the file currently has ~15 different border-radius
+       values scattered across components (4/5/6/8/9/10/12/14/16/18/20/24/
+       30/999/9999px), which is design-system debt: no clear "family" of
+       shapes. These vars define a standard scale for new/edited work to
+       adopt going forward. NOT retroactively applied to existing elements
+       in this pass — doing that blindly across ~50 scattered occurrences
+       risked subtly changing the look of components (including the card)
+       with no easy way to verify each one stayed correct. Safer as an
+       opt-in foundation than a risky blanket find-replace.
+       sm=chips/small controls, md=buttons/inputs, lg=cards/panels,
+       xl=large modals/sheets, pill=fully-rounded (badges/toggle pills). */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-pill: 999px;
     /* Light Mode Colors */
     --bg: #0a0a0f;
     --surface: #111118;
@@ -1320,23 +1343,22 @@
   }
 
   .status-label-mini .status-text-mini {
-    flex: 1; text-align: center;
-    font-size: var(--fs-info); font-weight: 450; letter-spacing: .01em;
+    /* No flex-grow: hugs its own content width so it sits flush against
+       the speed badge right next to it, and the two center together as
+       one pair via .status-label-mini's justify-content:center — instead
+       of stretching to fill the row and centering "Online" on its own,
+       leaving a gap before the badge. */
+    flex: 0 1 auto;
+    font-size: var(--fs-info); font-weight: 600; letter-spacing: .01em;
     color: rgba(255,255,255,.7); text-shadow: 0 1px 2px rgba(0,0,0,.6);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    transition: font-weight .2s ease;
   }
-  /* Progressive disclosure: the dot alone (color-coded) is the primary
-     at-a-glance signal — always full-strength. The text next to it is
-     secondary detail, so it sits at a lighter weight by default and only
-     sharpens to full weight on hover/keyboard-focus, when someone's
-     actually pausing to read it rather than scanning past. Color/opacity
-     is left untouched here (not weight) since dimming color would cut
-     into the contrast ratio already verified for WCAG AA. */
-  .gradient-card-wrapper:hover .status-text-mini,
-  .gradient-card-wrapper:focus-within .status-text-mini {
-    font-weight: 600;
-  }
+  /* Previously a lighter default weight (450) that only sharpened to 600
+     on hover/focus/:active — but on a mobile-first app, a tap triggers
+     navigation almost immediately, so :active barely registers before the
+     page moves on, and there's no real :hover on touch at all. Nearly
+     every visitor only ever saw the dimmer weight. Now full weight (600)
+     always, no state-dependent toggle needed. */
   body.light-mode .status-label-mini .status-text-mini {
     color: var(--card-logo-ink); text-shadow: none; opacity: .75;
   }
@@ -1580,6 +1602,11 @@
         <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:150px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
       </div>
     </div>
+    <!-- Visually-hidden page title: the visible "CineFind" is a clickable
+         nav button (not a heading), so screen readers had no h1 at all and
+         jumped straight to the h2 section headings below. This adds the
+         missing top of the hierarchy without changing anything visible. -->
+    <h1 class="sr-only">CineFind</h1>
     <button type="button" class="logo logo-btn" onclick="resetSearch()" aria-label="CineFind — back to home">Cine<span>Find</span>
     </button>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
@@ -2070,7 +2097,7 @@ function showFavorites(sortBy, siteSortBy) {
     </div>`;
 
   html += `<div style="display:flex; justify-content:space-between; align-items:center; margin:0 0 12px;">
-    <h3 style="font-size:1rem; margin:0;">🌐 Favorite Websites</h3>
+    <h2 style="font-size:1rem; margin:0;">🌐 Favorite Websites</h2>
     ${favSites.length > 1 ? `
     <select class="filter-select" onchange="showFavorites('${sortBy}', this.value)" style="width:auto; font-size:.75rem;">
       <option value="az" ${siteSortBy === 'az' ? 'selected' : ''}>Name A–Z</option>
@@ -2082,7 +2109,7 @@ function showFavorites(sortBy, siteSortBy) {
     ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map((s, i) => buildFavSiteCard(s, i)).join('')}</div>`
     : `<p style="color:var(--muted); font-size:.85rem; margin-bottom:28px;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>`;
 
-  if (favs.length > 0) html += `<h3 style="font-size:1rem; margin:0 0 12px;">🎬 Favorite Movies &amp; Shows</h3>`;
+  if (favs.length > 0) html += `<h2 style="font-size:1rem; margin:0 0 12px;">🎬 Favorite Movies &amp; Shows</h2>`;
 
   const sorted = [...favs].sort((a, b) => {
     switch (sortBy) {
