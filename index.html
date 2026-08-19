@@ -3910,8 +3910,13 @@ function renderResult(data, query) {
   };
   const byHotThenStatus = (a, b) => {
     const nameA = resolveCanonicalName(a), nameB = resolveCanonicalName(b);
-    const hotDiff = (isHotSite(nameB) ? 1 : 0) - (isHotSite(nameA) ? 1 : 0);
+    const hotA = isHotSite(nameA), hotB = isHotSite(nameB);
+    const hotDiff = (hotB ? 1 : 0) - (hotA ? 1 : 0);
     if (hotDiff !== 0) return hotDiff;
+    // Both hot: a hot site stays at the top of its tier regardless of
+    // flagged/online status — being marked hot means it should rank first,
+    // not get pushed down below a merely-online site for being flagged.
+    if (hotA && hotB) return 0;
     const rankA = statusRank[getSiteStatus(nameA)] ?? 2;
     const rankB = statusRank[getSiteStatus(nameB)] ?? 2;
     return rankA - rankB;
