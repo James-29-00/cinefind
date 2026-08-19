@@ -3903,9 +3903,18 @@ function renderResult(data, query) {
     // the actual point where a non-array customSites previously crashed
     // every search via [...SITES_DIRECTORY, ...customSites], so it's worth
     // being defensive here as well, not just where customSites is loaded.
-    const match = [...SITES_DIRECTORY, ...(Array.isArray(customSites) ? customSites : [])].find(d =>
-      normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
-    );
+    const pool = [...SITES_DIRECTORY, ...(Array.isArray(customSites) ? customSites : [])];
+    const normS = normalizeSiteName(s.name);
+    // Exact match first. Substring-only matching caused name collisions —
+    // e.g. "PMH" vs "PM Hub": normalizeSiteName("PM Hub") = "pmhub", which
+    // contains "pmh", so PMH's hot/status lookup silently resolved to PM
+    // Hub's entry instead of its own, hiding PMH's hot flag. Falls back to
+    // substring match only when no exact match exists (for partial/legacy
+    // name entries where that fuzziness is still wanted).
+    let match = pool.find(d => normalizeSiteName(d.name) === normS);
+    if (!match) {
+      match = pool.find(d => normS.includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normS));
+    }
     return match ? match.name : s.name;
   };
   const byHotThenStatus = (a, b) => {
