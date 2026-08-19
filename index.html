@@ -2038,6 +2038,7 @@ function buildFavSiteCard(s, i) {
           <span class="status-text-mini" data-status-text></span>
           <span class="speed-badge-mini" data-speed-badge></span>
         </span>
+        <button class="pin-icon faved" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="Remove from favorites">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
         </button>
         <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
@@ -6034,6 +6035,7 @@ async function addNewWebsite(btn) {
         <div class="status-dot"></div>
         <div style="flex:1;">
           <div class="site-name">${name} 🆕</div>
+          <button class="quick-test-btn hot-toggle-btn" style="margin-top:4px; padding:2px 9px; font-size:.7rem;" onclick="toggleHotSite('${safeName}', this)">🔥 Mark as Hot</button>
           <div class="site-meta">${url} — Not checked yet (next automatic check within 24h)</div>
           <button class="delete-site-btn" onclick="confirmDeleteWebsite('${safeName}', this)">🗑️ Delete Website</button>
           <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
