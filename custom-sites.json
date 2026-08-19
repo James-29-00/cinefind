@@ -24,5 +24,13 @@
     "categories": [
       "movie"
     ]
+  },
+  {
+    "name": "PMHub",
+    "url": "https://pinoymovieshub.org/movies/un-happy-for-you-2024/",
+    "domain": "pinoymovieshub.org",
+    "categories": [
+      "pinoy"
+    ]
   }
 ]
