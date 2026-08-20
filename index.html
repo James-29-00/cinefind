@@ -345,7 +345,7 @@
   .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
 
   header { text-align: center; padding: 20px 0 var(--sp-3); position: relative; }
-  .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: var(--sp-6); }
+  .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: var(--sp-6); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
   .logo {
     /* Switched from 'Bebas Neue' — that font is an all-caps-only display
        face with no distinct lowercase glyphs, so "Cine"+"Find" always
@@ -596,7 +596,11 @@
   }
   .theme-toggle:hover { transform: scale(1.1); box-shadow: 0 0 18px var(--accent), 0 0 6px var(--accent); }
 
-  .search-wrap { position: relative; margin: var(--sp-4) 0 var(--sp-3); }
+  .search-wrap {
+    position: sticky; top: 0; z-index: 40;
+    background: var(--bg);
+    margin: var(--sp-4) 0 var(--sp-3);
+  }
   .search-wrap input {
     width: 100%; padding: 18px 96px 18px 22px;
     /* Dialed back from an earlier pass that overcorrected — 22px padding +
@@ -670,6 +674,7 @@
     font-family: 'Space Grotesk', sans-serif; font-size: .8rem;
     color: var(--muted); padding: 7px 14px 7px 12px;
     display: inline-flex; align-items: center; gap: 5px;
+    min-height: 44px;
     transition: color .2s, border-color .2s, background .2s;
   }
   .fav-quick-link:hover { color: var(--accent2); border-color: var(--accent2); background: rgba(var(--bg-glow-rgb),.14); }
@@ -903,15 +908,14 @@
      component family, not a new unrelated control. */
   .home-tab-bar {
     display: flex; gap: 3px; margin: var(--sp-6) 0 var(--sp-4);
-    /* Rectangular segmented-control shape (not the fully-rounded 999px
-       pill used for filter chips) — this is page-level navigation
-       (switches the whole view), not a same-level filter refinement, so
-       it deliberately reads as a different control type instead of just
-       another oval in the row. A shared dark track behind both buttons
-       (like iOS/Android segmented controls) instead of two separate
-       floating pills. */
+    /* Full pill shape (999px) — matches the filter chips directly below it
+       and the other "choice group" controls in the app (All/Movie/Asian
+       Drama chips), so this segmented control reads as the same family of
+       control instead of a visually distinct rectangle sitting above them.
+       A shared dark track behind both buttons (like iOS/Android segmented
+       controls) instead of two separate floating pills. */
     background: var(--card); border: 1px solid var(--border);
-    border-radius: 12px; padding: 3px;
+    border-radius: 999px; padding: 3px;
     position: relative; /* anchors .home-tab-indicator below */
   }
   /* Sliding active-state indicator — a single absolutely-positioned block
@@ -923,13 +927,13 @@
      from CSS alone with a flexible/responsive layout. */
   .home-tab-indicator {
     position: absolute; top: 3px; bottom: 3px; left: 3px;
-    width: calc(50% - 4.5px); border-radius: 9px;
+    width: calc(50% - 4.5px); border-radius: 999px;
     background: var(--surface); box-shadow: 0 0 0 1.5px var(--accent);
     transition: transform .28s cubic-bezier(.4,0,.2,1);
     z-index: 0;
   }
   .home-tab {
-    flex: 1; padding: 9px 0; border-radius: 9px; border: none;
+    flex: 1; padding: 9px 0; border-radius: 999px; border: none;
     background: transparent; color: var(--muted); font-family: 'Space Grotesk', sans-serif;
     font-size: var(--fs-sm); font-weight: 600; cursor: pointer; transition: color .2s;
     position: relative; z-index: 1; /* sits above .home-tab-indicator */
@@ -1620,8 +1624,8 @@
     <button class="search-btn" onclick="searchMovie()" aria-label="Search"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg></button>
     <div class="suggestions-box" id="suggestions-box" role="listbox" aria-label="Search suggestions"></div>
   </div>
-  <div style="display:flex; justify-content:center; margin:-6px 2px 10px 0;">
-    <button onclick="showHelpTip()" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--muted); font-size:.74rem; cursor:pointer; padding:4px 8px; opacity:.8;">
+  <div style="display:flex; justify-content:center; margin:-2px 2px 6px 0;">
+    <button onclick="showHelpTip()" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--muted); font-size:.74rem; cursor:pointer; padding:12px 16px; min-height:44px; opacity:.8;">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.5"/><path d="M12 17h.01"/></svg>
       How this works
     </button>
@@ -2052,6 +2056,8 @@ function showFavorites(sortBy, siteSortBy) {
   if (recentEl) recentEl.innerHTML = ''; // homepage-only widget
   sortBy = sortBy || 'date-desc';
   siteSortBy = siteSortBy || 'az';
+  lastFavMovieSort = sortBy;
+  lastFavSiteSort = siteSortBy;
   const favs = getFavorites();
   const dirFavNames = getDirFavs();
   const seenFavNames = new Set();
@@ -3964,9 +3970,15 @@ function renderResult(data, query) {
   // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
   // instead of generic emoji icons, so a site looks the same wherever it shows up.
   const buildSiteCard = (s, i) => {
-    const dirMatch = SITES_DIRECTORY.find(d =>
-      normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
-    );
+    const normS = normalizeSiteName(s.name);
+    // Exact match first, substring fallback — same fix as resolveCanonicalName
+    // above. Substring-only matching let names like "PMH" collide with "PM
+    // Hub" (normalizeSiteName("PM Hub") = "pmhub", which contains "pmh"),
+    // silently pulling the wrong site's logo/accent color/tracking name.
+    let dirMatch = SITES_DIRECTORY.find(d => normalizeSiteName(d.name) === normS);
+    if (!dirMatch) {
+      dirMatch = SITES_DIRECTORY.find(d => normS.includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normS));
+    }
     const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
     return `
     <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" onclick="trackSiteClick('${escapeAttr(dirMatch ? dirMatch.name : s.name).replace(/'/g, "\\'")}')" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
@@ -4027,8 +4039,8 @@ function renderResult(data, query) {
 
     ${data.id ? `
       <div class="section-label" style="margin-top:32px;">🎯 You might also like</div>
-      <div class="results-grid" id="similar-grid">
-        <div class="loading" style="grid-column:1/-1;"><div class="spinner"></div></div>
+      <div class="results-grid" id="similar-grid" aria-hidden="true">
+        ${Array(6).fill('<div class="poster-shimmer" style="aspect-ratio:2/3; border-radius:12px;"></div>').join('')}
       </div>` : ''}
   `;
 
@@ -4358,6 +4370,12 @@ function getOverriddenUrl(name, fallbackUrl) {
 // — same GitHub-commit approach as overrides.json/custom-sites.json. It's just
 // an array of normalized site names. Hot sites are pinned to the very front of
 // the directory grid, ahead of the up/blocked/down status sort.
+// Remembers the sort dropdowns currently showing on the Favorites page (set
+// each time showFavorites() renders) so toggleDirFav() can re-render that
+// exact view when a star is tapped from there, instead of only knowing how
+// to refresh the homepage directory grid.
+let lastFavMovieSort = 'date-desc';
+let lastFavSiteSort = 'az';
 let hotSiteNames = [];
 
 async function loadHotSites() {
@@ -4732,8 +4750,19 @@ function toggleDirFav(e, name) {
   if (favs.includes(name)) favs = favs.filter(n => n !== name);
   else favs.push(name);
   try { localStorage.setItem('cinefind-dir-favs', JSON.stringify(favs)); } catch (e) { /* storage full/unavailable */ }
-  renderSitesDirectory();
   updateFavCount();
+  // Refresh whichever view is actually showing this site card. Previously
+  // this always called renderSitesDirectory(), which targets the homepage
+  // grid (#sites-directory-grid) — that element doesn't exist on the
+  // Favorites page (it uses a separate .dir-grid built by
+  // buildFavSiteCard), so un-favoriting a site while already on the
+  // Favorites page saved correctly but the star/card never visibly
+  // updated until you left and came back.
+  if (document.getElementById('sites-directory-grid')) {
+    renderSitesDirectory();
+  } else if (document.getElementById('result-area')?.querySelector('.dir-grid')) {
+    showFavorites(lastFavMovieSort, lastFavSiteSort);
+  }
 }
 
 function renderSitesDirectory() {
@@ -5040,7 +5069,7 @@ function browseGenre(genreId, label, el) {
   if (el) el.classList.add('active');
 
   const area = document.getElementById('result-area');
-  area.innerHTML = `<div class="loading"><div class="spinner"></div><p>Loading ${label}...</p></div>`;
+  area.innerHTML = `<div class="results-grid" aria-hidden="true">${Array(8).fill('<div class="poster-shimmer" style="aspect-ratio:2/3; border-radius:12px;"></div>').join('')}</div>`;
 
   fetch(`${TMDB_PROXY_URL}?mode=genre&media_type=movie&genre_id=${genreId}`, { signal: AbortSignal.timeout(8000) })
     .then(r => r.json())
