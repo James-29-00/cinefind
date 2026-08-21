@@ -651,12 +651,13 @@
   .search-wrap {
     position: sticky; top: 0; z-index: 40;
     background: var(--bg);
-    /* #6 minimalist pass: bottom margin was --sp-3 (12px), leaving the
-       search bar sitting almost flush against the "Free Websites" header
-       right below it. Bumped to --sp-6 (24px) to match the section-gap
-       spacing used elsewhere on the page, so the search bar reads as its
-       own block instead of crowding into the directory section. */
-    margin: var(--sp-2) 0 var(--sp-6);
+    /* UI/UX pass: "How this works" sits directly below this and is a small
+       helper link that explains the search bar — it belongs visually
+       grouped WITH the search bar (small gap), not treated as its own
+       section. The real section break is between "How this works" and
+       the Free Websites content below it, so that's where the larger
+       --sp-6 gap now lives (see the button's own margin) instead of here. */
+    margin: var(--sp-2) 0 var(--sp-2);
   }
   .search-wrap input {
     width: 100%; padding: 18px 96px 18px 22px;
@@ -744,7 +745,7 @@
   .fav-quick-link:hover { color: var(--accent2); border-color: var(--accent2); background: rgba(var(--bg-glow-rgb),.14); }
 
   /* ===== Genre pill chips (gradient border trick) ===== */
-  .pill-scroll-wrap { position: relative; }
+  .pill-scroll-wrap { position: relative; margin: var(--sp-4) 0; }
   .pill-scroll-wrap::after {
     content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 28px;
     background: linear-gradient(to right, transparent, var(--bg) 78%);
@@ -752,7 +753,7 @@
   }
   .pill-container {
     display: flex; align-items: center; justify-content: flex-start;
-    gap: 8px; padding: 12px 16px;
+    gap: 12px; padding: 16px 18px;
     overflow-x: auto; scrollbar-width: none;
   }
   .pill-container::-webkit-scrollbar { display: none; }
@@ -760,7 +761,7 @@
     background-color: transparent;
     color: var(--muted);
     font-size: 13px; font-weight: 500;
-    padding: 6px 16px;
+    padding: 8px 18px;
     border-radius: 9999px;
     border: 1.5px solid transparent;
     cursor: pointer; white-space: nowrap;
@@ -771,7 +772,7 @@
     background-color: transparent;
     color: var(--muted);
     font-size: 13px;
-    padding: 6px 16px;
+    padding: 8px 18px;
     border-radius: 9999px;
     border: 1.5px solid var(--border);
     cursor: pointer;
@@ -819,10 +820,10 @@
   }
 
   .genre-chip {
-    padding: 9px 20px 9px 16px; border-radius: 24px; border: 1.5px solid var(--accent);
+    padding: 11px 22px 11px 18px; border-radius: 24px; border: 1.5px solid var(--accent);
     background: transparent; color: var(--accent2); font-family: 'Space Grotesk', sans-serif;
     font-size: .8rem; font-weight: 600; cursor: pointer; transition: all .2s;
-    display: inline-flex; align-items: center; gap: 7px;
+    display: inline-flex; align-items: center; gap: 8px;
   }
   .genre-chip:hover { background: rgba(var(--bg-glow-rgb),.1); transform: translateY(-1px); }
   /* The dark-mode border color (var(--accent), #e63946) only measures
@@ -980,7 +981,7 @@
   .site-note { font-size: var(--fs-info); color: var(--muted); margin-top: 2px; overflow-wrap: break-word; }
   .site-free { font-size: var(--fs-info); font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px var(--sp-2); border-radius: var(--sp-2); white-space: nowrap; }
   .arrow { color: var(--muted); font-size: var(--fs-xs); }
-  .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-4); margin-bottom: 20px; align-items: stretch; }
+  .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-4); margin-top: 12px; margin-bottom: 20px; align-items: stretch; }
 
   /* Home tab bar (Sites / Genres) — item 10. Same pill language as the
      existing genre-pill/filter chips elsewhere on the page (rounded,
@@ -1238,12 +1239,16 @@
   }
 
   .pin-icon {
-    color: rgba(255,255,255,.85); cursor: pointer; transition: color .2s ease, opacity .2s ease, background .2s ease;
-    background: rgba(0,0,0,.38); border-radius: 50%; border: none; line-height: 1; padding: 4px;
+    color: rgba(255,255,255,.85); cursor: pointer; transition: color .2s ease, opacity .2s ease;
+    background: transparent; border: none; line-height: 1; padding: 4px;
     width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center;
     position: relative;
-    filter: drop-shadow(0 1px 3px rgba(0,0,0,.6));
+    /* Star shape only — no circle badge behind it. Dark drop-shadow keeps
+       it readable against any card art (dark-theme cards, light pastel
+       cards, or the blurred logo art behind either) without a filled
+       background shape. */
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.9)) drop-shadow(0 0 2px rgba(0,0,0,.9));
   }
   /* Invisible tap-area expansion — same reasoning as .report-icon::before. */
   .pin-icon::before {
@@ -1265,7 +1270,10 @@
      near-zero contrast against the new light pastel cards. Uses the same
      dark ink as the logo text so it reads clearly without a separate
      one-off color. */
-  body.light-mode .pin-icon { color: var(--card-logo-ink); }
+  /* Light Mode: dark ink instead of white, since there's no dark circle
+     behind it anymore to give white contrast — same logic, just against
+     the light card directly instead of via a badge. */
+  body.light-mode .pin-icon { color: var(--card-logo-ink); filter: drop-shadow(0 1px 2px #fff) drop-shadow(0 0 2px #fff); }
   body.light-mode .pin-icon:hover, body.light-mode .pin-icon.faved { color: var(--accent); }
   /* Not-yet-favorited star stays dim(mer) by default — it's a secondary,
      optional action, not something that needs equal visual weight to status
@@ -1592,12 +1600,12 @@
   .empty .big { font-size: 3rem; margin-bottom: 12px; }
   .empty p { font-size: .9rem; }
 
-  .popular-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
-  .popular-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .genre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .popular-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 24px 0 16px 0; }
+  .popular-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .genre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0 0 20px 0; }
   .genre-grid .genre-chip { width: 100%; justify-content: center; }
   .pop-chip {
-    padding: 8px 16px; border-radius: 20px; background: var(--card); border: 1px solid #3A3448;
+    padding: 10px 18px; border-radius: 20px; background: var(--card); border: 1px solid #3A3448;
     color: #C9C6D6; font-size: .85rem; cursor: pointer; transition: all .2s; font-family: 'Space Grotesk', sans-serif;
   }
   .pop-chip:hover { border-color: var(--accent); color: var(--accent); }
@@ -1731,7 +1739,7 @@
     <div class="suggestions-box" id="suggestions-box" role="listbox" aria-label="Search suggestions"></div>
   </div>
 
-  <button type="button" onclick="showHelpTip()" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--muted); font-size:.78rem; font-weight:600; cursor:pointer; margin:6px auto 0; padding:4px 6px;">
+  <button type="button" onclick="showHelpTip()" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--muted); font-size:.78rem; font-weight:600; cursor:pointer; margin:4px auto var(--sp-6); padding:4px 6px;">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.5"/><path d="M12 17h.01"/></svg>
     How this works
   </button>
