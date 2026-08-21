@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD MARKER: v2026-08-21-03 (Tavily dedup + page-quality filter) — check this comment (view page source, Ctrl+U) to confirm the uploaded file actually updated -->
+<!-- BUILD MARKER: v2026-08-21-04 (Tavily fallback fully removed) — check this comment (view page source, Ctrl+U) to confirm the uploaded file actually updated -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3075,14 +3075,10 @@ const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
 const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
-// Tavily — now called on EVERY title view (not just as a fallback), and
-// its results are ranked first, ahead of Hot/status-sorted verified sites
-// (see renderResult's loadTavilyFallback call). Burns through the free
-// monthly quota much faster than the original fallback-only design.
-// PLACEHOLDER: replace with your actual deployed *.workers.dev URL once
-// you set up tavily-search-worker.js on Cloudflare (see that file's setup
-// comment).
-const TAVILY_PROXY_URL = 'https://tavilyapikey.manio-james-g-5588.workers.dev';
+// Tavily fallback was removed (2026-08-21) — too unreliable in practice
+// (missed niche/poorly-indexed streaming sites, returned generic homepages
+// instead of title pages, sometimes ignored the domain restriction
+// entirely). Reverted to the static SITES_DIRECTORY / data.sites links only.
 // Search analytics rides on the same visits Worker (VISIT_WORKER_URL) via
 // its /track-search and /top-searches routes — see cinefind-visits-worker.js.
 // No separate Worker/KV needed.
@@ -4283,237 +4279,13 @@ function renderResult(data, query) {
 
   applyStatusDots();
 
-  // Runs on every search now, not just when otherSites is empty — ranking
-  // priority is: 1) direct link found via search (Tavily), 2) 🔥 Hot,
-  // 3) live status (up > blocked > down). Tavily results are inserted at
-  // the very top of the grid (see loadTavilyFallback's insertAdjacentHTML
-  // call) so they always outrank the already hot/status-sorted verified
-  // cards beneath them. NOTE: this calls the Tavily-backed Worker on every
-  // title view, not just as a fallback — burns through the free quota much
-  // faster than the original "only when zero results" design.
-  loadTavilyFallback(data);
+  // Tavily fallback removed (2026-08-21) — see comment near
+  // TAVILY_PROXY_URL's old location for why.
 
   // Deferred so the browser has painted the just-inserted innerHTML first —
   // scrollHeight reads 0 (or a stale value) if checked synchronously right
   // after setting innerHTML.
   setTimeout(checkDescOverflow, 0);
-}
-
-// ========== TAVILY SEARCH (RANKED FIRST) ==========
-// Called on every renderResult() — see comment there. Restricts the search
-// to domains already in SITES_DIRECTORY (via `domain` field) so results
-// stay within sites the user already trusts, rather than surfacing a
-// random site off the open web.
-// TEMP DEBUG — visible error notice so we can confirm the Tavily/Worker
-// integration during setup (instead of guessing from a silent failure).
-// Remove this function + its two call sites in loadTavilyFallback once
-// things are confirmed working end-to-end.
-function showTavilyDebugError(grid, detail) {
-  grid.insertAdjacentHTML('afterbegin', `
-    <div style="grid-column:1/-1; padding:10px 12px; border:1px dashed #e63946; border-radius:10px; font-size:.78rem; color:#e63946; background:rgba(230,57,70,.08);">
-      🐛 DEBUG — Tavily search failed: ${escapeAttr(detail)}
-    </div>`);
-}
-
-
-async function loadTavilyFallback(data) {
-  const grid = document.querySelector('#sites-section .sites-grid');
-  if (!grid) return; // user may have navigated away already
-
-  // Every site's domain, one way or another — falls back to deriving it
-  // from .url via the URL parser when .domain isn't explicitly set (about
-  // half of SITES_DIRECTORY's 60 entries had no .domain field, silently
-  // shrinking the allow-list Tavily was actually restricted to). Also pulls
-  // in customSites (admin-added sites), which weren't included here before
-  // at all. This is what actually enforces "only my own sites" — Tavily
-  // can only respect domains it's explicitly told about.
-  const deriveDomain = (s) => {
-    if (s.domain) return s.domain;
-    try { return new URL(s.url).hostname.replace(/^www\./, ''); } catch (e) { return null; }
-  };
-  const knownDomains = [...SITES_DIRECTORY, ...customSites].map(deriveDomain).filter(Boolean);
-  if (knownDomains.length === 0) {
-    // Never let this run unrestricted — an empty domains list means the
-    // Worker treats include_domains as absent and Tavily searches the
-    // entire open web, which defeats the whole point of this feature.
-    console.error('Tavily fallback skipped: no known domains to restrict the search to.');
-    return;
-  }
-  // Origin hint word — the single biggest disambiguator for common titles
-  // that exist in multiple countries under the same name (e.g. "Brothers"
-  // is both a 2015 Bollywood film and an unrelated Filipino title — a bare
-  // "Brothers watch online" query has nothing to tell those apart, and
-  // Tavily has no way to know this app only cares about the Filipino one).
-  const ORIGIN_HINTS = { KR: 'Korean', JP: 'Japanese', CN: 'Chinese', TW: 'Chinese', HK: 'Chinese', PH: 'Filipino', TH: 'Thai' };
-  const originHint = (data.origin_country || []).map(c => ORIGIN_HINTS[c]).find(Boolean) || '';
-  const mediaTypeWord = data.type === 'series' ? 'series' : 'movie';
-  const queryParts = [
-    `"${data.title.replace(/"/g, '\\"')}"`, // quoted — biases toward the exact phrase over loose keyword matches
-    data.year || '',
-    originHint,
-    mediaTypeWord,
-    'watch online',
-  ].filter(Boolean);
-  const params = new URLSearchParams({
-    query: queryParts.join(' '),
-    domains: knownDomains.join(','),
-  });
-
-  try {
-    const res = await fetch(`${TAVILY_PROXY_URL}?${params}`, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) {
-      // TEMP DEBUG — was silent before, but we need to see the *specific*
-      // error to confirm the Worker/Tavily integration is actually working
-      // (400s during setup testing had no visible detail). Remove this
-      // showTavilyDebugError call once confirmed working; the static
-      // otherSites cards already rendered above are the real fallback —
-      // this notice is diagnostic only, not a replacement UI state.
-      let detail = `HTTP ${res.status}`;
-      try { detail = (await res.json()).error || detail; } catch (e) {}
-      console.error('Tavily fetch failed:', detail);
-      showTavilyDebugError(grid, detail);
-      return;
-    }
-    const payload = await res.json();
-    let results = payload.results || [];
-    const rawCount = results.length; // TEMP DEBUG — count before filtering
-    // TEMP DEBUG — actual hostnames Tavily returned, so we can see whether
-    // include_domains is being ignored entirely (unrelated sites) or just
-    // missing near-matches (www./subdomain variants of a known domain).
-    const rawHosts = results.map(r => {
-      try { return new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { return '(unparseable)'; }
-    });
-
-    // Client-side re-verification — don't just trust Tavily's own
-    // include_domains restriction. Tavily has documented reliability issues
-    // with include_domains, especially with larger domain lists like this
-    // site's ~60 domains (see tavily-ai/tavily-python#21 — even 2 domains
-    // has produced incorrect results in the wild). This is the actual
-    // guarantee that only CineFind's own sites ever get shown, independent
-    // of whether Tavily's server-side filter behaves correctly this time.
-    // youtube.com is shared by several unrelated official channels in
-    // SITES_DIRECTORY (Star Cinema, Viva Films, Regal Entertainment,
-    // Cinema One, TBA Studios). A bare hostname check treats ALL of
-    // youtube.com as "known", so Tavily results from completely
-    // unrelated videos/channels were slipping through. Whitelist the
-    // specific channel handles instead of the whole domain.
-    const ALLOWED_YT_CHANNELS = ['@ABSstarcinema', '@VIVAFilms', '@RegalEntertainmentInc', '@CinemaOnePH', '@TBAStudios'];
-    const knownDomainSet = new Set(knownDomains);
-    results = results.filter(r => {
-      try {
-        const u = new URL(r.url);
-        const host = u.hostname.replace(/^www\./, '');
-        if (host === 'youtube.com') {
-          return ALLOWED_YT_CHANNELS.some(ch => u.pathname.includes(ch));
-        }
-        return knownDomainSet.has(host);
-      } catch (e) {
-        return false; // unparseable URL — reject rather than risk showing it
-      }
-    });
-    if (results.length === 0) {
-      // TEMP DEBUG — visible on-screen so this is diagnosable from a phone
-      // without devtools. Shows whether Tavily returned nothing at all, or
-      // returned results that all got rejected by the domain filter.
-      showTavilyDebugError(grid, `raw results from Tavily: ${rawCount} — hosts returned: [${rawHosts.join(', ')}], after filter: 0`);
-      return; // nothing found — static otherSites cards already rendered above stand as-is
-    }
-
-    // Second pass: reject generic homepage/category pages that happen to
-    // sit on a known domain but aren't actually a page for this title —
-    // e.g. a site's root URL, or a broad category/browse/locale page.
-    // A real title page almost always has a longer, more specific path
-    // (a slug, an id, a /watch//detail//vod/ style segment). This is a
-    // heuristic, not a guarantee the page truly has the title — we have
-    // no way to check the page's actual contents — it only screens out
-    // the clearly-generic ones.
-    const GENERIC_PATH_PATTERNS = [
-      /^\/?$/,                          // empty or just "/" — pure homepage
-      /^\/(en|ph|philippines|tl)\/?$/i, // bare locale/region page
-      /^\/(browse|genre|category|categories|search)(\/|$)/i,
-    ];
-    results = results.filter(r => {
-      try {
-        const path = new URL(r.url).pathname;
-        if (GENERIC_PATH_PATTERNS.some(p => p.test(path))) return false;
-        return path.replace(/\/$/, '').length >= 8; // require some real depth/specificity
-      } catch (e) {
-        return false;
-      }
-    });
-    if (results.length === 0) {
-      showTavilyDebugError(grid, `raw results from Tavily: ${rawCount}, passed domain filter but all looked like generic homepage/category pages (not title-specific) — after page-quality filter: 0`);
-      return;
-    }
-
-    // Still on the same title's detail view? (guards against a slow
-    // response landing after the user already navigated to another title)
-    if (window.currentMovie !== data) return;
-
-    // A Tavily hit's domain always traces back to a SITES_DIRECTORY/
-    // customSites entry (that's what knownDomains was built from) — so the
-    // site it found almost always ALREADY has a card rendered above from
-    // otherSites/buildSiteCard (just with a generic "Search inside site"
-    // badge, since data.sites doesn't carry a verified direct link). Without
-    // this check, that same site would render TWICE: once as its normal
-    // card, and again as a separate "found via search" card. Instead,
-    // upgrade the existing card in place — swap its link and badge to
-    // "✅ Direct link" — and only add a brand-new card for a site that
-    // truly has no card on the page yet.
-    const domainToSiteName = new Map();
-    [...SITES_DIRECTORY, ...customSites].forEach(s => {
-      const d = deriveDomain(s);
-      if (d && !domainToSiteName.has(d)) domainToSiteName.set(d, s.name);
-    });
-    const newCards = [];
-    results.forEach(r => {
-      let host;
-      try { host = new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { return; }
-      const siteName = domainToSiteName.get(host);
-      const existingCard = siteName ? grid.querySelector(`[data-site-name="${CSS.escape(siteName)}"]`) : null;
-      if (existingCard) {
-        existingCard.href = r.url;
-        const badge = existingCard.querySelector('.site-free, .site-note');
-        if (badge) {
-          badge.className = 'site-free';
-          badge.style.marginTop = '2px';
-          badge.style.display = 'inline-block';
-          badge.textContent = '✅ Direct link';
-        }
-      } else {
-        newCards.push(r);
-      }
-    });
-
-    // 'afterbegin' — always ranked first, ahead of the Hot/status-sorted
-    // verified cards that were already rendered synchronously above. Only
-    // for sites that genuinely had no card yet (see dedup above).
-    if (newCards.length > 0) {
-      grid.insertAdjacentHTML('afterbegin', newCards.map(buildTavilyFallbackCard).join(''));
-    }
-  } catch (err) {
-    // TEMP DEBUG — same reasoning as the !res.ok branch above.
-    console.error('Tavily fetch threw:', err);
-    showTavilyDebugError(grid, String(err));
-  }
-}
-
-
-// Visually distinct from buildSiteCard's output — no branded logo (Tavily
-// doesn't return one), and an explicit "unverified" badge instead of the
-// "✅ Direct link" / "🔍 Search inside site" badges verified sites get, so
-// users can tell at a glance this wasn't checked against status.json.
-function buildTavilyFallbackCard(s) {
-  return `
-  <a href="${escapeAttr(s.url)}" target="_blank" rel="noopener" class="site-card" onclick="trackSiteClick('${escapeAttr(s.name).replace(/'/g, "\\'")}')" style="--site-card-accent:var(--border);">
-    <div class="site-logo-box"><span style="font-size:1.3rem;">🔎</span></div>
-    <div class="site-info">
-      <div class="site-name">${escapeAttr(s.name)}</div>
-      <div class="site-note">${escapeAttr(s.note)}</div>
-      <span class="site-note" style="margin-top:2px; display:inline-block; opacity:.75;">🔗 Direct link found via search</span>
-    </div>
-    <span class="arrow">→</span>
-  </a>`;
 }
 
 
