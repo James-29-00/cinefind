@@ -4382,10 +4382,21 @@ async function loadTavilyFallback(data) {
     // has produced incorrect results in the wild). This is the actual
     // guarantee that only CineFind's own sites ever get shown, independent
     // of whether Tavily's server-side filter behaves correctly this time.
+    // youtube.com is shared by several unrelated official channels in
+    // SITES_DIRECTORY (Star Cinema, Viva Films, Regal Entertainment,
+    // Cinema One, TBA Studios). A bare hostname check treats ALL of
+    // youtube.com as "known", so Tavily results from completely
+    // unrelated videos/channels were slipping through. Whitelist the
+    // specific channel handles instead of the whole domain.
+    const ALLOWED_YT_CHANNELS = ['@ABSstarcinema', '@VIVAFilms', '@RegalEntertainmentInc', '@CinemaOnePH', '@TBAStudios'];
     const knownDomainSet = new Set(knownDomains);
     results = results.filter(r => {
       try {
-        const host = new URL(r.url).hostname.replace(/^www\./, '');
+        const u = new URL(r.url);
+        const host = u.hostname.replace(/^www\./, '');
+        if (host === 'youtube.com') {
+          return ALLOWED_YT_CHANNELS.some(ch => u.pathname.includes(ch));
+        }
         return knownDomainSet.has(host);
       } catch (e) {
         return false; // unparseable URL — reject rather than risk showing it
