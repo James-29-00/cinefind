@@ -4374,6 +4374,7 @@ async function loadTavilyFallback(data) {
     }
     const payload = await res.json();
     let results = payload.results || [];
+    const rawCount = results.length; // TEMP DEBUG — count before filtering
 
     // Client-side re-verification — don't just trust Tavily's own
     // include_domains restriction. Tavily has documented reliability issues
@@ -4402,7 +4403,13 @@ async function loadTavilyFallback(data) {
         return false; // unparseable URL — reject rather than risk showing it
       }
     });
-    if (results.length === 0) return; // nothing found — static otherSites cards already rendered above stand as-is
+    if (results.length === 0) {
+      // TEMP DEBUG — visible on-screen so this is diagnosable from a phone
+      // without devtools. Shows whether Tavily returned nothing at all, or
+      // returned results that all got rejected by the domain filter.
+      showTavilyDebugError(grid, `raw results from Tavily: ${rawCount}, domains restricted to: ${knownDomains.length} (${knownDomains.slice(0, 8).join(', ')}${knownDomains.length > 8 ? '…' : ''}), after filter: 0`);
+      return; // nothing found — static otherSites cards already rendered above stand as-is
+    }
 
     // Still on the same title's detail view? (guards against a slow
     // response landing after the user already navigated to another title)
