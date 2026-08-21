@@ -347,7 +347,7 @@
   .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
 
   header { text-align: center; padding: 12px 0 var(--sp-2); position: relative; }
-  .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: var(--sp-6); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .header-top { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: var(--sp-6); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
   .logo {
     /* Switched from 'Bebas Neue' — that font is an all-caps-only display
        face with no distinct lowercase glyphs, so "Cine"+"Find" always
@@ -389,6 +389,16 @@
   .logo-btn {
     background: none; border: none; padding: 0; margin: 0;
     cursor: pointer; text-align: inherit; display: inline-block;
+    /* Now a real flex item inside .header-top (moved there from being a
+       separate block below it). Default/hero: flex-basis 100% forces it
+       onto its own line — .header-top's flex-wrap means the hamburger
+       (order 0, small, fits easily) claims line 1 alone, and this
+       100%-wide item is pushed to line 2 by itself, matching the exact
+       hero look (own row, centered via inherited text-align). Order 2
+       keeps it visually/logically after the hamburger despite now living
+       in the same flex container. */
+    order: 2;
+    flex: 1 0 100%;
   }
   body.theme-crimson .logo span {
     filter: drop-shadow(0 0 4px rgba(230,57,70,.28));
@@ -504,14 +514,32 @@
      reachable with less scrolling — first-time visitors still get the
      full branded intro untouched. */
   body.hero-compact header { padding: 10px 0 14px; }
+  /* Merge the logo into the hamburger's row instead of its own separate
+     centered row below — like a standard compact top nav bar (Netflix,
+     IMDb) instead of two stacked rows. Only touches returning visitors;
+     hero mode above is untouched (order:2 + flex:1 0 100% still applies
+     unless overridden here).
+     order:-1 (below the hamburger's default order:0) puts the logo FIRST
+     on the shared line — i.e. the left side — while flex:0 1 auto drops
+     the forced full-width basis so it no longer needs its own line and
+     can sit inline next to the hamburger. justify-content:space-between
+     then pushes the hamburger to the right edge. This is real flexbox
+     layout (not absolute-positioning + a guessed pixel offset), so
+     vertical centering uses the same align-items:center algorithm the
+     hamburger's own icon lines already use — no separate alignment hack
+     needed for the two to visually line up. */
+  body.hero-compact .header-top { justify-content: space-between; margin-bottom: 10px; }
+  body.hero-compact .logo-btn { order: -1; flex: 0 1 auto; }
   /* Space Grotesk (see the .logo font-family comment above) has real
      lowercase forms, so — unlike the old Bebas Neue caps-only face this
      was originally tuned for — a smaller compact size still reads
-     clearly as "CineFind" rather than "CINEFIND". Kept below the
-     full-size logo's new lower ceiling (3.1rem) so returning-visitor
-     mode is still visibly more compact than a first visit. */
-  body.hero-compact .logo { font-size: clamp(1.9rem, 5vw, 2.4rem); }
+     clearly as "CineFind" rather than "CINEFIND". Sized for a compact
+     nav-bar row sitting next to the hamburger icon, well below the
+     full-size logo's hero ceiling (3.1rem). */
+  body.hero-compact .logo { font-size: clamp(1.5rem, 4vw, 1.9rem); }
   body.hero-compact .tagline { display: none; }
+  #build-marker { font-size: .68rem; opacity: .4; margin-top: 2px; }
+  body.hero-compact #build-marker { display: none; }
 
   /* Online-now live badge — a secondary trust signal, so it lives in the
      top corner (beside the theme toggle) rather than next to the wordmark.
@@ -997,14 +1025,15 @@
        stays visually tied to the header above it while gaining clearer
        separation from the filter pills underneath. */
     display: flex; gap: 3px; margin: var(--sp-6) 0 22px;
-    /* Full pill shape (999px) — matches the filter chips directly below it
-       and the other "choice group" controls in the app (All/Movie/Asian
-       Drama chips), so this segmented control reads as the same family of
-       control instead of a visually distinct rectangle sitting above them.
-       A shared dark track behind both buttons (like iOS/Android segmented
-       controls) instead of two separate floating pills. */
+    /* Rounded-rectangle (12px), deliberately NOT the full pill (999px) used
+       by the filter chips below — this is a view switcher (swaps the
+       page's whole content), a structurally different, higher-hierarchy
+       control than the filter chips' "narrow down within this view."
+       Matching shapes made them read as the same kind of control when
+       they aren't; the rectangle now visually separates "switch view"
+       from "refine view" without needing extra labels. */
     background: var(--card); border: 1px solid var(--border);
-    border-radius: 999px; padding: 3px;
+    border-radius: 12px; padding: 3px;
     position: relative; /* anchors .home-tab-indicator below */
   }
   /* Sliding active-state indicator — a single absolutely-positioned block
@@ -1016,13 +1045,13 @@
      from CSS alone with a flexible/responsive layout. */
   .home-tab-indicator {
     position: absolute; top: 3px; bottom: 3px; left: 3px;
-    width: calc(50% - 4.5px); border-radius: 999px;
+    width: calc(50% - 4.5px); border-radius: 9px;
     background: var(--surface); box-shadow: 0 0 0 1.5px var(--accent);
     transition: transform .28s cubic-bezier(.4,0,.2,1);
     z-index: 0;
   }
   .home-tab {
-    flex: 1; padding: 9px 0; border-radius: 999px; border: none;
+    flex: 1; padding: 9px 0; border-radius: 9px; border: none;
     background: transparent; color: var(--muted); font-family: 'Space Grotesk', sans-serif;
     font-size: var(--fs-sm); font-weight: 600; cursor: pointer; transition: color .2s;
     position: relative; z-index: 1; /* sits above .home-tab-indicator */
@@ -1720,16 +1749,20 @@
           <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:150px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
         </div>
       </div>
+      <!-- Visually-hidden page title: the visible "CineFind" is a clickable
+           nav button (not a heading), so screen readers had no h1 at all and
+           jumped straight to the h2 section headings below. This adds the
+           missing top of the hierarchy without changing anything visible.
+           Moved inside .header-top (was a separate sibling below it) so it
+           can be a real flex item — see .logo-btn's order/flex CSS for how
+           this becomes one shared row with the hamburger in compact mode,
+           vs its own full-width centered line in hero mode. -->
+      <h1 class="sr-only">CineFind</h1>
+      <button type="button" class="logo logo-btn" onclick="resetSearch()" aria-label="CineFind — back to home">Cine<span>Find</span>
+      </button>
     </div>
-    <!-- Visually-hidden page title: the visible "CineFind" is a clickable
-         nav button (not a heading), so screen readers had no h1 at all and
-         jumped straight to the h2 section headings below. This adds the
-         missing top of the hierarchy without changing anything visible. -->
-    <h1 class="sr-only">CineFind</h1>
-    <button type="button" class="logo logo-btn" onclick="resetSearch()" aria-label="CineFind — back to home">Cine<span>Find</span>
-    </button>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
-    <p id="build-marker" style="opacity:0.55; font-size:0.72rem; margin-top:2px;"></p>
+    <p id="build-marker"></p>
   </header>
 
   <div class="search-wrap">
@@ -5189,6 +5222,7 @@ function renderHomepage() {
       <button class="genre-pill dual-gradient-pill" data-cat="movie" onclick="toggleDirFilter('movie', this)">Movie</button>
       <button class="genre-pill dual-gradient-pill" data-cat="drama" onclick="toggleDirFilter('drama', this)">Asian Drama</button>
       <button class="genre-pill dual-gradient-pill" data-cat="anime" onclick="toggleDirFilter('anime', this)">Anime</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="pinoy" onclick="toggleDirFilter('pinoy', this)">🇵🇭 Pinoy</button>
     </div>
     </div>
     ${dirTipDismissed ? '' : `
