@@ -4337,8 +4337,23 @@ async function loadTavilyFallback(data) {
     console.error('Tavily fallback skipped: no known domains to restrict the search to.');
     return;
   }
+  // Origin hint word — the single biggest disambiguator for common titles
+  // that exist in multiple countries under the same name (e.g. "Brothers"
+  // is both a 2015 Bollywood film and an unrelated Filipino title — a bare
+  // "Brothers watch online" query has nothing to tell those apart, and
+  // Tavily has no way to know this app only cares about the Filipino one).
+  const ORIGIN_HINTS = { KR: 'Korean', JP: 'Japanese', CN: 'Chinese', TW: 'Chinese', HK: 'Chinese', PH: 'Filipino', TH: 'Thai' };
+  const originHint = (data.origin_country || []).map(c => ORIGIN_HINTS[c]).find(Boolean) || '';
+  const mediaTypeWord = data.type === 'series' ? 'series' : 'movie';
+  const queryParts = [
+    `"${data.title.replace(/"/g, '\\"')}"`, // quoted — biases toward the exact phrase over loose keyword matches
+    data.year || '',
+    originHint,
+    mediaTypeWord,
+    'watch online',
+  ].filter(Boolean);
   const params = new URLSearchParams({
-    query: `${data.title}${data.year ? ' ' + data.year : ''} watch online`,
+    query: queryParts.join(' '),
     domains: knownDomains.join(','),
   });
 
