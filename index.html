@@ -875,34 +875,30 @@
   .movie-poster img { width: 100%; height: 100%; object-fit: cover; }
   .fav-btn {
     position: absolute; top: 4px; right: 4px;
-    background: rgba(0,0,0,.6); border: none; border-radius: 50%;
+    background: transparent; border: none;
     width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 1.2rem; transition: all .2s;
+    cursor: pointer; font-size: 1.2rem; transition: transform .2s;
     z-index: 10;
   }
-  /* Star now an SVG (was the ⭐ emoji glyph, which always renders the same
-     fixed yellow regardless of state — only the background circle behind
-     it changed color). Outline/unfilled by default, solid gold once
-     favorited, so the state itself is visible on the icon, not just its
-     backdrop. */
-  .fav-btn svg { fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; transition: fill .2s, stroke .2s; }
-  .fav-btn.favorited svg { fill: #ffd23f; stroke: #ffd23f; }
-  .fav-btn:hover { background: rgba(var(--bg-glow-rgb),.9); transform: scale(1.15); }
-  .fav-btn.favorited { background: rgba(var(--bg-glow-rgb),.9); }
-  /* Light Mode's card backgrounds are pale/pastel (white, cream, light
-     blue wordmark cards), so the same rgba(0,0,0,.6) circle used on the
-     dark themes blends down into a washed-out mid-gray instead of reading
-     as a solid dark badge — leaving the white star stroke inside it very
-     low-contrast (this is what showed up faint/near-invisible in
-     screenshots). Darkening the circle and adding a soft outline ring
-     gives the badge a defined edge against a light card regardless of
-     that specific card's own background color. */
-  body.light-mode .fav-btn {
-    background: rgba(0,0,0,.82);
-    box-shadow: 0 0 0 1px rgba(255,255,255,.25);
+  /* No circle badge behind the star anymore — just the star shape itself.
+     A dark stroke + white halo (drop-shadow, not a filled background
+     shape) keeps it readable against any card art (dark theme cards,
+     light-mode pastel cards, or the colorful blurred logo art behind
+     either), without a background box competing with the card underneath. */
+  .fav-btn svg {
+    fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round;
+    transition: fill .2s, stroke .2s;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,.85)) drop-shadow(0 0 2px rgba(0,0,0,.85));
   }
-  body.light-mode .fav-btn svg { stroke: #fff; }
-  body.light-mode .fav-btn.favorited { background: rgba(var(--bg-glow-rgb),.95); box-shadow: none; }
+  .fav-btn.favorited svg { fill: #ffd23f; stroke: #ffd23f; }
+  .fav-btn:hover { transform: scale(1.15); }
+  body.light-mode .fav-btn svg {
+    stroke: var(--text);
+    filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff);
+  }
+  body.light-mode .fav-btn.favorited svg {
+    filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff);
+  }
 
   .movie-info { flex: 1; }
   .movie-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
