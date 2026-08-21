@@ -619,6 +619,15 @@
   #ios-install-banner .ios-banner-close:hover { opacity: 1; color: var(--text); }
   @keyframes slideUpFade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
+  /* #4 motion pass — dropdowns/panels toggled via instant display:none/block
+     (theme dropdown, filters bar) felt abrupt/"snapped in" rather than
+     appearing. Applied via inline style.animation on open only (JS sets it,
+     see toggleThemeDropdown/showFiltersBar) — closing stays instant since
+     an exit animation would need display kept until it finishes, not worth
+     the complexity here for a menu/bar that's simply hidden. */
+  @keyframes dropdownIn { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
   /* Moon Button — icon color/glow matches the active theme's accent:
      crimson red on the default theme, cyan on Cyber Neon. Uses `color` so
      the inline SVG moon (fill="currentColor") follows it automatically.
@@ -730,6 +739,7 @@
     cursor: pointer; transition: background .2s, transform .15s; font-size: 18px;
   }
   .search-btn:hover { background: var(--accent2); transform: translateY(-50%) scale(1.05); }
+  .search-btn:active { transform: translateY(-50%) scale(.94); transition: transform .1s ease; }
 
   .filters { display: flex; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 28px; align-items: center; }
   .filter-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -753,6 +763,7 @@
      nudge only — no border/background — to avoid implying every pill is
      "on" the moment you touch it. */
   .filter-chip:hover { color: var(--accent2); }
+  .filter-chip:active { transform: scale(.96); transition: transform .1s ease; }
   .filter-chip.active { border-color: var(--accent); color: var(--accent2); background: rgba(var(--bg-glow-rgb),.08); }
   .filter-chip.fav-chip { color: var(--accent2); border-color: rgba(var(--bg-glow-rgb),.35); }
   .filter-chip.fav-chip:hover { background: rgba(var(--bg-glow-rgb),.1); }
@@ -772,6 +783,7 @@
     transition: color .2s, border-color .2s, background .2s;
   }
   .fav-quick-link:hover { color: var(--accent2); border-color: var(--accent2); background: rgba(var(--bg-glow-rgb),.14); }
+  .fav-quick-link:active { transform: scale(.96); transition: transform .1s ease; }
 
   /* ===== Genre pill chips (gradient border trick) ===== */
   .pill-scroll-wrap { position: relative; margin: var(--sp-4) 0; }
@@ -797,6 +809,7 @@
     transition: transform 0.2s ease, opacity 0.2s ease;
   }
   .genre-pill:hover { opacity: 0.85; transform: translateY(-1px); }
+  .genre-pill:active { transform: scale(.96); transition: transform .1s ease; }
   .dual-gradient-pill {
     background-color: transparent;
     color: var(--muted);
@@ -813,6 +826,7 @@
        border; the gradient only appears once a chip is actually active
        (see .active below), so color = selection, not decoration. */
   }
+  .dual-gradient-pill:active { transform: scale(.96); transition: transform .1s ease; }
   .dual-gradient-pill.active {
     color: var(--text); font-weight: 600;
     border: 1.5px solid transparent;
@@ -963,6 +977,7 @@
     animation: fadeUp .4s ease forwards; display: flex; flex-direction: column;
   }
   .result-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
+  .result-card:active { transform: scale(.97); transition: transform .1s ease; }
   .result-card .result-poster { width: 100%; aspect-ratio: 2/3; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 2rem; overflow: hidden; }
   .result-card .result-poster img { width: 100%; height: 100%; object-fit: cover; }
   .result-card .result-info { padding: var(--sp-2) var(--sp-3) var(--sp-3); }
@@ -984,6 +999,7 @@
     max-width: 100%; overflow: hidden;
   }
   .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
+  .site-card:active { transform: scale(.98); transition: transform .1s ease; }
   .site-icon { width: 40px; height: 40px; border-radius: var(--sp-2); display: flex; align-items: center; justify-content: center; font-size: var(--fs-lg); flex-shrink: 0; }
   .site-logo-box {
     width: 64px; height: 48px; border-radius: var(--sp-2); flex-shrink: 0;
@@ -1639,6 +1655,7 @@
     color: #C9C6D6; font-size: .85rem; cursor: pointer; transition: all .2s; font-family: 'Space Grotesk', sans-serif;
   }
   .pop-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .pop-chip:active { transform: scale(.96); transition: transform .1s ease; }
 
   footer { text-align: center; padding: 30px 0 0; font-size: .8rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 40px; }
 
@@ -1981,6 +1998,8 @@ function toggleThemeDropdown(event) {
     </button>`
     : '');
   menu.style.display = 'block';
+  menu.style.animation = 'dropdownIn .16s ease';
+  menu.style.transformOrigin = 'top right';
   document.addEventListener('click', closeThemeDropdownOnOutsideClick, { once: true });
 }
 
@@ -2407,7 +2426,9 @@ let currentDisplayedResults = null; // whatever list (filtered or not) is curren
 // The Year/Rating/Type filter bar only makes sense once there's a results
 // list on screen — hidden otherwise so it doesn't look "dead" on the homepage.
 function showFiltersBar() {
-  document.getElementById('filters-bar').style.display = 'flex';
+  const bar = document.getElementById('filters-bar');
+  bar.style.display = 'flex';
+  bar.style.animation = 'panelIn .18s ease';
 }
 function hideFiltersBar() {
   document.getElementById('filters-bar').style.display = 'none';
@@ -4379,7 +4400,17 @@ function toggleFavorite(e) {
 
   const btn = e.target.closest('.fav-btn');
   const isFav = btn.classList.contains('favorited');
-  
+
+  // Quick scale bounce on every toggle (fav or unfav) so the tap feels
+  // acknowledged instead of just an instant color swap. Uses the Web
+  // Animations API directly on this element rather than a CSS class,
+  // since it's simple, self-cleans (no class to remember to remove), and
+  // needs no extra CSS wiring.
+  btn.animate(
+    [{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(.9)' }, { transform: 'scale(1)' }],
+    { duration: 320, easing: 'ease-out' }
+  );
+
   if (isFav) {
     removeFavorite(movie.title);
     btn.classList.remove('favorited');
@@ -5016,6 +5047,7 @@ function toggleDirFav(e, name) {
   e.preventDefault();
   e.stopPropagation();
   let favs = getDirFavs();
+  const nowFav = !favs.includes(name);
   if (favs.includes(name)) favs = favs.filter(n => n !== name);
   else favs.push(name);
   try { localStorage.setItem('cinefind-dir-favs', JSON.stringify(favs)); } catch (e) { /* storage full/unavailable */ }
@@ -5031,6 +5063,20 @@ function toggleDirFav(e, name) {
     renderSitesDirectory();
   } else if (document.getElementById('result-area')?.querySelector('.dir-grid')) {
     showFavorites(lastFavMovieSort, lastFavSiteSort);
+  }
+  // Pop-bounce on the star, same feel as the detail-page favorite toggle.
+  // Has to target the card AFTER the re-render above (not the element that
+  // was clicked) — the grid rebuilds via innerHTML replace, so the
+  // original button is already gone from the DOM by the time any
+  // animation on it would actually paint.
+  if (nowFav) {
+    const freshBtn = document.querySelector(`[data-site-name="${CSS.escape(name)}"] .pin-icon`);
+    if (freshBtn) {
+      freshBtn.animate(
+        [{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(.9)' }, { transform: 'scale(1)' }],
+        { duration: 320, easing: 'ease-out' }
+      );
+    }
   }
 }
 
@@ -5222,7 +5268,7 @@ function renderHomepage() {
       <button class="genre-pill dual-gradient-pill" data-cat="movie" onclick="toggleDirFilter('movie', this)">Movie</button>
       <button class="genre-pill dual-gradient-pill" data-cat="drama" onclick="toggleDirFilter('drama', this)">Asian Drama</button>
       <button class="genre-pill dual-gradient-pill" data-cat="anime" onclick="toggleDirFilter('anime', this)">Anime</button>
-      <button class="genre-pill dual-gradient-pill" data-cat="pinoy" onclick="toggleDirFilter('pinoy', this)">🇵🇭 Pinoy</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="pinoy" onclick="toggleDirFilter('pinoy', this)"><svg width="14" height="10" viewBox="0 0 24 16" style="vertical-align:-1px; margin-right:3px; border-radius:2px;"><rect width="24" height="8" y="0" fill="#0038A8"/><rect width="24" height="8" y="8" fill="#CE1126"/><path d="M0 0 L9 8 L0 16 Z" fill="#FFFFFF"/><g transform="translate(3,8)"><circle r="1.6" fill="#FCD116"/></g></svg>Pinoy</button>
     </div>
     </div>
     ${dirTipDismissed ? '' : `
@@ -5640,7 +5686,7 @@ async function loadAdminPanel() {
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-drama"> K-Drama</label>
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-anime"> Anime</label>
-          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> 🇵🇭 Pinoy</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> <svg width="14" height="10" viewBox="0 0 24 16" style="vertical-align:-1px; margin-right:3px; border-radius:2px;"><rect width="24" height="8" y="0" fill="#0038A8"/><rect width="24" height="8" y="8" fill="#CE1126"/><path d="M0 0 L9 8 L0 16 Z" fill="#FFFFFF"/><g transform="translate(3,8)"><circle r="1.6" fill="#FCD116"/></g></svg> Pinoy</label>
         </div>
         <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
         <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
@@ -5814,7 +5860,7 @@ function renderAdminPanel(data) {
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-drama"> K-Drama</label>
           <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-anime"> Anime</label>
-          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> 🇵🇭 Pinoy</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> <svg width="14" height="10" viewBox="0 0 24 16" style="vertical-align:-1px; margin-right:3px; border-radius:2px;"><rect width="24" height="8" y="0" fill="#0038A8"/><rect width="24" height="8" y="8" fill="#CE1126"/><path d="M0 0 L9 8 L0 16 Z" fill="#FFFFFF"/><g transform="translate(3,8)"><circle r="1.6" fill="#FCD116"/></g></svg> Pinoy</label>
         </div>
         <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
         <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
