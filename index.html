@@ -4417,13 +4417,78 @@ async function loadTavilyFallback(data) {
       return; // nothing found — static otherSites cards already rendered above stand as-is
     }
 
+    // Second pass: reject generic homepage/category pages that happen to
+    // sit on a known domain but aren't actually a page for this title —
+    // e.g. a site's root URL, or a broad category/browse/locale page.
+    // A real title page almost always has a longer, more specific path
+    // (a slug, an id, a /watch//detail//vod/ style segment). This is a
+    // heuristic, not a guarantee the page truly has the title — we have
+    // no way to check the page's actual contents — it only screens out
+    // the clearly-generic ones.
+    const GENERIC_PATH_PATTERNS = [
+      /^\/?$/,                          // empty or just "/" — pure homepage
+      /^\/(en|ph|philippines|tl)\/?$/i, // bare locale/region page
+      /^\/(browse|genre|category|categories|search)(\/|$)/i,
+    ];
+    results = results.filter(r => {
+      try {
+        const path = new URL(r.url).pathname;
+        if (GENERIC_PATH_PATTERNS.some(p => p.test(path))) return false;
+        return path.replace(/\/$/, '').length >= 8; // require some real depth/specificity
+      } catch (e) {
+        return false;
+      }
+    });
+    if (results.length === 0) {
+      showTavilyDebugError(grid, `raw results from Tavily: ${rawCount}, passed domain filter but all looked like generic homepage/category pages (not title-specific) — after page-quality filter: 0`);
+      return;
+    }
+
     // Still on the same title's detail view? (guards against a slow
     // response landing after the user already navigated to another title)
     if (window.currentMovie !== data) return;
 
+    // A Tavily hit's domain always traces back to a SITES_DIRECTORY/
+    // customSites entry (that's what knownDomains was built from) — so the
+    // site it found almost always ALREADY has a card rendered above from
+    // otherSites/buildSiteCard (just with a generic "Search inside site"
+    // badge, since data.sites doesn't carry a verified direct link). Without
+    // this check, that same site would render TWICE: once as its normal
+    // card, and again as a separate "found via search" card. Instead,
+    // upgrade the existing card in place — swap its link and badge to
+    // "✅ Direct link" — and only add a brand-new card for a site that
+    // truly has no card on the page yet.
+    const domainToSiteName = new Map();
+    [...SITES_DIRECTORY, ...customSites].forEach(s => {
+      const d = deriveDomain(s);
+      if (d && !domainToSiteName.has(d)) domainToSiteName.set(d, s.name);
+    });
+    const newCards = [];
+    results.forEach(r => {
+      let host;
+      try { host = new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { return; }
+      const siteName = domainToSiteName.get(host);
+      const existingCard = siteName ? grid.querySelector(`[data-site-name="${CSS.escape(siteName)}"]`) : null;
+      if (existingCard) {
+        existingCard.href = r.url;
+        const badge = existingCard.querySelector('.site-free, .site-note');
+        if (badge) {
+          badge.className = 'site-free';
+          badge.style.marginTop = '2px';
+          badge.style.display = 'inline-block';
+          badge.textContent = '✅ Direct link';
+        }
+      } else {
+        newCards.push(r);
+      }
+    });
+
     // 'afterbegin' — always ranked first, ahead of the Hot/status-sorted
-    // verified cards that were already rendered synchronously above.
-    grid.insertAdjacentHTML('afterbegin', results.map(buildTavilyFallbackCard).join(''));
+    // verified cards that were already rendered synchronously above. Only
+    // for sites that genuinely had no card yet (see dedup above).
+    if (newCards.length > 0) {
+      grid.insertAdjacentHTML('afterbegin', newCards.map(buildTavilyFallbackCard).join(''));
+    }
   } catch (err) {
     // TEMP DEBUG — same reasoning as the !res.ok branch above.
     console.error('Tavily fetch threw:', err);
