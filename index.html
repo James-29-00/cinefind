@@ -264,7 +264,7 @@
     box-shadow: 0 0 24px rgba(34,229,229,.25);
   }
   body.theme-cyber .logo span {
-    filter: drop-shadow(0 0 12px rgba(34,229,229,.6));
+    filter: drop-shadow(0 0 4px rgba(34,229,229,.28));
   }
 
   /* Nebula glow + twinkling stars, Galaxy theme only */
@@ -286,7 +286,7 @@
     box-shadow: 0 0 24px rgba(255,95,162,.25);
   }
   body.theme-galaxy .logo span {
-    filter: drop-shadow(0 0 12px rgba(255,95,162,.6));
+    filter: drop-shadow(0 0 4px rgba(255,95,162,.28));
   }
 
   /* My Favorites star — follows the active theme's accent color + glow */
@@ -326,25 +326,26 @@
     outline-offset: 2px;
   }
 
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none; z-index: 0; opacity: .4;
-  }
+  /* Faint film-grain texture layer removed — stacked on top of .bg-glow,
+     the logo's own glow, and (in Cyber/Galaxy themes) the starfield, it
+     was one more low-opacity effect competing for attention on first
+     load rather than adding noticeable atmosphere. */
 
   .bg-glow {
     position: fixed;
     width: 600px; height: 600px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(var(--bg-glow-rgb, 230,57,70),.12) 0%, transparent 70%);
+    /* Toned down from .12 — with the logo glow as the homepage's one
+       signature effect, this ambient circle only needs to read as a
+       faint vignette behind it, not compete at similar strength. */
+    background: radial-gradient(circle, rgba(var(--bg-glow-rgb, 230,57,70),.06) 0%, transparent 70%);
     top: -200px; left: 50%; transform: translateX(-50%);
     pointer-events: none; z-index: 0;
   }
 
   .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
 
-  header { text-align: center; padding: 20px 0 var(--sp-3); position: relative; }
+  header { text-align: center; padding: 12px 0 var(--sp-2); position: relative; }
   .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: var(--sp-6); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
   .logo {
     /* Switched from 'Bebas Neue' — that font is an all-caps-only display
@@ -364,7 +365,7 @@
        Max size trimmed from 5rem to 4.5rem — the previous size crowded
        the space above the search bar on larger phones; this keeps the
        wordmark commanding without dominating the whole first screen. */
-    font-size: clamp(2.6rem, 1.9rem + 3.2vw, 4.5rem);
+    font-size: clamp(2.1rem, 1.6rem + 2.2vw, 3.1rem);
     /* Tighter, slightly negative tracking reads as a deliberate logotype
        rather than plain bold text — standard practice for large display
        wordmarks set in a geometric sans like Space Grotesk. */
@@ -389,7 +390,7 @@
     cursor: pointer; text-align: inherit; display: inline-block;
   }
   body.theme-crimson .logo span {
-    filter: drop-shadow(0 0 12px rgba(230,57,70,.6));
+    filter: drop-shadow(0 0 4px rgba(230,57,70,.28));
   }
   /* The wordmark's first half ("Cine") fades from white into the accent
      color — built for a dark background. On Light Mode that white start
@@ -438,13 +439,12 @@
     background: rgba(34, 197, 94, .14);
     border-color: rgba(34, 197, 94, .5);
   }
-  /* Category filter pills (Movie/K-Drama/Anime/etc.) used a pale gray text
-     and dark border tuned for a dark background — both nearly disappear on
-     Light Mode. */
-  body.light-mode .filter-chip {
-    border-color: var(--border);
-    color: var(--muted);
-  }
+  /* Category filter pills (Movie/K-Drama/Anime/etc.): base rule above
+     already uses var(--muted) for text and a transparent border, both of
+     which resolve correctly per-theme (including Light Mode) on their own,
+     so no separate Light Mode override is needed here — one used to be
+     required back when the base rule hardcoded a dark-only border/text
+     color instead of theme variables. */
   body.light-mode .filter-select {
     border-color: var(--border);
   }
@@ -486,7 +486,13 @@
   body.light-mode .copy-link-btn:hover {
     background: rgba(var(--bg-glow-rgb),.12);
   }
-  .tagline { font-size: .9rem; color: var(--muted); margin-top: var(--sp-1); letter-spacing: .08em; text-transform: uppercase; }
+  /* #4 minimalist-typography pass: was .9rem/.08em/uppercase, which put it
+     at nearly the same visual weight as body text and fought the logo for
+     attention instead of clearly reading as secondary. Smaller, lighter-
+     tracked, and dimmer so the logo stays the one dominant heading and this
+     reads as quiet supporting text underneath it — plus a bit more breathing
+     room above it (margin-top) instead of sitting flush under the wordmark. */
+  .tagline { font-size: .78rem; font-weight: 500; color: var(--muted); opacity: .8; margin-top: var(--sp-2); letter-spacing: .04em; text-transform: uppercase; }
 
   /* Returning-visitor hero: on repeat visits the full-size logo + tagline
      eats a near-full screen before any content shows, which is pure
@@ -497,14 +503,13 @@
      reachable with less scrolling — first-time visitors still get the
      full branded intro untouched. */
   body.hero-compact header { padding: 10px 0 14px; }
-  /* Sized up from an earlier clamp(2rem, 6vw, 2.75rem) — at that smaller
-     size, Bebas Neue's lowercase letters (which have no ascenders/
-     descenders on "ine"/"ind") sit close enough in height to the
-     uppercase letters that the whole wordmark reads as if it were typed
-     in all-caps, even though the markup is still "Cine"+"Find" mixed
-     case. Keeping the compact size a bit larger preserves the visible
-     cap-height vs. x-height difference so it still reads as CineFind. */
-  body.hero-compact .logo { font-size: clamp(2.5rem, 6vw, 3.25rem); }
+  /* Space Grotesk (see the .logo font-family comment above) has real
+     lowercase forms, so — unlike the old Bebas Neue caps-only face this
+     was originally tuned for — a smaller compact size still reads
+     clearly as "CineFind" rather than "CINEFIND". Kept below the
+     full-size logo's new lower ceiling (3.1rem) so returning-visitor
+     mode is still visibly more compact than a first visit. */
+  body.hero-compact .logo { font-size: clamp(1.9rem, 5vw, 2.4rem); }
   body.hero-compact .tagline { display: none; }
 
   /* Online-now live badge — a secondary trust signal, so it lives in the
@@ -525,7 +530,6 @@
     padding: 10px 14px 10px 10px;
     border-radius: 999px;
     vertical-align: middle;
-    margin-right: auto;
     -webkit-text-fill-color: #b8ffcf;
   }
   .online-dot {
@@ -548,6 +552,10 @@
     max-width: 420px; margin: 14px auto 0;
     display: flex; align-items: center; gap: 7px;
     font-size: .72rem; color: var(--muted); line-height: 1.5;
+    background: color-mix(in srgb, var(--accent2) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent2) 35%, transparent);
+    border-radius: 10px;
+    padding: 8px 10px;
   }
   .safety-tip .tip-icon { font-size: .85rem; opacity: .7; flex-shrink: 0; }
   /* Same ~2.82:1-vs-4.5:1 text contrast issue as elsewhere — this is an
@@ -584,7 +592,11 @@
 
   /* Moon Button — icon color/glow matches the active theme's accent:
      crimson red on the default theme, cyan on Cyber Neon. Uses `color` so
-     the inline SVG moon (fill="currentColor") follows it automatically. */
+     the inline SVG moon (fill="currentColor") follows it automatically.
+     #5 minimalist pass: dropped the resting-state box-shadow (was glowing
+     at all times, competing with everything else on the page for
+     attention) — flat/solid border now, glow reserved for hover AND
+     keyboard focus so the effect reads as feedback, not ambient noise. */
   .theme-toggle {
     background: var(--card); border: 2px solid var(--accent);
     color: var(--accent);
@@ -592,14 +604,59 @@
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     transition: all .3s;
-    box-shadow: 0 0 10px var(--accent);
   }
-  .theme-toggle:hover { transform: scale(1.1); box-shadow: 0 0 18px var(--accent), 0 0 6px var(--accent); }
+  .theme-toggle:hover, .theme-toggle:focus-visible { transform: scale(1.1); box-shadow: 0 0 18px var(--accent), 0 0 6px var(--accent); }
+
+  /* ===== HAMBURGER MENU ===== */
+  .hamburger-menu-btn {
+    display: flex; flex-direction: column; gap: 5px;
+    background: none; border: none; cursor: pointer; padding: 8px;
+    color: var(--text);
+  }
+  .hamburger-menu-btn span {
+    display: block; width: 24px; height: 2.5px; background: var(--text);
+    border-radius: 2px; transition: all .3s ease;
+  }
+  .hamburger-menu-btn:hover span { background: var(--accent); }
+
+  .hamburger-menu {
+    position: fixed; top: 0; right: 0; width: 100%;
+    height: 100vh; background: var(--bg);
+    z-index: 100; display: flex; flex-direction: column;
+    animation: slideInMenu .3s ease;
+  }
+  @keyframes slideInMenu {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  .hamburger-menu-close {
+    align-self: flex-end; background: none; border: none;
+    color: var(--text); padding: 20px 24px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hamburger-menu-close:hover { color: var(--accent); }
+
+  .hamburger-menu-item {
+    display: flex; align-items: center; gap: 16px;
+    background: none; border: none; color: var(--text);
+    font-size: 1rem; font-weight: 500; padding: 20px 24px;
+    cursor: pointer; text-align: left; border-bottom: 1px solid var(--border);
+    transition: all .2s ease;
+  }
+  .hamburger-menu-item:hover {
+    background: var(--card); color: var(--accent);
+  }
+  .hamburger-menu-item svg { flex-shrink: 0; stroke: currentColor; }
 
   .search-wrap {
     position: sticky; top: 0; z-index: 40;
     background: var(--bg);
-    margin: var(--sp-4) 0 var(--sp-3);
+    /* #6 minimalist pass: bottom margin was --sp-3 (12px), leaving the
+       search bar sitting almost flush against the "Free Websites" header
+       right below it. Bumped to --sp-6 (24px) to match the section-gap
+       spacing used elsewhere on the page, so the search bar reads as its
+       own block instead of crowding into the directory section. */
+    margin: var(--sp-2) 0 var(--sp-6);
   }
   .search-wrap input {
     width: 100%; padding: 18px 96px 18px 22px;
@@ -655,11 +712,18 @@
   }
   .filter-select:focus, .filter-select:hover { border-color: var(--accent); }
   .filter-chip {
-    padding: 6px 14px; border-radius: 20px; border: 1px solid #3A3448;
-    background: transparent; color: #C9C6D6; font-family: 'Space Grotesk', sans-serif;
+    padding: 6px 14px; border-radius: 20px; border: 1px solid transparent;
+    background: transparent; color: var(--muted); font-family: 'Space Grotesk', sans-serif;
     font-size: .8rem; cursor: pointer; transition: all .2s;
   }
-  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent2); background: rgba(var(--bg-glow-rgb),.08); }
+  /* Unselected pills stay borderless/muted so they read as one calm row;
+     only .active (the current filter) gets the border + accent treatment,
+     so the eye lands on what's actually selected instead of every pill
+     competing at the same visual weight. Hover gets a light text-color
+     nudge only — no border/background — to avoid implying every pill is
+     "on" the moment you touch it. */
+  .filter-chip:hover { color: var(--accent2); }
+  .filter-chip.active { border-color: var(--accent); color: var(--accent2); background: rgba(var(--bg-glow-rgb),.08); }
   .filter-chip.fav-chip { color: var(--accent2); border-color: rgba(var(--bg-glow-rgb),.35); }
   .filter-chip.fav-chip:hover { background: rgba(var(--bg-glow-rgb),.1); }
   .fav-quick-link {
@@ -680,6 +744,12 @@
   .fav-quick-link:hover { color: var(--accent2); border-color: var(--accent2); background: rgba(var(--bg-glow-rgb),.14); }
 
   /* ===== Genre pill chips (gradient border trick) ===== */
+  .pill-scroll-wrap { position: relative; }
+  .pill-scroll-wrap::after {
+    content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 28px;
+    background: linear-gradient(to right, transparent, var(--bg) 78%);
+    pointer-events: none;
+  }
   .pill-container {
     display: flex; align-items: center; justify-content: flex-start;
     gap: 8px; padding: 12px 16px;
@@ -815,10 +885,24 @@
      it changed color). Outline/unfilled by default, solid gold once
      favorited, so the state itself is visible on the icon, not just its
      backdrop. */
-  .fav-btn svg { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linejoin: round; transition: fill .2s, stroke .2s; }
+  .fav-btn svg { fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; transition: fill .2s, stroke .2s; }
   .fav-btn.favorited svg { fill: #ffd23f; stroke: #ffd23f; }
   .fav-btn:hover { background: rgba(var(--bg-glow-rgb),.9); transform: scale(1.15); }
   .fav-btn.favorited { background: rgba(var(--bg-glow-rgb),.9); }
+  /* Light Mode's card backgrounds are pale/pastel (white, cream, light
+     blue wordmark cards), so the same rgba(0,0,0,.6) circle used on the
+     dark themes blends down into a washed-out mid-gray instead of reading
+     as a solid dark badge — leaving the white star stroke inside it very
+     low-contrast (this is what showed up faint/near-invisible in
+     screenshots). Darkening the circle and adding a soft outline ring
+     gives the badge a defined edge against a light card regardless of
+     that specific card's own background color. */
+  body.light-mode .fav-btn {
+    background: rgba(0,0,0,.82);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.25);
+  }
+  body.light-mode .fav-btn svg { stroke: #fff; }
+  body.light-mode .fav-btn.favorited { background: rgba(var(--bg-glow-rgb),.95); box-shadow: none; }
 
   .movie-info { flex: 1; }
   .movie-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
@@ -907,7 +991,14 @@
      bordered, accent-filled when active) so it reads as part of the same
      component family, not a new unrelated control. */
   .home-tab-bar {
-    display: flex; gap: 3px; margin: var(--sp-6) 0 var(--sp-4);
+    /* #6 minimalist pass: bottom margin was --sp-4 (16px) — same as the
+       gap most other section pairs on the page use, but this bar sits
+       between two OTHER grouped controls (header row above, filter pills
+       below) rather than plain body content, so 16px read as them all
+       touching. Bumped to 22px purely on the bottom side so Sites/Genres
+       stays visually tied to the header above it while gaining clearer
+       separation from the filter pills underneath. */
+    display: flex; gap: 3px; margin: var(--sp-6) 0 22px;
     /* Full pill shape (999px) — matches the filter chips directly below it
        and the other "choice group" controls in the app (All/Movie/Asian
        Drama chips), so this segmented control reads as the same family of
@@ -1151,8 +1242,9 @@
   }
 
   .pin-icon {
-    color: rgba(255,255,255,.85); cursor: pointer; transition: color .2s ease, opacity .2s ease;
-    background: none; border: none; line-height: 1; padding: 0;
+    color: rgba(255,255,255,.85); cursor: pointer; transition: color .2s ease, opacity .2s ease, background .2s ease;
+    background: rgba(0,0,0,.38); border-radius: 50%; border: none; line-height: 1; padding: 4px;
+    width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center;
     position: relative;
     filter: drop-shadow(0 1px 3px rgba(0,0,0,.6));
@@ -1590,20 +1682,38 @@
 <div class="wrapper">
   <header>
     <div class="header-top">
-      <span id="online-badge" class="online-badge" style="display:none;">
-        <span class="online-dot"></span><span id="online-count-text"></span>
-      </span>
-      <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
-        <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
-        <div style="position:relative; display:inline-flex;">
-          <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
-            <svg id="theme-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
-          <button id="theme-dropdown-arrow" class="theme-dropdown-arrow-btn" title="Theme, help, install" aria-label="Open menu" onclick="toggleThemeDropdown(event)" style="position:absolute; bottom:-3px; right:-3px; width:16px; height:16px; background:var(--card); border:1px solid var(--border); border-radius:50%; cursor:pointer; color:var(--text); padding:0; display:flex; align-items:center; justify-content:center; line-height:1;">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-          </button>
+      <button class="hamburger-menu-btn" id="hamburger-menu-btn" title="Menu" aria-label="Open menu" onclick="toggleHamburgerMenu(event)">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div id="hamburger-menu" class="hamburger-menu" style="display:none;">
+        <button class="hamburger-menu-close" onclick="closeHamburgerMenu()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <button class="hamburger-menu-item" onclick="resetSearch(); closeHamburgerMenu()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Home
+        </button>
+        <button class="hamburger-menu-item" onclick="showFavorites(); closeHamburgerMenu()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
+          My Favorites <span id="hamburger-fav-count" style="font-size:.75rem; opacity:.7;">(0)</span>
+        </button>
+        <button class="hamburger-menu-item" onclick="checkAdminAccess(); closeHamburgerMenu()" id="hamburger-admin-btn" style="display:none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
+          Admin Panel
+        </button>
+        <button class="hamburger-menu-item" onclick="showHelpTip(); closeHamburgerMenu()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.5"/><path d="M12 17h.01"/></svg>
+          Help
+        </button>
+        <div class="hamburger-menu-item" style="cursor:pointer; justify-content:space-between; position:relative;" onclick="toggleThemeDropdown(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleThemeDropdown(event);}" role="button" tabindex="0" aria-haspopup="true" aria-label="Change theme">
+          <span style="display:flex; align-items:center; gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Theme <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
+          </span>
+          <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:150px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
         </div>
-        <div id="theme-dropdown-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:6px; min-width:150px; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.35);"></div>
       </div>
     </div>
     <!-- Visually-hidden page title: the visible "CineFind" is a clickable
@@ -1624,18 +1734,15 @@
     <button class="search-btn" onclick="searchMovie()" aria-label="Search"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg></button>
     <div class="suggestions-box" id="suggestions-box" role="listbox" aria-label="Search suggestions"></div>
   </div>
-  <div style="display:flex; justify-content:center; margin:-2px 2px 6px 0;">
-    <button onclick="showHelpTip()" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--muted); font-size:.74rem; cursor:pointer; padding:12px 16px; min-height:44px; opacity:.8;">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.5"/><path d="M12 17h.01"/></svg>
-      How this works
-    </button>
-  </div>
+
+  <button type="button" onclick="showHelpTip()" style="display:flex; align-items:center; gap:5px; background:none; border:none; color:var(--muted); font-size:.78rem; font-weight:600; cursor:pointer; margin:6px auto 0; padding:4px 6px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 1.8-2 3.5"/><path d="M12 17h.01"/></svg>
+    How this works
+  </button>
 
   <div id="onboarding-banner"></div>
 
-  <div style="display:flex; justify-content:flex-end; margin:10px 0 18px;">
-    <button class="fav-quick-link" onclick="showFavorites()"><span class="fav-star-icon">★</span> My Favorites (<span id="fav-count">0</span>)</button>
-  </div>
+
 
   <div id="recently-viewed-section"></div>
 
@@ -1825,9 +1932,8 @@ function toggleThemeDropdown(event) {
       <span>${i === activeIndex ? '✓ ' : ''}${s.label}</span>
     </button>
   `).join('')
-  // (Help used to live here too — moved to a "? How this works" link right
-  // under the search bar instead, since that's where the actual moment of
-  // confusion happens for a new visitor, not tucked inside this dropdown.)
+  // Help lives in the hamburger menu (see hamburger-menu markup), not
+  // here — this dropdown stays theme-options-only.
   + (deferredInstallPrompt
     ? `<div style="height:1px; background:var(--border); margin:5px 2px;"></div>
        <button onclick="closeThemeDropdownOnOutsideClick(); triggerInstallPrompt();" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:.82rem; font-weight:500; padding:8px 10px; border-radius:6px; cursor:pointer;">
@@ -1897,6 +2003,43 @@ function loadColorTheme() {
     prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
   } catch (e) { /* matchMedia unsupported — fall back to dark default */ }
   applyTheme(prefersLight ? THEME_CYCLE[1] : THEME_CYCLE[0], false);
+}
+
+// ========== HAMBURGER MENU ==========
+function toggleHamburgerMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('hamburger-menu');
+  if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  if (isOpen) {
+    closeHamburgerMenu();
+  } else {
+    menu.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('click', closeHamburgerOnOutsideClick, { once: true });
+  }
+}
+
+function closeHamburgerMenu() {
+  const menu = document.getElementById('hamburger-menu');
+  if (menu) {
+    menu.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+function closeHamburgerOnOutsideClick(event) {
+  const menu = document.getElementById('hamburger-menu');
+  const btn = document.getElementById('hamburger-menu-btn');
+  if (menu && !menu.contains(event.target) && !btn.contains(event.target)) {
+    closeHamburgerMenu();
+  }
+}
+
+function updateHamburgerFavCount() {
+  const favs = getFavorites().length;
+  const el = document.getElementById('hamburger-fav-count');
+  if (el) el.textContent = `(${favs})`;
 }
 
 // ========== TOAST / SHARE / COPY LINK ==========
@@ -2019,7 +2162,10 @@ function removeFavorite(title) {
 }
 
 function updateFavCount() {
-  document.getElementById('fav-count').textContent = getFavorites().length + getDirFavs().length;
+  const totalFavs = getFavorites().length + getDirFavs().length;
+  const favCountEl = document.getElementById('fav-count');
+  if (favCountEl) favCountEl.textContent = totalFavs;
+  updateHamburgerFavCount();
 }
 
 // Small card for a favorited website, reused inside the "My Favorites" page.
@@ -2413,7 +2559,7 @@ function renderVisibleResults() {
       </div>` : canSearchDeeper ? `
       <div style="text-align:center; margin-top:18px;" id="search-deeper-wrap">
         <p style="font-size:.78rem; color:var(--muted); margin-bottom:8px;">Not seeing what you're looking for?</p>
-        <button class="pop-chip" id="search-deeper-btn" onclick="searchDeeper()">🔍 Search Deeper (more results)</button>
+        <button class="pop-chip" id="search-deeper-btn" onclick="searchDeeper()">Search Deeper (more results)</button>
       </div>` : ''}`;
 }
 
@@ -2446,7 +2592,7 @@ function searchDeeper() {
       renderVisibleResults();
     })
     .catch(() => {
-      if (btn) { btn.disabled = false; btn.textContent = '🔍 Search Deeper (more results)'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Search Deeper (more results)'; }
     });
 }
 
@@ -2974,12 +3120,10 @@ function renderVisitStats(data) {
   const total = (data.total || 0).toLocaleString();
   const online = data.online || 1;
 
-  const badge = document.getElementById('online-badge');
-  const onlineText = document.getElementById('online-count-text');
-  if (badge && onlineText) {
-    onlineText.textContent = `${online} online now`;
-    badge.style.display = 'inline-flex';
-  }
+  // "Online now" moved out of the user-facing header — it's visitor-count
+  // vanity info, not something people need to find a working streaming
+  // site. Stashed here for the admin panel's stat row to read instead.
+  window.__adminOnlineCount = online;
 
   const footerEl = document.getElementById('visit-stats');
   if (footerEl) {
@@ -4019,26 +4163,26 @@ function renderResult(data, query) {
           ${data.rating ? `<span class="badge badge-rating">⭐ ${data.rating}</span>` : ''}
           <span class="badge" style="background:rgba(255,255,255,.05);color:var(--muted)">${data.type === 'series' ? '📺 Series' : '🎬 Movie'}</span>
         </div>
-        <button class="pop-chip" onclick="scrollToSites()" style="margin-top:10px; background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;">🌐 See free streaming sites ↓</button>
+        <button class="pop-chip" onclick="scrollToSites()" style="margin-top:10px; background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;">See free streaming sites ↓</button>
         <p class="movie-desc" id="movie-desc" onclick="toggleDescription()">${escapeAttr(data.description || '')}</p>
         <button class="movie-desc-toggle" id="movie-desc-toggle" onclick="toggleDescription()" style="display:none;">Show more</button>
       </div>
     </div>
 
     <div id="sites-section">
-      <div class="section-label">🌐 Free streaming sites</div>
+      <div class="section-label">Free streaming sites</div>
       <div class="sites-grid">${siteCards}</div>
       ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
     </div>
 
     <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
       ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
-      <button class="pop-chip" onclick="resetSearch()">${canGoBack ? '🔄 New search' : '← Search again'}</button>
-      <button class="pop-chip" onclick="shareMovie()">📤 Share</button>
+      <button class="pop-chip" onclick="resetSearch()">${canGoBack ? 'New search' : '← Search again'}</button>
+      <button class="pop-chip" onclick="shareMovie()">Share</button>
     </div>
 
     ${data.id ? `
-      <div class="section-label" style="margin-top:32px;">🎯 You might also like</div>
+      <div class="section-label" style="margin-top:32px;">You might also like</div>
       <div class="results-grid" id="similar-grid" aria-hidden="true">
         ${Array(6).fill('<div class="poster-shimmer" style="aspect-ratio:2/3; border-radius:12px;"></div>').join('')}
       </div>` : ''}
@@ -4321,8 +4465,14 @@ async function loadSiteStatus(forceFresh) {
     siteStatusLastRun = data.lastRun ? new Date(data.lastRun).getTime() : null;
     applyStatusDots();
   } catch (err) {
-    // Silent fail — dots just stay hidden. Not worth bothering the user
-    // with an error over a nice-to-have indicator.
+    // status.json failed to load (network error, missing file, timeout).
+    // Previously this left every card's status-loading skeleton shimmering
+    // forever since applyStatusDots() was never called to resolve it. Now
+    // it falls back to an empty map so applyStatusDots() still runs — with
+    // no status data, getSiteStatus() returns null for every site, which
+    // hides the status label cleanly instead of showing a stuck skeleton.
+    siteStatusMap = siteStatusMap || {};
+    applyStatusDots();
   }
 }
 
@@ -4670,9 +4820,9 @@ function applyStatusDots() {
 
 const SITES_DIRECTORY = [
   { name: 'MyAsianTV', url: 'https://myasiantv.com.lv/', domain: 'myasiantv.com.lv', categories: ['drama'], icon: '🏔️', accent: '#e63946',
-    logoHtml: `<span class="logo-mtn" aria-hidden="true"><svg viewBox="0 0 40 26" width="34" height="22"><path d="M2 24 L14 6 L20 15 L24 9 L38 24 Z" fill="var(--card-logo-ink,#fff)"/><path d="M20 15 L24 9 L38 24 L22 24 Z" fill="#e63946"/><path d="M13 8 L15 6 L17 9" fill="none" stroke="var(--card-logo-ink,#fff)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-word"><span class="lw-white">M</span><span class="lw-accent">A</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white">My</span><span style="color:#e63946;">Asian</span><span class="lw-white">TV</span></span>` },
   { name: 'DramaCool',  url: 'https://dramacool.com.tw/', domain: 'dramacool.com.tw', categories: ['drama'], icon: '🎬', accent: '#5b8def',
-    logoHtml: `<span class="logo-clapper" aria-hidden="true"><svg viewBox="0 0 40 30" width="30" height="22"><rect x="4" y="12" width="32" height="16" rx="2" fill="none" stroke="#5b8def" stroke-width="2.4"/><path d="M4 12 L10 4 L16 4 L11 12 Z" fill="#5b8def"/><path d="M15 12 L21 4 L27 4 L22 12 Z" fill="#5b8def"/><path d="M26 12 L32 4 L36 4 L36 12 Z" fill="#5b8def"/></svg></span><span class="logo-word"><span class="lw-outline">D</span><span class="lw-white">C</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:#5b8def;">Drama</span><span class="lw-white">Cool</span></span>` },
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'], accent: '#ff4d8f',
     logoHtml: `<span class="logo-word"><span style="color:var(--brand-pink);">Kiss</span><span class="lw-white">KH</span></span>` },
   { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'], accent: '#8b5cf6',
@@ -4814,13 +4964,9 @@ function renderSitesDirectory() {
     return;
   }
 
-  // The 🔥 badge only means something if it's rare. hot-sites.json is
-  // admin-editable and can end up with most/all sites marked hot at once —
-  // capping the *displayed* badge to the first few (already sorted hot-first
-  // above) keeps the visual meaning intact without needing the underlying
-  // data cleaned up every time.
-  const MAX_VISIBLE_HOT_BADGES = 5;
-  let hotBadgesShown = 0;
+  // The 🔥 badge always accompanies the gold "hot" border together (never
+  // just the color alone — that fails colorblind users), so both are driven
+  // by the same isHotSite() check with no separate display cap.
 
   // Hand-picked "best experience per category" sites (speed, ad-load,
   // library freshness) — a quiet gold ring, not a resize, so a couple of
@@ -4829,8 +4975,7 @@ function renderSitesDirectory() {
 
   const buildCard = (s, i) => {
     const isFav = favs.includes(s.name);
-    const isHot = isHotSite(s.name) && hotBadgesShown < MAX_VISIBLE_HOT_BADGES;
-    if (isHot) hotBadgesShown++;
+    const isHot = isHotSite(s.name);
     const isEditorPick = EDITOR_PICKS.has(s.name);
     // Uniform sizing — no card gets a wider/taller "hero" treatment anymore,
     // since with several sites often marked hot at once, whichever sorted
@@ -4930,11 +5075,14 @@ function renderHomepage() {
   let dirTipDismissed;
   try { dirTipDismissed = sessionStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
-    <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px;" class="popular-label">
-      <span>🌐 Free Websites</span>
-      <button onclick="refreshSiteStatus(this)" title="Refresh site status" aria-label="Refresh site status" style="background:none; border:1px solid var(--border); border-radius:8px; padding:6px 8px; cursor:pointer; color:var(--muted); display:inline-flex; align-items:center; text-transform:none; letter-spacing:normal; font-weight:400;">
-        <svg class="refresh-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      </button>
+    <div style="margin-bottom:var(--sp-6); display:flex; align-items:center; justify-content:space-between; gap:10px;" class="popular-label">
+      <span>Free Websites</span>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span id="dir-results-count" style="font-size:.75rem; font-weight:500; color:var(--muted); text-transform:none; letter-spacing:normal;"></span>
+        <button onclick="refreshSiteStatus(this)" title="Refresh site status" aria-label="Refresh site status" style="background:none; border:1px solid var(--border); border-radius:8px; padding:6px 8px; cursor:pointer; color:var(--muted); display:inline-flex; align-items:center; text-transform:none; letter-spacing:normal; font-weight:400;">
+          <svg class="refresh-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Item 10: homepage was one long scroll (sites, then genres, then
@@ -4949,11 +5097,13 @@ function renderHomepage() {
     </div>
 
     <div id="home-tab-sites">
+    <div class="pill-scroll-wrap">
     <div class="pill-container" id="dir-filter-chips">
       <button class="genre-pill dual-gradient-pill active" onclick="clearDirFilters(this)">All</button>
       <button class="genre-pill dual-gradient-pill" data-cat="movie" onclick="toggleDirFilter('movie', this)">Movie</button>
       <button class="genre-pill dual-gradient-pill" data-cat="drama" onclick="toggleDirFilter('drama', this)">Asian Drama</button>
       <button class="genre-pill dual-gradient-pill" data-cat="anime" onclick="toggleDirFilter('anime', this)">Anime</button>
+    </div>
     </div>
     ${dirTipDismissed ? '' : `
     <div class="safety-tip" id="dir-safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
@@ -4962,9 +5112,6 @@ function renderHomepage() {
       <button class="tip-close" onclick="dismissDirTip()" aria-label="Dismiss tip">✕</button>
     </div>
     `}
-    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
-      <div id="dir-results-count" style="font-size:.8rem; color:var(--muted);"></div>
-    </div>
     <div class="dir-grid" id="sites-directory-grid"></div>
     </div>
 
@@ -5544,6 +5691,7 @@ function renderAdminPanel(data) {
          if the list ever empties out again (e.g. after Delete Permanently) -->
     <template id="removed-sites-empty-msg"><p style="font-size:.75rem; color:#9494b5; margin:0;">Wala pang deleted sites.</p></template>
     <div class="admin-summary">
+      <div class="admin-stat"><div class="num" style="color:#06d6a0;">${window.__adminOnlineCount || 1}</div><div class="lbl">Online Now</div></div>
       <div class="admin-stat"><div class="num" style="color:#06d6a0;">${data.upCount}</div><div class="lbl">Up</div></div>
       <div class="admin-stat"><div class="num" style="color:#f0b428;">${data.blockedCount || 0}</div><div class="lbl">Blocked</div></div>
       <div class="admin-stat"><div class="num" style="color:#e63946;">${data.downCount}</div><div class="lbl">Down</div></div>
