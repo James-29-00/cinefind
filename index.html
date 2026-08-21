@@ -3073,6 +3073,14 @@ const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
 const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
+// Tavily — now called on EVERY title view (not just as a fallback), and
+// its results are ranked first, ahead of Hot/status-sorted verified sites
+// (see renderResult's loadTavilyFallback call). Burns through the free
+// monthly quota much faster than the original fallback-only design.
+// PLACEHOLDER: replace with your actual deployed *.workers.dev URL once
+// you set up tavily-search-worker.js on Cloudflare (see that file's setup
+// comment).
+const TAVILY_PROXY_URL = 'https://tavilyapikey.manio-james-g-5588.workers.dev';
 // Search analytics rides on the same visits Worker (VISIT_WORKER_URL) via
 // its /track-search and /top-searches routes — see cinefind-visits-worker.js.
 // No separate Worker/KV needed.
@@ -3258,49 +3266,56 @@ function genreIdsToLabel(genreIds) {
 // Sites with a known /search?... URL pattern link straight to search results;
 // the rest link to the homepage with a "search inside site" note since we don't
 // have a confirmed search-URL pattern for them.
+// ===== MOVIE_SITES (PART 1: search-URL pattern, not homepage) =====
+// Sites marked VERIFY use a best-guess WordPress-style ?s= pattern since we
+// don't have a confirmed search-URL format for them — check manually and
+// update the url template if the site uses a different query param.
 const MOVIE_SITES = (title) => [
-  {name: '1Shows', url: 'https://1shows.org/', note: 'Search inside site', linkType: 'home'},
-  {name: 'FlickyStream', url: 'https://flickystream.dad/', note: 'Search inside site', linkType: 'home'},
-  {name: 'MovieBox', url: 'https://movie-box.co/', note: 'Search inside site', linkType: 'home'},
-  {name: '1Flex', url: 'https://1flex.org/', note: 'Search inside site', linkType: 'home'},
-  {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
-  {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Shows', url: `https://1shows.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'FlickyStream', url: `https://flickystream.dad/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'MovieBox', url: `https://movie-box.co/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: '1Flex', url: `https://1flex.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: '1Tube', url: `https://1tube.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Cineby', url: `https://cineby.at/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'FMovies', url: `https://fmovies-hd.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
 
 // General (non-anime, non-K-drama) TV series — same free aggregators as movies,
 // since these sites typically host both.
+// ===== SERIES_SITES (PART 1: search-URL pattern, not homepage) =====
 const SERIES_SITES = (title) => [
-  {name: '1Shows', url: 'https://1shows.org/', note: 'Search inside site', linkType: 'home'},
-  {name: 'FlickyStream', url: 'https://flickystream.dad/', note: 'Search inside site', linkType: 'home'},
-  {name: 'MovieBox', url: 'https://movie-box.co/', note: 'Search inside site', linkType: 'home'},
-  {name: '1Flex', url: 'https://1flex.org/', note: 'Search inside site', linkType: 'home'},
-  {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
-  {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Shows', url: `https://1shows.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'FlickyStream', url: `https://flickystream.dad/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'MovieBox', url: `https://movie-box.co/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: '1Flex', url: `https://1flex.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: '1Tube', url: `https://1tube.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Cineby', url: `https://cineby.at/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'FMovies', url: `https://fmovies-hd.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
 
 // K-drama / Asian drama — only real drama-focused sites.
+// ===== DRAMA_SITES (PART 1: search-URL pattern, not homepage) =====
 const DRAMA_SITES = (title) => [
-  {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?s=${encodeURIComponent(title)}`, note: 'Asian content', linkType: 'search'},
-  {name: 'DramaCool', url: 'https://dramacool.com.tw/', note: 'Search inside site', linkType: 'home'},
-  {name: 'KissKH', url: 'https://kisskh.co/', note: 'Search inside site', linkType: 'home'},
-  {name: 'AsianCrush', url: 'https://www.asiancrush.com/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Viki', url: 'https://www.viki.com/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Viu', url: 'https://www.viu.com/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Kocowa', url: 'https://www.kocowa.com/', note: 'Search inside site', linkType: 'home'},
-  {name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', note: 'Search inside site', linkType: 'home'},
-  {name: 'WeTV', url: 'https://wetv.vip/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Amasian TV', url: 'https://amasiantv.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'},
+  {name: 'DramaCool', url: `https://dramacool.com.tw/search?type=movies&keyword=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'KissKH', url: `https://kisskh.co/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'AsianCrush', url: `https://www.asiancrush.com/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Viki', url: `https://www.viki.com/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Viu', url: `https://www.viu.com/ott/global/en/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Kocowa', url: `https://www.kocowa.com/search?query=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'OnDemandKorea', url: `https://www.ondemandkorea.com/search?query=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'WeTV', url: `https://wetv.vip/en/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Amasian TV', url: `https://amasiantv.com/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
 
 // Anime (movie or series) — dedicated anime sites only.
+// ===== ANIME_SITES (PART 1: search-URL pattern, not homepage) =====
 const ANIME_SITES = (title) => [
-  {name: 'ReAnime', url: 'https://reanime.to/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Animepahe', url: 'https://animepahe.pw/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Miruro', url: 'https://miruro.to/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Anikoto', url: 'https://anikototv.to/', note: 'Search inside site', linkType: 'home'},
-  {name: 'Enma', url: 'https://enma.lol/', note: 'Search inside site', linkType: 'home'},
+  {name: 'ReAnime', url: `https://reanime.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Animepahe', url: `https://animepahe.pw/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Miruro', url: `https://miruro.to/search?keyword=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Anikoto', url: `https://anikototv.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Enma', url: `https://enma.lol/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
 
 // Works out which of the 4 buckets a TMDB result belongs to, using genre +
@@ -3335,6 +3350,65 @@ const CATEGORY_SITES = {
   drama: DRAMA_SITES,
   anime: ANIME_SITES,
 };
+
+// ===== STATIC_OVERRIDES (PART 2) =====
+// Manually-verified DIRECT links (straight to the title/episode page, not
+// just a search page) for popular titles — keyed by lowercase title, then
+// by site name (must match the `name` field used in MOVIE_SITES/SERIES_
+// SITES/DRAMA_SITES/ANIME_SITES above). Leave a value as '' until a real
+// direct URL has been found and verified by hand; getSiteLink() below
+// treats an empty string the same as "no override" and falls back to the
+// site's search-URL instead.
+const STATIC_OVERRIDES = {
+  "squid game": {
+    "dramacool": "",
+    "viki": "",
+  },
+  "your name": {
+    "animepahe": "",
+    "miruro": "",
+  },
+  "attack on titan": {
+    "animepahe": "",
+    "miruro": "",
+  },
+  "demon slayer": {
+    "animepahe": "",
+    "miruro": "",
+  },
+  "crash landing on you": {
+    "dramacool": "",
+    "viki": "",
+  },
+  "parasite": {
+    "1shows": "",
+    "cineby": "",
+  },
+  "my love from the star": {
+    "dramacool": "",
+    "viki": "",
+  },
+  "0.5 no otoko": {
+    "animepahe": "",
+    "miruro": "",
+  },
+};
+
+// ===== getSiteLink (PART 3) =====
+// Resolves the link for one site + title: a verified direct link from
+// STATIC_OVERRIDES when one exists, otherwise the site's own search-URL
+// (already built into site.url by MOVIE_SITES/SERIES_SITES/DRAMA_SITES/
+// ANIME_SITES above). isDirect drives the "✅ Direct link" vs "🔍 Search
+// inside site" badge in buildSiteCard.
+function getSiteLink(siteName, title, fallbackUrl) {
+  const key = (title || '').trim().toLowerCase();
+  const siteKey = (siteName || '').trim().toLowerCase();
+  const override = STATIC_OVERRIDES[key] && STATIC_OVERRIDES[key][siteKey];
+  if (override) {
+    return { url: override, isDirect: true };
+  }
+  return { url: fallbackUrl, isDirect: false };
+}
 
 // Shared parser: turns a raw TMDB result object into the shape our UI uses.
 // Used by both search and trending so the card/detail rendering stays consistent.
@@ -4128,15 +4202,22 @@ function renderResult(data, query) {
       dirMatch = SITES_DIRECTORY.find(d => normS.includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normS));
     }
     const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
+    // PART 3: resolve a verified STATIC_OVERRIDES link when one exists,
+    // otherwise fall back to s.url (already a search-URL from PART 1).
+    const linkInfo = getSiteLink(s.name, data.title, s.url);
+    const linkBadge = linkInfo.isDirect
+      ? `<span class="site-free" style="margin-top:2px; display:inline-block;">✅ Direct link</span>`
+      : `<span class="site-note" style="margin-top:2px; display:inline-block; opacity:.75;">🔍 Search inside site</span>`;
     return `
-    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" onclick="trackSiteClick('${escapeAttr(dirMatch ? dirMatch.name : s.name).replace(/'/g, "\\'")}')" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
+    <a href="${linkInfo.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" onclick="trackSiteClick('${escapeAttr(dirMatch ? dirMatch.name : s.name).replace(/'/g, "\\'")}')" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
         <div class="site-name">${s.name}</div>
         <div class="site-note">${s.note || 'Search inside site'}</div>
+        ${linkBadge}
       </div>
-      <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg><span class="report-label-text">Report</span></button>
-      <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+      <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(linkInfo.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg><span class="report-label-text">Report</span></button>
+      <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(linkInfo.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
       <span class="arrow">→</span>
     </a>`;
   };
@@ -4200,10 +4281,98 @@ function renderResult(data, query) {
 
   applyStatusDots();
 
+  // Runs on every search now, not just when otherSites is empty — ranking
+  // priority is: 1) direct link found via search (Tavily), 2) 🔥 Hot,
+  // 3) live status (up > blocked > down). Tavily results are inserted at
+  // the very top of the grid (see loadTavilyFallback's insertAdjacentHTML
+  // call) so they always outrank the already hot/status-sorted verified
+  // cards beneath them. NOTE: this calls the Tavily-backed Worker on every
+  // title view, not just as a fallback — burns through the free quota much
+  // faster than the original "only when zero results" design.
+  loadTavilyFallback(data);
+
   // Deferred so the browser has painted the just-inserted innerHTML first —
   // scrollHeight reads 0 (or a stale value) if checked synchronously right
   // after setting innerHTML.
   setTimeout(checkDescOverflow, 0);
+}
+
+// ========== TAVILY SEARCH (RANKED FIRST) ==========
+// Called on every renderResult() — see comment there. Restricts the search
+// to domains already in SITES_DIRECTORY (via `domain` field) so results
+// stay within sites the user already trusts, rather than surfacing a
+// random site off the open web.
+// TEMP DEBUG — visible error notice so we can confirm the Tavily/Worker
+// integration during setup (instead of guessing from a silent failure).
+// Remove this function + its two call sites in loadTavilyFallback once
+// things are confirmed working end-to-end.
+function showTavilyDebugError(grid, detail) {
+  grid.insertAdjacentHTML('afterbegin', `
+    <div style="grid-column:1/-1; padding:10px 12px; border:1px dashed #e63946; border-radius:10px; font-size:.78rem; color:#e63946; background:rgba(230,57,70,.08);">
+      🐛 DEBUG — Tavily search failed: ${escapeAttr(detail)}
+    </div>`);
+}
+
+
+async function loadTavilyFallback(data) {
+  const grid = document.querySelector('#sites-section .sites-grid');
+  if (!grid) return; // user may have navigated away already
+
+  const knownDomains = SITES_DIRECTORY.map(s => s.domain).filter(Boolean);
+  const params = new URLSearchParams({
+    query: `${data.title}${data.year ? ' ' + data.year : ''} watch online`,
+    domains: knownDomains.join(','),
+  });
+
+  try {
+    const res = await fetch(`${TAVILY_PROXY_URL}?${params}`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) {
+      // TEMP DEBUG — was silent before, but we need to see the *specific*
+      // error to confirm the Worker/Tavily integration is actually working
+      // (400s during setup testing had no visible detail). Remove this
+      // showTavilyDebugError call once confirmed working; the static
+      // otherSites cards already rendered above are the real fallback —
+      // this notice is diagnostic only, not a replacement UI state.
+      let detail = `HTTP ${res.status}`;
+      try { detail = (await res.json()).error || detail; } catch (e) {}
+      console.error('Tavily fetch failed:', detail);
+      showTavilyDebugError(grid, detail);
+      return;
+    }
+    const payload = await res.json();
+    const results = payload.results || [];
+    if (results.length === 0) return; // nothing found — static otherSites cards already rendered above stand as-is
+
+    // Still on the same title's detail view? (guards against a slow
+    // response landing after the user already navigated to another title)
+    if (window.currentMovie !== data) return;
+
+    // 'afterbegin' — always ranked first, ahead of the Hot/status-sorted
+    // verified cards that were already rendered synchronously above.
+    grid.insertAdjacentHTML('afterbegin', results.map(buildTavilyFallbackCard).join(''));
+  } catch (err) {
+    // TEMP DEBUG — same reasoning as the !res.ok branch above.
+    console.error('Tavily fetch threw:', err);
+    showTavilyDebugError(grid, String(err));
+  }
+}
+
+
+// Visually distinct from buildSiteCard's output — no branded logo (Tavily
+// doesn't return one), and an explicit "unverified" badge instead of the
+// "✅ Direct link" / "🔍 Search inside site" badges verified sites get, so
+// users can tell at a glance this wasn't checked against status.json.
+function buildTavilyFallbackCard(s) {
+  return `
+  <a href="${escapeAttr(s.url)}" target="_blank" rel="noopener" class="site-card" onclick="trackSiteClick('${escapeAttr(s.name).replace(/'/g, "\\'")}')" style="--site-card-accent:var(--border);">
+    <div class="site-logo-box"><span style="font-size:1.3rem;">🔎</span></div>
+    <div class="site-info">
+      <div class="site-name">${escapeAttr(s.name)}</div>
+      <div class="site-note">${escapeAttr(s.note)}</div>
+      <span class="site-note" style="margin-top:2px; display:inline-block; opacity:.75;">🔗 Direct link found via search</span>
+    </div>
+    <span class="arrow">→</span>
+  </a>`;
 }
 
 
