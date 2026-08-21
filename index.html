@@ -4318,7 +4318,25 @@ async function loadTavilyFallback(data) {
   const grid = document.querySelector('#sites-section .sites-grid');
   if (!grid) return; // user may have navigated away already
 
-  const knownDomains = SITES_DIRECTORY.map(s => s.domain).filter(Boolean);
+  // Every site's domain, one way or another — falls back to deriving it
+  // from .url via the URL parser when .domain isn't explicitly set (about
+  // half of SITES_DIRECTORY's 60 entries had no .domain field, silently
+  // shrinking the allow-list Tavily was actually restricted to). Also pulls
+  // in customSites (admin-added sites), which weren't included here before
+  // at all. This is what actually enforces "only my own sites" — Tavily
+  // can only respect domains it's explicitly told about.
+  const deriveDomain = (s) => {
+    if (s.domain) return s.domain;
+    try { return new URL(s.url).hostname.replace(/^www\./, ''); } catch (e) { return null; }
+  };
+  const knownDomains = [...SITES_DIRECTORY, ...customSites].map(deriveDomain).filter(Boolean);
+  if (knownDomains.length === 0) {
+    // Never let this run unrestricted — an empty domains list means the
+    // Worker treats include_domains as absent and Tavily searches the
+    // entire open web, which defeats the whole point of this feature.
+    console.error('Tavily fallback skipped: no known domains to restrict the search to.');
+    return;
+  }
   const params = new URLSearchParams({
     query: `${data.title}${data.year ? ' ' + data.year : ''} watch online`,
     domains: knownDomains.join(','),
