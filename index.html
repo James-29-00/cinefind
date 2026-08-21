@@ -4358,7 +4358,24 @@ async function loadTavilyFallback(data) {
       return;
     }
     const payload = await res.json();
-    const results = payload.results || [];
+    let results = payload.results || [];
+
+    // Client-side re-verification — don't just trust Tavily's own
+    // include_domains restriction. Tavily has documented reliability issues
+    // with include_domains, especially with larger domain lists like this
+    // site's ~60 domains (see tavily-ai/tavily-python#21 — even 2 domains
+    // has produced incorrect results in the wild). This is the actual
+    // guarantee that only CineFind's own sites ever get shown, independent
+    // of whether Tavily's server-side filter behaves correctly this time.
+    const knownDomainSet = new Set(knownDomains);
+    results = results.filter(r => {
+      try {
+        const host = new URL(r.url).hostname.replace(/^www\./, '');
+        return knownDomainSet.has(host);
+      } catch (e) {
+        return false; // unparseable URL — reject rather than risk showing it
+      }
+    });
     if (results.length === 0) return; // nothing found — static otherSites cards already rendered above stand as-is
 
     // Still on the same title's detail view? (guards against a slow
