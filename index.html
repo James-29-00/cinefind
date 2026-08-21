@@ -4375,6 +4375,12 @@ async function loadTavilyFallback(data) {
     const payload = await res.json();
     let results = payload.results || [];
     const rawCount = results.length; // TEMP DEBUG — count before filtering
+    // TEMP DEBUG — actual hostnames Tavily returned, so we can see whether
+    // include_domains is being ignored entirely (unrelated sites) or just
+    // missing near-matches (www./subdomain variants of a known domain).
+    const rawHosts = results.map(r => {
+      try { return new URL(r.url).hostname.replace(/^www\./, ''); } catch (e) { return '(unparseable)'; }
+    });
 
     // Client-side re-verification — don't just trust Tavily's own
     // include_domains restriction. Tavily has documented reliability issues
@@ -4407,7 +4413,7 @@ async function loadTavilyFallback(data) {
       // TEMP DEBUG — visible on-screen so this is diagnosable from a phone
       // without devtools. Shows whether Tavily returned nothing at all, or
       // returned results that all got rejected by the domain filter.
-      showTavilyDebugError(grid, `raw results from Tavily: ${rawCount}, domains restricted to: ${knownDomains.length} (${knownDomains.slice(0, 8).join(', ')}${knownDomains.length > 8 ? '…' : ''}), after filter: 0`);
+      showTavilyDebugError(grid, `raw results from Tavily: ${rawCount} — hosts returned: [${rawHosts.join(', ')}], after filter: 0`);
       return; // nothing found — static otherSites cards already rendered above stand as-is
     }
 
