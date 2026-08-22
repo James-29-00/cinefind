@@ -84,15 +84,20 @@ Respond ONLY in this exact JSON format, no markdown, no extra text:
 Rules:
 - Use Google Search to verify real-time whether this title is actually available on each site before including it. Do not rely on memory alone.
 - Only include REAL, working, free streaming sites (no paid/subscription required)
-- Good sites to check: MyAsianTV (myasiantv.com.lv), DramaCool (dramacool.com.tw), KissKH (kisskh.co), AsianCrush, Viki (free tier), 1Shows (1shows.org), FlickyStream (flickystream.dad), ReAnime (reanime.to), Animepahe (animepahe.pw), Miruro (miruro.to), MovieBox (movie-box.co), 1Flex (1flex.org), 1Tube (1tube.org), Anikoto (anikototv.to), Enma (enma.lol), Cineby (cineby.at), FMovies (fmovies-hd.to)
-- Additional K-Drama / J-Drama / Asian drama sites to check: Viu (viu.com), Kocowa (kocowa.com), OnDemandKorea (ondemandkorea.com), WeTV (wetv.vip), Amasian TV (amasiantv.com)
+- Good sites to check (ONLY these 5 — do not check or suggest any other site):
+  1. DramaCool (dramacool.com.tw) — K-Drama/J-Drama/Asian drama
+  2. KissKH (kisskh.co) — K-Drama/J-Drama/Asian drama
+  3. Cineby (cineby.at) — general movies/TV
+  4. Animepahe (animepahe.pw) — anime
+  5. Viva Films (youtube.com/@VIVAFilms/videos) — Filipino movies
+- Only check the site(s) relevant to this title's category (e.g. for a K-Drama, only check DramaCool and KissKH — don't bother checking Animepahe or Viva Films for it)
 - IMPORTANT: Only recommend a site if you are CONFIDENT this specific title is actually available and watchable there right now
 - Put the site where the title is MOST LIKELY available and working at the TOP of the list
 - URL rule (follow in this priority order):
   1. ONLY set "linkType": "direct" if you have 100% verified through actual search that this exact URL leads directly to this specific title and it is currently watchable. If there is ANY doubt, do NOT use "direct".
   2. If you're confident the title exists on the site but are not 100% sure of the exact URL, use that site's search results page URL instead and set "linkType": "search_required"
   3. Never invent or guess a direct URL — a wrong guessed link is worse than a search-page link.
-- Include up to 5 sites, ranked from MOST reliable to least reliable
+- Include only the relevant sites from the checklist above that you can verify, ranked from MOST reliable to least reliable
 - If no sites can be confidently verified, respond with {"sites": [], "tip": ""}
 - Keep it family-friendly`;
 }
