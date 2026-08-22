@@ -7038,6 +7038,10 @@ async function testLink() {
 // silently broke the panel: the data would load into the hidden first copy while
 // the visible one stayed stuck on "Loading status.json...")
 </script>
-<script src="ai-verify.js"></script>
+<!-- ?v=2 cache-buster: browsers/CDNs cache .js files aggressively, so a
+     GitHub Pages update to ai-verify.js alone can silently keep serving the
+     old cached copy for a while. Bump this number any time ai-verify.js
+     changes, to force a fresh fetch instead of relying on cache headers. -->
+<script src="ai-verify.js?v=2"></script>
 </body>
 </html>
