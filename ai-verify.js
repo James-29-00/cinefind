@@ -152,11 +152,15 @@ async function checkAIVerifiedSites(movie, staticFallback) {
   const prompt = buildVerifyPrompt(movie);
 
   const controller = new AbortController();
-  // 12s budget: AI-verified results are now shown FIRST (nothing else is on
-  // screen for this section yet), so if Gemini hasn't answered within 12s we
-  // fall back to the static list rather than leaving the user staring at a
-  // spinner indefinitely.
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  // 18s budget (was 12s): the Worker now runs a real reachability check on
+  // every "direct" link (see isUrlReachable() in the Worker) AFTER Gemini
+  // responds, before returning — up to ~4.5s more on top of Gemini's own
+  // response time. That pushed borderline cases (Gemini itself taking
+  // 8-10s) past the old 12s cap, timing out and falling back to the
+  // static list even though a real answer was seconds away. Bumped to
+  // give that extra step headroom; testing whether this alone is enough
+  // before also trimming the Worker's per-URL check timeout.
+  const timeoutId = setTimeout(() => controller.abort(), 18000);
   const startTime = performance.now();
 
   // Debug trail collected on every run (cheap — just array pushes + console.log,
@@ -218,7 +222,7 @@ async function checkAIVerifiedSites(movie, staticFallback) {
     log(`✅ Success — Gemini returned ${(parsed.sites || []).length} site(s)`);
 
     // Only apply if the user is still looking at the same movie
-    // (they may have navigated away during the 12s window).
+    // (they may have navigated away during the 18s window).
     if (window.currentMovie === movie) renderAIVerifiedSites(parsed, staticFallback);
   } catch (err) {
     clearTimeout(timeoutId);
@@ -229,14 +233,14 @@ async function checkAIVerifiedSites(movie, staticFallback) {
     // response is even received) almost always means CORS or a network/
     // DNS problem, not something wrong with Gemini or the JSON — flag
     // that distinctly since the fix is completely different. A genuine CORS
-    // block normally fails FAST (well under 12s) since the browser blocks
+    // block normally fails FAST (well under 18s) since the browser blocks
     // it client-side before waiting for a real response — so isTimeout and
     // isNetworkFail are treated as mutually exclusive, distinguishable
     // failure modes.
     const isNetworkFail = !isTimeout && /failed to fetch|networkerror|load failed/i.test(err.message || '');
     const isQuota = /quota|429|rate limit|resource_exhausted/i.test(err.message || '');
     const elapsed = since();
-    const failureType = isTimeout ? 'TIMEOUT (12s cap hit)'
+    const failureType = isTimeout ? 'TIMEOUT (18s cap hit)'
       : isNetworkFail ? 'CORS/network error (blocked before any HTTP response)'
       : isQuota ? 'QUOTA/RATE LIMIT — Gemini API quota likely exhausted'
       : 'error';
@@ -268,7 +272,7 @@ function renderDebugBox(lines) {
 }
 
 // Renders the plain static site list into the AI-verify slot — used when
-// Gemini times out (12s), errors, or comes back with no confidently
+// Gemini times out (18s), errors, or comes back with no confidently
 // verified sites. `failure`, if present, is shown as a short on-screen note
 // (timed out / CORS-or-network / other) so failures are diagnosable without
 // opening devtools — especially useful on mobile.
