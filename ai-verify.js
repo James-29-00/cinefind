@@ -179,7 +179,10 @@ async function checkAIVerifiedSites(movie, staticFallback) {
     const res = await fetch(AI_VERIFY_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
+      // title/category sent alongside the prompt so the Worker can run its
+      // own direct KissKH API lookup (real ID, not a Gemini guess) without
+      // needing to parse the movie title back out of the free-text prompt.
+      body: JSON.stringify({ prompt, title: movie.title, category: movie.category }),
       signal: controller.signal
     });
     clearTimeout(timeoutId);
