@@ -1,0 +1,3530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineFind — Free Movie & Show Search</title>
+<meta name="description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
+
+<!-- Favicon: inline SVG, no separate file needed. Fixed red brand mark
+     regardless of active theme, same reasoning as the logo colors — a
+     favicon is a brand identity, not decorative UI chrome. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwZDBkMTIiLz4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTYzOTQ2IiBzdHJva2Utd2lkdGg9IjQiLz4KICA8cGF0aCBkPSJNMjYgMjIgTDQ0IDMyIEwyNiA0MiBaIiBmaWxsPSIjZTYzOTQ2Ii8+Cjwvc3ZnPgo=">
+
+<!-- Open Graph / social preview (Facebook, Discord, Messenger, etc.) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="CineFind — Free Movie & Show Search">
+<meta property="og:description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
+<meta property="og:image" content="https://James-29-00.github.io/cinefind/og-image.png">
+<meta property="og:url" content="https://James-29-00.github.io/cinefind/">
+
+<!-- Twitter/X card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CineFind — Free Movie & Show Search">
+<meta name="twitter:description" content="Search any movie, K-drama, or anime and get free, ad/tracker-aware streaming links — no signup, no paywall.">
+<meta name="twitter:image" content="https://James-29-00.github.io/cinefind/og-image.png">
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Light Mode Colors */
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #ffffff0f;
+    --accent: #e63946;
+    --accent2: #ff6b6b;
+    --gold: #ffd166;
+    --text: #f0f0f5;
+    --muted: #9494b5;
+    --green: #06d6a0;
+  }
+
+  /* Dark Mode (Default) */
+  body.dark-mode {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #ffffff0f;
+    --text: #f0f0f5;
+    --muted: #9494b5;
+  }
+
+  /* Light Mode */
+  body.light-mode {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --card: #f0f2f5;
+    --border: #0000001a;
+    --text: #1a1a2e;
+    --muted: #6c757d;
+  }
+
+  /* ===== Color Themes ===== */
+  /* Three full themes cycled via the moon button — Crimson (default) is the
+     original look; Cyber Neon swaps in a cyan/starfield aesthetic; Galaxy
+     swaps in a pink/purple nebula aesthetic. All three set the full color
+     palette (not just --accent) since each changes the background too. */
+  body, body.theme-crimson {
+    --accent: #e63946; --accent2: #ff6b6b; --bg-glow-rgb: 230,57,70;
+  }
+  body.theme-cyber {
+    --bg: #05060f; --surface: #0a0d1f; --card: #0d1226;
+    --border: rgba(34,229,229,.35);
+    --text: #eef2ff; --muted: #8b93b8;
+    --accent: #22e5e5; --accent2: #6df0ff; --bg-glow-rgb: 34,229,229;
+  }
+  body.theme-galaxy {
+    --bg: #120a1e; --surface: #1a1028; --card: #1c1230;
+    --border: #ff5fa233;
+    --text: #f5f0fa; --muted: #c3b3dc;
+    --accent: #ff5fa2; --accent2: #ff8fc4; --gold: #c9a8ff; --bg-glow-rgb: 255,95,162;
+  }
+  /* Starfield + nebula glow, only rendered in Cyber Neon mode. Pure CSS
+     (radial gradients / SVG data-URI), so no extra image requests. */
+  body.theme-cyber .bg-glow {
+    background: radial-gradient(ellipse, rgba(34,229,229,.15) 0%, rgba(99,102,241,.08) 40%, transparent 70%);
+    width: 700px; height: 500px;
+  }
+  .starfield {
+    display: none;
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(1.5px 1.5px at 20% 15%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 75% 8%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 45% 25%, #fff 100%, transparent),
+      radial-gradient(2px 2px at 90% 30%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 10% 45%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 60% 12%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 30% 60%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 85% 55%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 15% 75%, #fff 100%, transparent),
+      radial-gradient(2px 2px at 65% 80%, #fff 100%, transparent),
+      radial-gradient(1px 1px at 95% 70%, #fff 100%, transparent),
+      radial-gradient(1.5px 1.5px at 40% 90%, #fff 100%, transparent);
+    opacity: .5;
+  }
+  body.theme-cyber .starfield { display: block; }
+
+  /* Circuit-board texture overlay on site cards, Cyber Neon only */
+  body.theme-cyber .site-card::before {
+    content: ''; position: absolute; inset: 0; opacity: .35; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2322e5e5' stroke-width='1'%3E%3Cpath d='M10 10 H50 V30 H90'/%3E%3Cpath d='M10 60 H30 V90 H70 V110'/%3E%3Cpath d='M100 10 V50 H80 V80'/%3E%3Cpath d='M110 100 H90 V70'/%3E%3C/g%3E%3Cg fill='%2322e5e5'%3E%3Ccircle cx='50' cy='30' r='2.2'/%3E%3Ccircle cx='30' cy='90' r='2.2'/%3E%3Ccircle cx='80' cy='50' r='2.2'/%3E%3Ccircle cx='90' cy='70' r='2.2'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 120px 120px;
+  }
+  body.theme-cyber .site-card > * { position: relative; z-index: 1; }
+  body.theme-cyber .site-card:hover {
+    border-color: var(--accent); box-shadow: 0 0 24px rgba(34,229,229,.35);
+  }
+  body.theme-cyber .search-box,
+  body.theme-cyber .search-wrap > div:first-child {
+    box-shadow: 0 0 24px rgba(34,229,229,.25);
+  }
+  body.theme-cyber .logo span {
+    filter: drop-shadow(0 0 12px rgba(34,229,229,.6));
+  }
+
+  /* Nebula glow + twinkling stars, Galaxy theme only */
+  body.theme-galaxy .bg-glow {
+    background: radial-gradient(ellipse, rgba(255,95,162,.2) 0%, rgba(167,139,250,.12) 40%, transparent 70%);
+    width: 700px; height: 500px;
+  }
+  body.theme-galaxy .starfield {
+    display: block;
+    opacity: .8;
+    animation: galaxyTwinkle 5s ease-in-out infinite alternate;
+  }
+  @keyframes galaxyTwinkle { from { opacity: .5; } to { opacity: .85; } }
+  body.theme-galaxy .site-card:hover {
+    border-color: var(--accent); box-shadow: 0 0 24px rgba(255,95,162,.35);
+  }
+  body.theme-galaxy .search-box,
+  body.theme-galaxy .search-wrap > div:first-child {
+    box-shadow: 0 0 24px rgba(255,95,162,.25);
+  }
+  body.theme-galaxy .logo span {
+    filter: drop-shadow(0 0 12px rgba(255,95,162,.6));
+  }
+
+  /* My Favorites star — follows the active theme's accent color + glow */
+  .fav-star-icon {
+    color: var(--accent);
+    filter: drop-shadow(0 0 5px rgba(var(--bg-glow-rgb), .75));
+    transition: color .3s, filter .3s;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background .3s, color .3s;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: .4;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--bg-glow-rgb, 230,57,70),.12) 0%, transparent 70%);
+    top: -200px; left: 50%; transform: translateX(-50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px 80px; }
+
+  header { text-align: center; padding: 20px 0 24px; position: relative; }
+  .header-top { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 10vw, 6rem);
+    letter-spacing: .04em; line-height: 1;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    flex: 1;
+  }
+  .logo span { color: var(--accent); -webkit-text-fill-color: var(--accent); }
+  .tagline { font-size: .9rem; color: var(--muted); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
+
+  .safety-tip {
+    max-width: 420px; margin: 14px auto 0;
+    display: flex; align-items: center; gap: 7px;
+    font-size: .72rem; color: var(--muted); line-height: 1.5;
+  }
+  .safety-tip .tip-icon { font-size: .85rem; opacity: .7; flex-shrink: 0; }
+  .safety-tip strong { color: var(--accent2); font-weight: 600; }
+
+  /* Moon Button — icon color/glow matches the active theme's accent:
+     crimson red on the default theme, cyan on Cyber Neon. Uses `color` so
+     the inline SVG moon (fill="currentColor") follows it automatically. */
+  .theme-toggle {
+    background: var(--card); border: 2px solid var(--accent);
+    color: var(--accent);
+    border-radius: 50%; width: 45px; height: 45px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all .3s;
+    box-shadow: 0 0 10px var(--accent);
+  }
+  .theme-toggle:hover { transform: scale(1.1); box-shadow: 0 0 18px var(--accent), 0 0 6px var(--accent); }
+
+  .search-wrap { position: relative; margin: 20px 0 12px; }
+  .search-wrap input {
+    width: 100%; padding: 18px 60px 18px 22px;
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 14px; font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem; color: var(--text); outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--bg-glow-rgb),.15); }
+
+  .suggestions-box {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 14px;
+    overflow: hidden; z-index: 20; max-height: 320px; overflow-y: auto;
+    box-shadow: 0 12px 30px rgba(0,0,0,.4); display: none;
+  }
+  .suggestions-box.open { display: block; }
+  .suggestion-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--border);
+  }
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-item:hover, .suggestion-item.active { background: rgba(var(--bg-glow-rgb),.1); }
+  .suggestion-poster { width: 32px; height: 46px; border-radius: 5px; background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .9rem; overflow: hidden; }
+  .suggestion-poster img { width: 100%; height: 100%; object-fit: cover; }
+  .suggestion-text { flex: 1; min-width: 0; }
+  .suggestion-title { font-size: .85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .suggestion-meta { font-size: .7rem; color: var(--muted); }
+  .search-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: var(--accent); border: none; border-radius: 10px;
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .2s, transform .15s; font-size: 18px;
+  }
+  .search-btn:hover { background: var(--accent2); transform: translateY(-50%) scale(1.05); }
+
+  .filters { display: flex; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 28px; align-items: center; }
+  .filter-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .filter-select {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid #3A3448;
+    background: var(--card); color: var(--text); font-family: 'Space Grotesk', sans-serif;
+    font-size: .8rem; cursor: pointer; transition: all .2s;
+    outline: none;
+  }
+  .filter-select:focus, .filter-select:hover { border-color: var(--accent); }
+  .filter-chip {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid #3A3448;
+    background: transparent; color: #C9C6D6; font-family: 'Space Grotesk', sans-serif;
+    font-size: .8rem; cursor: pointer; transition: all .2s;
+  }
+  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(var(--bg-glow-rgb),.08); }
+  .filter-chip.fav-chip { color: var(--accent2); border-color: rgba(var(--bg-glow-rgb),.35); }
+  .filter-chip.fav-chip:hover { background: rgba(var(--bg-glow-rgb),.1); }
+  .fav-quick-link {
+    background: none; border: none; cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif; font-size: .8rem;
+    color: var(--muted); padding: 4px 2px;
+    display: inline-flex; align-items: center; gap: 5px;
+    transition: color .2s;
+  }
+  .fav-quick-link:hover { color: var(--accent2); }
+
+  /* ===== Genre pill chips (gradient border trick) ===== */
+  .pill-container {
+    display: flex; align-items: center; justify-content: flex-start;
+    gap: 8px; padding: 12px 16px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .pill-container::-webkit-scrollbar { display: none; }
+  .genre-pill {
+    background-color: transparent;
+    color: var(--muted);
+    font-size: 13px; font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    border: 1.5px solid transparent;
+    cursor: pointer; white-space: nowrap;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .genre-pill:hover { opacity: 0.85; transform: translateY(-1px); }
+  .dual-gradient-pill {
+    background-color: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
+    background-image:
+      linear-gradient(var(--card), var(--card)),
+      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+  .dual-gradient-pill.active {
+    color: var(--text); font-weight: 600;
+    transform: scale(1.05);
+    background-image:
+      linear-gradient(var(--card), var(--card)),
+      linear-gradient(135deg, rgba(6,214,160,.55) 0%, rgba(var(--bg-glow-rgb),.55) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border-color: transparent;
+    box-shadow: 0 0 0 1px rgba(var(--bg-glow-rgb),.6), 0 0 16px rgba(var(--bg-glow-rgb),.55);
+  }
+
+  .genre-chip {
+    padding: 9px 20px 9px 16px; border-radius: 24px; border: 1.5px solid var(--accent);
+    background: transparent; color: var(--accent2); font-family: 'Space Grotesk', sans-serif;
+    font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .genre-chip:hover { background: rgba(var(--bg-glow-rgb),.1); transform: translateY(-1px); }
+  .genre-chip.active { background: var(--accent); color: #fff; }
+  .genre-chip .icon { display: inline-flex; opacity: .7; flex-shrink: 0; }
+  .genre-chip .icon svg { display: block; }
+
+  #result-area { min-height: 200px; }
+
+  .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 60px 0; color: var(--muted); }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes aiPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(.7); } }
+
+  .movie-header {
+    display: flex; gap: 20px; align-items: flex-start;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; padding: 24px; margin-bottom: 20px;
+    animation: fadeUp .4s ease forwards;
+  }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: none; } }
+  @keyframes posterShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .poster-loading {
+    background: linear-gradient(90deg, var(--surface) 25%, rgba(255,255,255,.08) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: posterShimmer 1.4s ease-in-out infinite;
+  }
+  .poster-img { opacity: 0; transition: opacity .3s ease; }
+  .movie-poster {
+    width: 90px; height: 130px; border-radius: 10px; background: var(--surface);
+    display: flex; align-items: center; justify-content: center; font-size: 2.5rem;
+    flex-shrink: 0; border: 1px solid var(--border); overflow: hidden;
+    position: relative;
+  }
+  .movie-poster img { width: 100%; height: 100%; object-fit: cover; }
+  .fav-btn {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(0,0,0,.6); border: none; border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.2rem; transition: all .2s;
+    z-index: 10;
+  }
+  .fav-btn:hover { background: rgba(var(--bg-glow-rgb),.9); transform: scale(1.15); }
+  .fav-btn.favorited { background: rgba(var(--bg-glow-rgb),.9); }
+
+  .movie-info { flex: 1; }
+  .movie-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
+  .movie-meta { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; font-size: .8rem; color: var(--muted); }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+  .badge-year { background: rgba(255,255,255,.07); color: var(--text); }
+  .badge-genre { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent2); }
+  .badge-rating { background: rgba(255,209,102,.12); color: var(--gold); }
+  .movie-desc { font-size: .88rem; color: var(--muted); line-height: 1.6; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  .movie-desc.expanded { display: block; -webkit-line-clamp: unset; }
+  .movie-desc-toggle { font-size: .78rem; color: var(--accent); font-weight: 600; margin-top: 4px; cursor: pointer; background: none; border: none; padding: 0; }
+
+  .section-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .sites-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; }
+
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .result-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; cursor: pointer; text-align: left;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    animation: fadeUp .4s ease forwards; display: flex; flex-direction: column;
+  }
+  .result-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
+  .result-card .result-poster { width: 100%; aspect-ratio: 2/3; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 2rem; overflow: hidden; }
+  .result-card .result-poster img { width: 100%; height: 100%; object-fit: cover; }
+  .result-card .result-info { padding: 10px 12px 12px; }
+  .result-card .result-title { font-size: .88rem; font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .result-card .result-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: .7rem; color: var(--muted); }
+  .site-card {
+    position: relative;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; text-decoration: none; color: var(--text);
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    animation: fadeUp .4s ease forwards;
+  }
+  .site-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(var(--bg-glow-rgb),.15); }
+  .site-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+  .site-logo-box {
+    width: 64px; height: 46px; border-radius: 10px; flex-shrink: 0;
+    background: #14141c; border: 1px solid rgba(255,255,255,.07);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .site-logo-box > * { transform: scale(.62); transform-origin: center; }
+  .site-info { flex: 1; }
+  .site-name { font-weight: 600; font-size: .95rem; }
+  .site-note { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+  .site-free { font-size: .7rem; font-weight: 700; color: var(--green); background: rgba(6,214,160,.1); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+  .arrow { color: var(--muted); font-size: .8rem; }
+  .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin-bottom: 20px; align-items: stretch; }
+
+  /* ===== Gradient-border directory card ===== */
+  .gradient-card-wrapper {
+    position: relative;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(var(--bg-glow-rgb),.45) 0%, rgba(6,214,160,.35) 100%);
+    transition: transform .25s ease, box-shadow .25s ease;
+    animation: fadeUp .4s ease forwards;
+    height: 100%;
+  }
+  .gradient-card-wrapper:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(135deg, rgba(var(--bg-glow-rgb),.75) 0%, rgba(6,214,160,.55) 100%);
+    box-shadow: 0 8px 24px rgba(var(--bg-glow-rgb),.12);
+  }
+  .card-content {
+    background-color: #16161f;
+    border-radius: 15px;
+    display: flex; flex-direction: column;
+    text-decoration: none; color: var(--text);
+    height: 130px;
+    position: relative;
+    overflow: hidden;
+  }
+  .pin-icon {
+    color: rgba(255,255,255,.55); cursor: pointer; transition: color .2s ease;
+    background: none; border: none; line-height: 1; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-icon:hover, .pin-icon.faved { color: var(--gold); }
+
+  /* Site status dot — filled in after status.json loads (see applyStatusDots()).
+     Hidden by default so cards don't flash an unknown/wrong color before the
+     fetch resolves. A dark circular badge behind the icon (rather than a bare
+     stroke icon floating on the card) so it reads clearly on any card color
+     and matches the pill/badge language used elsewhere in the UI. */
+  .status-dot-mini {
+    display: none; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: rgba(8,8,16,.82);
+    border: 1.5px solid transparent;
+    box-shadow: 0 1px 4px rgba(0,0,0,.4);
+    transition: filter .3s, border-color .3s, background .3s;
+  }
+  .status-dot-mini svg { width: 58%; height: 58%; display: block; }
+
+  /* Explicit text status strip at the bottom of each directory card, so users
+     don't have to interpret a colored dot — the word is right there. Sits on
+     top of the card, doesn't push card height (card has fixed height). */
+  .status-label-mini {
+    display: none; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    text-align: center; font-size: .58rem; font-weight: 700; letter-spacing: .03em;
+    text-transform: uppercase; padding: 3px 4px 4px;
+    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  }
+  /* Small "HOT" text badge, top-right area next to the pin icon. */
+  .hot-label-mini {
+    position: absolute; top: 7px; right: 32px; z-index: 2;
+    font-size: .58rem; font-weight: 800; letter-spacing: .03em;
+    color: #1a1a2e; background: #f0b428; border-radius: 6px; padding: 2px 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+
+  /* ===== Stylized wordmark logos (per-brand look, drawn in CSS/SVG) ===== */
+  .card-logo { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 0; }
+  .card-logo svg { width: 38px; height: 26px; display: block; }
+  .logo-word { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.65rem; letter-spacing: -.01em; line-height: 1; }
+  .lw-white { color: #fff; }
+  .lw-accent { color: var(--accent); }
+  .lw-outline { color: transparent; -webkit-text-stroke: 1.7px #5b8def; font-weight: 800; margin-right: 1px; }
+  .logo-mtn, .logo-clapper { display: inline-flex; align-items: center; }
+  .logo-tubi { color: #ff5b3a; font-style: italic; font-weight: 800; letter-spacing: -.02em; background: linear-gradient(120deg, #ff7a3d, #ff3d6e); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-pluto { display: inline-flex; align-items: center; gap: 6px; }
+  .pluto-ring {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 29px; height: 29px; border-radius: 50%; font-size: .68rem; font-weight: 800; color: #fff;
+    background: conic-gradient(#ff3d6e, #ffb347, #ffe45e, #4dd4ac, #4d9fff, #a259ff, #ff3d6e);
+  }
+
+  .copy-link-btn {
+    background: rgba(255,255,255,.06); border: none; border-radius: 8px;
+    width: 30px; height: 30px; flex-shrink: 0; cursor: pointer;
+    font-size: .85rem; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); transition: background .2s, color .2s;
+  }
+  .copy-link-btn:hover { background: rgba(var(--bg-glow-rgb),.15); color: var(--accent); }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--card); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 20px; border-radius: 30px; font-size: .85rem; z-index: 100;
+    opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .tips-box {
+    background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--gold);
+    border-radius: 0 12px 12px 0; padding: 14px 18px; font-size: .85rem; color: var(--muted);
+    line-height: 1.6; margin-top: 8px; animation: fadeUp .4s ease forwards;
+  }
+  .tips-box strong { color: var(--gold); }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty .big { font-size: 3rem; margin-bottom: 12px; }
+  .empty p { font-size: .95rem; }
+
+  .popular-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .popular-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .genre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .genre-grid .genre-chip { width: 100%; justify-content: center; }
+  .pop-chip {
+    padding: 8px 16px; border-radius: 20px; background: var(--card); border: 1px solid #3A3448;
+    color: #C9C6D6; font-size: .85rem; cursor: pointer; transition: all .2s; font-family: 'Space Grotesk', sans-serif;
+  }
+  .pop-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  footer { text-align: center; padding: 30px 0 0; font-size: .78rem; color: var(--muted); border-top: 1px solid var(--border); margin-top: 40px; }
+
+  @media (max-width: 500px) {
+    .movie-header { flex-direction: column; }
+    .movie-poster { width: 100%; height: 180px; }
+    .sites-grid { grid-template-columns: 1fr; }
+    .theme-toggle { width: 38px; height: 38px; font-size: 1rem; }
+    .filters { gap: 10px; }
+    .filter-group { width: 100%; justify-content: space-between; }
+    .filter-select { flex: 1; }
+  }
+</style>
+</head>
+<body class="dark-mode theme-crimson">
+<div class="starfield"></div>
+<div class="bg-glow"></div>
+<div class="wrapper">
+  <header>
+    <div class="header-top">
+      <div class="theme-picker-wrap" style="position:relative; display:flex; align-items:center; gap:8px;">
+        <span id="theme-name-label" style="font-size:.72rem; color:var(--muted); font-weight:600; letter-spacing:.03em;"></span>
+        <button class="theme-toggle" id="theme-picker-btn" title="Change theme" aria-label="Change theme" onclick="cycleTheme()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="logo">Cine<span>Find</span></div>
+    <p class="tagline">Find where to watch any movie or drama — for free</p>
+  </header>
+
+  <div class="search-wrap">
+    <input type="text" id="search-input" placeholder="Search any movie or drama..." aria-label="Search any movie or drama" autocomplete="off">
+    <button class="search-btn" onclick="searchMovie()" aria-label="Search">🔍</button>
+    <div class="suggestions-box" id="suggestions-box"></div>
+  </div>
+
+  <div style="display:flex; justify-content:flex-end; margin:-6px 0 18px;">
+    <button class="fav-quick-link" onclick="showFavorites()"><span class="fav-star-icon">★</span> My Favorites (<span id="fav-count">0</span>)</button>
+  </div>
+
+  <!-- ADVANCED FILTERS SECTION — hidden until there's a results list to filter -->
+  <div class="filters" id="filters-bar" style="display:none;">
+    <div class="filter-group">
+      <label class="filter-label">Year:</label>
+      <select class="filter-select" id="year-filter" onchange="applyFilters()">
+        <option value="">All years</option>
+        <option value="2010s">2010s</option>
+        <option value="2000s">2000s</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Rating:</label>
+      <select class="filter-select" id="rating-filter" onchange="applyFilters()">
+        <option value="">All ratings</option>
+        <option value="9">9.0+</option>
+        <option value="8">8.0+</option>
+        <option value="7">7.0+</option>
+        <option value="6">6.0+</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Type:</label>
+      <select class="filter-select" id="type-filter" onchange="applyFilters()">
+        <option value="">All types</option>
+        <option value="movie">Movie</option>
+        <option value="series">Series</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="result-area">
+    <!-- Filled in by renderHomepage() on page load -->
+  </div>
+
+  <footer>
+    <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
+  </footer>
+</div>
+
+<script>
+// ========== THEME TOGGLE (Crimson -> Cyber Neon -> Galaxy, via moon button) ==========
+function initTheme() {
+  loadColorTheme();
+}
+
+const THEME_KEY = 'cinefind-theme-mode';
+const THEME_CYCLE = ['theme-crimson', 'theme-cyber', 'theme-galaxy'];
+const THEME_LABELS = { 'theme-crimson': 'Crimson', 'theme-cyber': 'Cyber', 'theme-galaxy': 'Galaxy' };
+
+function cycleTheme() {
+  const current = THEME_CYCLE.find(t => document.body.classList.contains(t)) || 'theme-crimson';
+  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+  applyTheme(next, true);
+}
+
+function applyTheme(themeClass, announce) {
+  document.body.classList.remove(...THEME_CYCLE);
+  document.body.classList.add(themeClass);
+  localStorage.setItem(THEME_KEY, themeClass);
+  // No JS-driven color logic needed for the button itself — it reads
+  // var(--accent), which the theme-* CSS classes already set, so the
+  // icon color/glow follows automatically.
+  const label = THEME_LABELS[themeClass] || themeClass;
+  const labelEl = document.getElementById('theme-name-label');
+  if (labelEl) labelEl.textContent = label;
+  const btn = document.getElementById('theme-picker-btn');
+  if (btn) btn.setAttribute('aria-label', `Change theme — currently ${label}`);
+  if (announce) showToast(`Switched to ${label} theme`);
+}
+
+function loadColorTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  applyTheme(THEME_CYCLE.includes(saved) ? saved : 'theme-crimson', false);
+}
+
+// ========== TOAST / SHARE / COPY LINK ==========
+let toastTimer = null;
+
+function showToast(message) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  // Fallback for browsers/webviews without the Clipboard API
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      resolve();
+    } catch (err) {
+      reject(err);
+    } finally {
+      document.body.removeChild(ta);
+    }
+  });
+}
+
+function copySiteLink(e, url, btn) {
+  e.preventDefault();
+  e.stopPropagation();
+  copyTextToClipboard(url)
+    .then(() => {
+      const original = btn.innerHTML;
+      btn.innerHTML = '✅';
+      showToast('Link copied!');
+      setTimeout(() => { btn.innerHTML = original; }, 1500);
+    })
+    .catch(() => showToast("Couldn't copy — try again"));
+}
+
+function shareMovie() {
+  const movie = window.currentMovie;
+  if (!movie) return;
+
+  const text = `Check out "${movie.title}"${movie.year ? ' (' + movie.year + ')' : ''} — found it on CineFind 🎬`;
+
+  if (navigator.share) {
+    navigator.share({ title: movie.title, text, url: window.location.href }).catch(() => { /* user cancelled — no-op */ });
+  } else {
+    copyTextToClipboard(`${text}\n${window.location.href}`)
+      .then(() => showToast('Copied to clipboard!'))
+      .catch(() => showToast("Couldn't copy — try again"));
+  }
+}
+// ========== FAVORITES SYSTEM ==========
+function getFavorites() {
+  try { return JSON.parse(localStorage.getItem('cinefind-favorites') || '[]'); }
+  catch (e) { return []; } // corrupted/old data shouldn't crash the whole page
+}
+
+function saveFavorites(favs) {
+  localStorage.setItem('cinefind-favorites', JSON.stringify(favs));
+  updateFavCount();
+}
+
+function addFavorite(movie) {
+  const favs = getFavorites();
+  const exists = favs.some(f => f.title === movie.title);
+  if (!exists) {
+    favs.push({ ...movie, dateAdded: Date.now() });
+    saveFavorites(favs);
+  }
+}
+
+function removeFavorite(title) {
+  let favs = getFavorites();
+  favs = favs.filter(f => f.title !== title);
+  saveFavorites(favs);
+}
+
+function updateFavCount() {
+  document.getElementById('fav-count').textContent = getFavorites().length + getDirFavs().length;
+}
+
+// Small card for a favorited website, reused inside the "My Favorites" page.
+// Mirrors the homepage directory card's look (logo, status dot/label) but
+// standalone since renderSitesDirectory()'s buildCard is scoped locally.
+function buildFavSiteCard(s) {
+  const liveUrl = getOverriddenUrl(s.name, s.url);
+  return `
+    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
+      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+        <span class="status-dot-mini" data-status-dot style="position:absolute; top:7px; left:9px; width:15px; height:15px; z-index:2; filter:drop-shadow(0 0 2px rgba(0,0,0,.6));"></span>
+        <span class="status-label-mini" data-status-label></span>
+        <button class="pin-icon faved" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}'); showFavorites();" aria-label="Remove from favorites">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
+        </button>
+        <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
+      </a>
+    </div>`;
+}
+
+function showFavorites(sortBy) {
+  hideFiltersBar();
+  sortBy = sortBy || 'date-desc';
+  const favs = getFavorites();
+  const dirFavNames = getDirFavs();
+  const favSites = [...SITES_DIRECTORY, ...customSites].filter(s => dirFavNames.includes(s.name));
+
+  if (favs.length === 0 && favSites.length === 0) {
+    document.getElementById('result-area').innerHTML = `
+      <div class="empty">
+        <div class="big">⭐</div>
+        <p>No favorites yet. Search and star movies, or star a website below, to add them here!</p>
+        <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
+      </div>`;
+    return;
+  }
+
+  let html = `
+    <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <button class="pop-chip" onclick="resetSearch()">← Back to search</button>
+      ${favs.length > 0 ? `
+      <select class="filter-select" onchange="showFavorites(this.value)" style="width:auto;">
+        <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>Newest added</option>
+        <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>Oldest added</option>
+        <option value="rating-desc" ${sortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
+        <option value="az" ${sortBy === 'az' ? 'selected' : ''}>Title A–Z</option>
+        <option value="za" ${sortBy === 'za' ? 'selected' : ''}>Title Z–A</option>
+      </select>` : ''}
+    </div>`;
+
+  html += `<h3 style="font-size:1rem; margin:0 0 12px;">🌐 Favorite Websites</h3>`;
+  html += favSites.length > 0
+    ? `<div class="dir-grid" style="margin-bottom:28px;">${favSites.map(buildFavSiteCard).join('')}</div>`
+    : `<p style="color:var(--muted); font-size:.85rem; margin-bottom:28px;">No favorite websites yet — tap the ⭐ on any site card to save it here.</p>`;
+
+  if (favs.length > 0) html += `<h3 style="font-size:1rem; margin:0 0 12px;">🎬 Favorite Movies &amp; Shows</h3>`;
+
+  const sorted = [...favs].sort((a, b) => {
+    switch (sortBy) {
+      case 'date-asc': return (a.dateAdded || 0) - (b.dateAdded || 0);
+      case 'rating-desc': return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+      case 'az': return a.title.localeCompare(b.title);
+      case 'za': return b.title.localeCompare(a.title);
+      case 'date-desc':
+      default: return (b.dateAdded || 0) - (a.dateAdded || 0);
+    }
+  });
+  sorted.forEach(movie => {
+    html += `
+      <div class="movie-header" style="margin-bottom:16px;">
+        <div class="movie-poster${movie.poster ? ' poster-loading' : ''}" id="poster-${movie.title}">
+          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
+        </div>
+        <div class="movie-info">
+          <div class="movie-title">${movie.title}</div>
+          <div class="movie-meta">
+            ${movie.year ? `<span class="badge badge-year">${movie.year}</span>` : ''}
+            ${movie.rating ? `<span class="badge badge-rating">⭐ ${movie.rating}</span>` : ''}
+          </div>
+          <p class="movie-desc">${movie.description || ''}</p>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="pop-chip" onclick='renderResult(${escapeAttr(JSON.stringify(movie))}, "${escapeAttr(movie.title)}")'>▶️ View</button>
+            <button class="pop-chip" onclick="removeFavorite('${escapeAttr(movie.title)}'); showFavorites('${sortBy}');" style="color:#e63946;">🗑️ Remove</button>
+          </div>
+        </div>
+      </div>`;
+  });
+  document.getElementById('result-area').innerHTML = html;
+  if (favSites.length > 0) applyStatusDots();
+}
+
+// ========== FILTERING SYSTEM ==========
+let lastSearchResult = null;      // full, unfiltered list from the last search
+let currentDisplayedResults = null; // whatever list (filtered or not) is currently shown as cards
+
+// The Year/Rating/Type filter bar only makes sense once there's a results
+// list on screen — hidden otherwise so it doesn't look "dead" on the homepage.
+function showFiltersBar() {
+  document.getElementById('filters-bar').style.display = 'flex';
+}
+function hideFiltersBar() {
+  document.getElementById('filters-bar').style.display = 'none';
+}
+
+function applyFilters() {
+  if (!lastSearchResult) return;
+
+  const yearFilter = document.getElementById('year-filter').value;
+  const ratingFilter = document.getElementById('rating-filter').value;
+  const typeFilter = document.getElementById('type-filter').value;
+
+  let filtered = lastSearchResult;
+
+  if (yearFilter) {
+    const year = parseInt(yearFilter);
+    if (yearFilter === '2010s') {
+      filtered = filtered.filter(m => m.year >= 2010 && m.year < 2020);
+    } else if (yearFilter === '2000s') {
+      filtered = filtered.filter(m => m.year >= 2000 && m.year < 2010);
+    } else {
+      filtered = filtered.filter(m => m.year === year);
+    }
+  }
+
+  if (ratingFilter) {
+    const rating = parseFloat(ratingFilter);
+    filtered = filtered.filter(m => m.rating && parseFloat(m.rating) >= rating);
+  }
+
+  if (typeFilter) {
+    filtered = filtered.filter(m => m.type === typeFilter);
+  }
+
+  if (filtered.length === 0) {
+    currentDisplayedResults = [];
+    document.getElementById('result-area').innerHTML = `
+      <div class="empty">
+        <div class="big">🔍</div>
+        <p>No results match your filters. Try adjusting them.</p>
+      </div>`;
+    return;
+  }
+
+  // Show every matching result, not just the first one
+  renderResultsGrid(filtered);
+}
+
+// Renders a grid of clickable result cards for a list of movies/series
+const RESULTS_PER_PAGE = 9;
+let visibleResultsCount = RESULTS_PER_PAGE;
+let currentResultsLabel = null; // optional custom header, e.g. "🎭 Comedy"
+let currentResultsRaw = null;   // original, unsorted order — kept so sorting can always start fresh
+let currentSortBy = 'default';
+
+function renderResultsGrid(movies, label) {
+  currentResultsRaw = movies;
+  currentDisplayedResults = movies;
+  currentResultsLabel = label || null;
+  currentSortBy = 'default';
+  visibleResultsCount = RESULTS_PER_PAGE; // reset to first page whenever a new list is shown
+  showFiltersBar();
+  renderVisibleResults();
+}
+
+// Returns a new sorted copy — never mutates the original list
+function sortMovies(list, sortBy) {
+  const copy = [...(list || [])];
+  switch (sortBy) {
+    case 'rating-desc': return copy.sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+    case 'year-desc': return copy.sort((a, b) => (b.year || 0) - (a.year || 0));
+    case 'year-asc': return copy.sort((a, b) => (a.year || 0) - (b.year || 0));
+    case 'az': return copy.sort((a, b) => a.title.localeCompare(b.title));
+    case 'default':
+    default: return copy;
+  }
+}
+
+// Called when the user picks a sort option — re-sorts from the original
+// order and resets pagination so the first page reflects the new order.
+function setResultsSort(sortBy) {
+  currentSortBy = sortBy;
+  currentDisplayedResults = sortMovies(currentResultsRaw, sortBy);
+  visibleResultsCount = RESULTS_PER_PAGE;
+  renderVisibleResults();
+}
+
+// Renders however many results are currently "unlocked" (visibleResultsCount),
+// plus a Load More button if there are more left to show.
+function renderVisibleResults() {
+  const movies = currentDisplayedResults || [];
+  const area = document.getElementById('result-area');
+  const visible = movies.slice(0, visibleResultsCount);
+
+  const cards = visible.map((m, i) => `
+    <div class="result-card" onclick="selectMovie(${i})" style="animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
+      <div class="result-poster${m.poster ? ' poster-loading' : ''}">
+        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+      </div>
+      <div class="result-info">
+        <div class="result-title">${m.title}</div>
+        <div class="result-meta">
+          ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
+          ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+
+  const hasMore = visibleResultsCount < movies.length;
+  const headerText = currentResultsLabel || `✅ Found ${movies.length} result(s) — tap one to see streaming links`;
+
+  area.innerHTML = `
+    <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div class="popular-label" style="margin-bottom:0;">${headerText}</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <select class="filter-select" onchange="setResultsSort(this.value)" style="width:auto;" aria-label="Sort results by">
+          <option value="default" ${currentSortBy === 'default' ? 'selected' : ''}>Sort: Relevance</option>
+          <option value="rating-desc" ${currentSortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
+          <option value="year-desc" ${currentSortBy === 'year-desc' ? 'selected' : ''}>Newest first</option>
+          <option value="year-asc" ${currentSortBy === 'year-asc' ? 'selected' : ''}>Oldest first</option>
+          <option value="az" ${currentSortBy === 'az' ? 'selected' : ''}>Title A–Z</option>
+        </select>
+        <button class="pop-chip" onclick="resetSearch()" style="font-size:.75rem; padding:6px 12px;">← Home</button>
+      </div>
+    </div>
+    <div class="results-grid">${cards}</div>
+    ${hasMore ? `
+      <div style="text-align:center; margin-top:18px;">
+        <button class="pop-chip" onclick="loadMoreResults()">Load More (${movies.length - visibleResultsCount} left)</button>
+      </div>` : ''}`;
+}
+
+function loadMoreResults() {
+  visibleResultsCount += RESULTS_PER_PAGE;
+  renderVisibleResults();
+}
+
+// Called when the user taps a card in the results grid
+function selectMovie(index) {
+  const movie = currentDisplayedResults && currentDisplayedResults[index];
+  if (!movie) return;
+  renderResult(movie, movie.title);
+}
+
+// ========== LIVE SEARCH SUGGESTIONS ==========
+const SUGGEST_MIN_CHARS = 2;
+const SUGGEST_DEBOUNCE_MS = 350;
+let suggestDebounceTimer = null;
+let suggestAbortController = null;
+
+// ========== SAFE STRING ESCAPING ==========
+// Used anywhere a title/query gets interpolated into an HTML attribute (like onclick="fn('...')").
+// Escaping only the single quote (as the old code did) still leaves double quotes, angle
+// brackets, etc. able to break out of the attribute or inject markup. This escapes everything
+// HTML-attribute-unsafe, so it's safe regardless of what characters end up in a TMDB title.
+function escapeAttr(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function handleSuggestInput() {
+  const box = document.getElementById('suggestions-box');
+  const query = document.getElementById('search-input').value.trim();
+
+  clearTimeout(suggestDebounceTimer);
+
+  if (query.length === 0) {
+    showSearchHistory();
+    return;
+  }
+
+  if (query.length < SUGGEST_MIN_CHARS) {
+    closeSuggestions();
+    return;
+  }
+
+  suggestDebounceTimer = setTimeout(() => fetchSuggestions(query), SUGGEST_DEBOUNCE_MS);
+}
+
+function fetchSuggestions(query) {
+  // Cancel any suggestion request still in flight so results don't stack up
+  if (suggestAbortController) suggestAbortController.abort();
+  suggestAbortController = new AbortController();
+
+  // Show a lightweight loading state so the dropdown doesn't look frozen while typing
+  const box = document.getElementById('suggestions-box');
+  box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--muted); font-size:.8rem;">Searching…</div>`;
+  box.classList.add('open');
+
+  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(query)}`, {
+    signal: suggestAbortController.signal
+  })
+    .then(r => r.json())
+    .then(tmdb => {
+      const results = (tmdb.results || [])
+        .filter(m => m.media_type === 'movie' || m.media_type === 'tv')
+        .slice(0, 6);
+      renderSuggestions(results, query);
+    })
+    .catch(err => {
+      if (err.name === 'AbortError') return; // superseded by a newer keystroke — just let that one render
+      // Show a brief inline message instead of silently closing, so the user knows it failed
+      // rather than assuming there were simply no matches.
+      if (document.getElementById('search-input').value.trim() === query) {
+        box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--muted); font-size:.8rem;">Couldn't load suggestions</div>`;
+      }
+    });
+}
+
+function renderSuggestions(results, currentQuery) {
+  const box = document.getElementById('suggestions-box');
+
+  // The input may have changed (or been cleared) while this request was in flight
+  if (document.getElementById('search-input').value.trim() !== currentQuery) return;
+
+  if (results.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  box.innerHTML = results.map(r => {
+    const title = r.title || r.name;
+    const year = (r.release_date || r.first_air_date || '').split('-')[0];
+    const type = r.media_type === 'tv' ? 'Series' : 'Movie';
+    const poster = r.poster_path ? `https://image.tmdb.org/t/p/w92${r.poster_path}` : null;
+    return `
+      <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(title)}')">
+        <div class="suggestion-poster">${poster ? `<img class="poster-img" src="${poster}" alt="" onload="this.style.opacity=1">` : (r.media_type === 'tv' ? '📺' : '🎬')}</div>
+        <div class="suggestion-text">
+          <div class="suggestion-title">${escapeAttr(title)}</div>
+          <div class="suggestion-meta">${type}${year ? ' • ' + year : ''}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  box.classList.add('open');
+}
+
+function selectSuggestion(title) {
+  document.getElementById('search-input').value = title;
+  closeSuggestions();
+  searchMovie();
+}
+
+function closeSuggestions() {
+  const box = document.getElementById('suggestions-box');
+  box.classList.remove('open');
+  box.innerHTML = '';
+}
+
+// Close the dropdown when tapping/clicking outside the search box
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-wrap')) closeSuggestions();
+});
+
+// ========== SEARCH HISTORY ==========
+const SEARCH_HISTORY_KEY = 'cinefind-search-history';
+const SEARCH_HISTORY_MAX = 8;
+
+function getSearchHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSearchHistory(query) {
+  let history = getSearchHistory();
+  history = history.filter(h => h.toLowerCase() !== query.toLowerCase()); // no duplicates
+  history.unshift(query);
+  history = history.slice(0, SEARCH_HISTORY_MAX);
+  try { localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history)); } catch (e) { /* storage full/unavailable */ }
+}
+
+function clearSearchHistory() {
+  localStorage.removeItem(SEARCH_HISTORY_KEY);
+  closeSuggestions();
+}
+
+function showSearchHistory() {
+  const history = getSearchHistory();
+  const box = document.getElementById('suggestions-box');
+  if (history.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--border);">
+      <span style="font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;">🕐 Recent searches</span>
+      <button onmousedown="event.preventDefault(); clearSearchHistory()" style="background:none; border:none; color:var(--muted); font-size:.7rem; cursor:pointer; text-decoration:underline;">Clear</button>
+    </div>
+    ${history.map(h => `
+      <div class="suggestion-item" onmousedown="event.preventDefault(); selectSuggestion('${escapeAttr(h)}')">
+        <div class="suggestion-poster">🕐</div>
+        <div class="suggestion-text">
+          <div class="suggestion-title">${escapeAttr(h)}</div>
+        </div>
+      </div>`).join('')}`;
+  box.classList.add('open');
+}
+
+// ========== ORIGINAL CODE WITH MODIFICATIONS ==========
+// ⚠️ Replace this with YOUR deployed Cloudflare Worker URL (Step 3 of the guide)
+const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
+const AI_VERIFY_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev';
+// ⚠️ You need to deploy a NEW, separate Worker for this (see the code +
+// setup steps provided alongside this file) — it holds a GitHub token
+// server-side so regular visitors can submit reports without ever seeing
+// or needing that token themselves. Replace this URL once deployed.
+const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
+
+// DEBUG ONLY — set to true to temporarily hide the static site list so you
+// can test the AI-verified sites feature in isolation. Static list code is
+// untouched; this only controls whether it's rendered. Set back to false
+// (or delete this block) when done testing.
+const DEBUG_HIDE_STATIC_SITES = false;
+
+// Debug mode toggle: append ?debug=1 to the page URL to see the on-page
+// debug log (🐛 AI check debug log) and have it expanded by default.
+// Without the URL param, regular users never see this panel.
+const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
+
+const COOLDOWN_MS = 4000;
+let isSearching = false;
+let cooldownUntil = 0;
+let isQuotaWait = false;
+let extraCooldownMs = 0;
+
+function startCooldownDisplay() {
+  const interval = setInterval(() => {
+    const timeLeft = Math.max(0, cooldownUntil - Date.now());
+    const btn = document.querySelector('.search-btn');
+    if (timeLeft > 0) {
+      btn.textContent = Math.ceil(timeLeft / 1000) + 's';
+      btn.disabled = true;
+    } else {
+      btn.textContent = '🔍';
+      btn.disabled = false;
+      clearInterval(interval);
+    }
+  }, 100);
+}
+
+function quickSearch(term) {
+  document.getElementById('search-input').value = term;
+  searchMovie();
+}
+
+const CACHE_MAX_ENTRIES = 40;
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Bump this whenever the shape of cached data changes (e.g. sites list format,
+// number of sites per result). Old cached entries under a stale version are
+// wiped on load so users don't see outdated results after an update.
+const CACHE_VERSION = 2;
+
+(function migrateCacheIfStale() {
+  const storedVersion = parseInt(localStorage.getItem('cinefind-cache-version') || '1', 10);
+  if (storedVersion !== CACHE_VERSION) {
+    localStorage.removeItem('cinefind-cache');
+    localStorage.setItem('cinefind-cache-version', String(CACHE_VERSION));
+  }
+})();
+
+function saveToCache(query, data) {
+  let cache = JSON.parse(localStorage.getItem('cinefind-cache') || '{}');
+
+  // Drop expired entries first so they don't count against the size limit
+  const now = Date.now();
+  cache = Object.fromEntries(
+    Object.entries(cache).filter(([, v]) => now - v.timestamp < CACHE_TTL_MS)
+  );
+
+  cache[query.toLowerCase()] = { data, timestamp: now };
+
+  // If still over the limit, evict the oldest entries until we're back under it
+  const entries = Object.entries(cache);
+  if (entries.length > CACHE_MAX_ENTRIES) {
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp); // oldest first
+    const toRemove = entries.length - CACHE_MAX_ENTRIES;
+    for (let i = 0; i < toRemove; i++) delete cache[entries[i][0]];
+  }
+
+  try {
+    localStorage.setItem('cinefind-cache', JSON.stringify(cache));
+  } catch (e) {
+    // Storage quota exceeded — clear the cache and try once more with just this entry
+    try {
+      localStorage.setItem('cinefind-cache', JSON.stringify({ [query.toLowerCase()]: { data, timestamp: now } }));
+    } catch (e2) { /* give up silently — cache is a nice-to-have, not critical */ }
+  }
+}
+
+function getFromCache(query) {
+  const cache = JSON.parse(localStorage.getItem('cinefind-cache') || '{}');
+  const cached = cache[query.toLowerCase()];
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+  return null;
+}
+
+// TMDB genre IDs -> display names. Movie and TV genre lists overlap mostly,
+// but a few IDs differ between the two (e.g. 10759 = Action & Adventure on TV).
+// Merged into one map since parseTmdbItem doesn't know media type at lookup time in all callers.
+const TMDB_GENRE_MAP = {
+  28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+  99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+  27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance',
+  878: 'Sci-Fi', 10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western',
+  10759: 'Action & Adventure', 10762: 'Kids', 10763: 'News', 10764: 'Reality',
+  10765: 'Sci-Fi & Fantasy', 10766: 'Soap', 10767: 'Talk', 10768: 'War & Politics'
+};
+
+function genreIdsToLabel(genreIds) {
+  if (!genreIds || !genreIds.length) return '';
+  const names = genreIds.map(id => TMDB_GENRE_MAP[id]).filter(Boolean);
+  return names[0] || '';
+}
+
+// Four separate site lists so results actually match what's being searched:
+// movies show movie-focused free sites, k-dramas/general series show drama sites,
+// and anime (movie or series) shows anime-focused sites — detected via
+// detectCategory() below, not just the movie/series split.
+// Sites with a known /search?... URL pattern link straight to search results;
+// the rest link to the homepage with a "search inside site" note since we don't
+// have a confirmed search-URL pattern for them.
+const MOVIE_SITES = (title) => [
+  {name: '1Shows', url: 'https://1shows.org/', note: 'Search inside site', linkType: 'home'},
+  {name: 'FlickyStream', url: 'https://flickystream.dad/', note: 'Search inside site', linkType: 'home'},
+  {name: 'MovieBox', url: 'https://movie-box.co/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Flex', url: 'https://1flex.org/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
+  {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
+];
+
+// General (non-anime, non-K-drama) TV series — same free aggregators as movies,
+// since these sites typically host both.
+const SERIES_SITES = (title) => [
+  {name: '1Shows', url: 'https://1shows.org/', note: 'Search inside site', linkType: 'home'},
+  {name: 'FlickyStream', url: 'https://flickystream.dad/', note: 'Search inside site', linkType: 'home'},
+  {name: 'MovieBox', url: 'https://movie-box.co/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Flex', url: 'https://1flex.org/', note: 'Search inside site', linkType: 'home'},
+  {name: '1Tube', url: 'https://1tube.org/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Cineby', url: 'https://cineby.at/', note: 'Search inside site', linkType: 'home'},
+  {name: 'FMovies', url: 'https://fmovies-hd.to/', note: 'Search inside site', linkType: 'home'},
+];
+
+// K-drama / Asian drama — only real drama-focused sites.
+const DRAMA_SITES = (title) => [
+  {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?s=${encodeURIComponent(title)}`, note: 'Asian content', linkType: 'search'},
+  {name: 'DramaCool', url: 'https://dramacool.com.tw/', note: 'Search inside site', linkType: 'home'},
+  {name: 'KissKH', url: 'https://kisskh.co/', note: 'Search inside site', linkType: 'home'},
+  {name: 'AsianCrush', url: 'https://www.asiancrush.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Viki', url: 'https://www.viki.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Viu', url: 'https://www.viu.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Kocowa', url: 'https://www.kocowa.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', note: 'Search inside site', linkType: 'home'},
+  {name: 'WeTV', url: 'https://wetv.vip/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Amasian TV', url: 'https://amasiantv.com/', note: 'Search inside site', linkType: 'home'},
+];
+
+// Anime (movie or series) — dedicated anime sites only.
+const ANIME_SITES = (title) => [
+  {name: 'ReAnime', url: 'https://reanime.to/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Animepahe', url: 'https://animepahe.pw/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Miruro', url: 'https://miruro.to/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Anikoto', url: 'https://anikototv.to/', note: 'Search inside site', linkType: 'home'},
+  {name: 'Enma', url: 'https://enma.lol/', note: 'Search inside site', linkType: 'home'},
+];
+
+// Works out which of the 4 buckets a TMDB result belongs to, using genre +
+// original language/origin country rather than just the movie/series split —
+// so "Iron Man" gets movie sites, an anime movie or series gets anime sites,
+// and a K-drama gets drama sites, regardless of type.
+function detectCategory(r, type) {
+  const isAnime = (r.genre_ids || []).includes(16) && r.original_language === 'ja';
+  if (isAnime) return 'anime';
+  if (type === 'series') {
+    const isKDrama = r.original_language === 'ko' || (r.origin_country || []).includes('KR');
+    return isKDrama ? 'drama' : 'series';
+  }
+  return 'movie';
+}
+
+const CATEGORY_SITES = {
+  movie: MOVIE_SITES,
+  series: SERIES_SITES,
+  drama: DRAMA_SITES,
+  anime: ANIME_SITES,
+};
+
+// Shared parser: turns a raw TMDB result object into the shape our UI uses.
+// Used by both search and trending so the card/detail rendering stays consistent.
+function parseTmdbItem(r, fallbackMediaType) {
+  const title = r.title || r.name;
+  const mediaType = r.media_type || fallbackMediaType; // recommendations endpoint doesn't include media_type
+  const type = mediaType === 'tv' ? 'series' : 'movie';
+  const category = detectCategory(r, type);
+  return {
+    id: r.id,
+    title,
+    type,
+    category,
+    year: parseInt((r.release_date || r.first_air_date || '').split('-')[0]),
+    rating: r.vote_average?.toFixed(1),
+    description: r.overview || '',
+    genre: genreIdsToLabel(r.genre_ids),
+    poster: r.poster_path ? `https://image.tmdb.org/t/p/w300${r.poster_path}` : null,
+    sites: CATEGORY_SITES[category](title),
+    tip: `Tip: Search for "<strong>${title}</strong>" on the site directly if direct link doesn't work.`
+  };
+}
+
+function searchMovie() {
+  closeSuggestions();
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+
+  const now = Date.now();
+  if (isSearching || now < cooldownUntil) {
+    const timeLeft = Math.max(0, cooldownUntil - now);
+    if (timeLeft > 0) {
+      console.warn(`Wait ${Math.ceil(timeLeft / 1000)}s before searching again`);
+    }
+    return;
+  }
+
+  saveSearchHistory(query);
+  isSearching = true;
+  const area = document.getElementById('result-area');
+  area.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching...</p></div>';
+
+  let cached = getFromCache(query);
+  if (cached && !Array.isArray(cached)) cached = [cached]; // back-compat with old single-object cache format
+  if (cached) {
+    lastSearchResult = cached;
+    if (cached.length === 1) {
+      currentDisplayedResults = cached;
+      renderResult(cached[0], query);
+    } else {
+      renderResultsGrid(cached);
+    }
+    isSearching = false;
+    cooldownUntil = Date.now() + COOLDOWN_MS;
+    startCooldownDisplay();
+    return;
+  }
+
+  fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(tmdb => {
+      const results = tmdb.results?.filter(m => (m.media_type === 'movie' || m.media_type === 'tv') && m.poster_path) || [];
+
+      if (results.length === 0) {
+        hideFiltersBar();
+        const suggestions = tmdb.results?.slice(0, 3).map(r => r.title || r.name) || [];
+        const suggestionCards = suggestions.map(s => `
+          <button class="pop-chip" onclick="quickSearch('${escapeAttr(s)}')" style="margin-right:8px; margin-top:8px;">
+            🔍 ${escapeAttr(s)}
+          </button>`).join('');
+        area.innerHTML = `
+          <div class="empty">
+            <div class="big">🤔</div>
+            <p style="margin-bottom:20px;">Couldn't find "<strong>${query}</strong>". Did you mean...</p>
+            ${suggestionCards}
+          </div>`;
+        return;
+      }
+
+      // Map EVERY matching result (not just results[0]) so filters have
+      // an actual list to work with.
+      const parsedList = results.map(parseTmdbItem);
+
+      saveToCache(query, parsedList);
+      lastSearchResult = parsedList;
+
+      if (parsedList.length === 1) {
+        currentDisplayedResults = parsedList;
+        renderResult(parsedList[0], query);
+      } else {
+        renderResultsGrid(parsedList);
+      }
+    })
+    .catch(err => {
+      console.error('Search failed:', err);
+      let userMessage = 'Something went wrong. Please try again.';
+      let icon = '😔';
+
+      const errMsg = (err.message || '').toLowerCase();
+      if (errMsg.includes('network') || errMsg.includes('fetch')) {
+        userMessage = 'Connection issue. Please check your internet and try again.';
+        icon = '🌐';
+      } else if (errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('rate limit')) {
+        userMessage = 'Too many searches. Please wait a moment and try again.';
+        icon = '⏳';
+      }
+
+      area.innerHTML = `
+        <div class="empty">
+          <div class="big">${icon}</div>
+          <p>Couldn't find results for "<strong>${query}</strong>".<br>${userMessage}</p>
+          <button class="pop-chip" onclick="searchMovie()" style="margin-top:16px;">🔄 Try again</button>
+        </div>`;
+    })
+    .finally(() => {
+      isSearching = false;
+      cooldownUntil = Date.now() + COOLDOWN_MS;
+      startCooldownDisplay();
+    });
+}
+
+function showMoreSites() {
+  const hidden = document.getElementById('hidden-sites');
+  const btn = document.getElementById('show-more-sites-btn');
+  if (hidden) hidden.style.display = 'contents';
+  if (btn) btn.remove();
+}
+
+// Scrolls down to the streaming sites section — triggered by the dedicated
+// "Jump to streaming sites" button under the movie description.
+function scrollToSites() {
+  const target = document.getElementById('ai-verify-section');
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggleDescription() {
+  const desc = document.getElementById('movie-desc');
+  const toggleBtn = document.getElementById('movie-desc-toggle');
+  if (!desc) return;
+  const isExpanded = desc.classList.toggle('expanded');
+  if (toggleBtn) toggleBtn.textContent = isExpanded ? 'Show less' : 'Show more';
+}
+
+// Runs after renderResult paints the description — checks whether the text
+// actually overflows its 3-line clamp, and only then reveals the "Show more"
+// toggle. A short description that already fits fully shouldn't show a
+// toggle that does nothing when tapped.
+function checkDescOverflow() {
+  const desc = document.getElementById('movie-desc');
+  const toggleBtn = document.getElementById('movie-desc-toggle');
+  if (!desc || !toggleBtn) return;
+  // scrollHeight > clientHeight means the clamped text is taller than the
+  // visible box, i.e. there's hidden content below the 3-line cutoff.
+  if (desc.scrollHeight > desc.clientHeight + 2) {
+    toggleBtn.style.display = 'inline-block';
+  }
+}
+
+function renderResult(data, query) {
+  hideFiltersBar(); // filters apply to result lists, not a single detail view
+  const area = document.getElementById('result-area');
+  const favs = getFavorites();
+  const isFavorited = favs.some(f => f.title === data.title);
+
+  // Show verified search-link sites first (more reliable — links straight to results)
+  // before "search inside site" homepage links, so the most useful sites appear
+  // in the initial visible batch rather than at random.
+  const sortedSites = [...(data.sites || [])].sort((a, b) => (b.free ? 1 : 0) - (a.free ? 1 : 0));
+  const SITES_VISIBLE_INITIAL = 4;
+
+  // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
+  // instead of generic emoji icons, so a site looks the same wherever it shows up.
+  const buildSiteCard = (s, i) => {
+    const dirMatch = SITES_DIRECTORY.find(d =>
+      normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
+    );
+    const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
+    return `
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" style="animation-delay:${i*0.07}s">
+      <div class="site-logo-box">${logoInner}</div>
+      <div class="site-info">
+        <div class="site-name"><span class="status-dot-mini" data-status-dot style="display:none; width:13px; height:13px; margin-right:6px; vertical-align:middle;"></span>${s.name}</div>
+        <div class="site-note">${s.note || 'Free streaming'}</div>
+        ${s.free ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ FREE</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
+      </div>
+      <button class="copy-link-btn" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken" style="font-size:.85rem;">🚩</button>
+      <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+      <span class="arrow">→</span>
+    </a>`;
+  };
+
+  const visibleSites = sortedSites.slice(0, SITES_VISIBLE_INITIAL);
+  const hiddenSites = sortedSites.slice(SITES_VISIBLE_INITIAL);
+
+  const siteCards = visibleSites.map(buildSiteCard).join('')
+    + (hiddenSites.length > 0
+        ? `<div id="hidden-sites" style="display:none;">${hiddenSites.map((s, i) => buildSiteCard(s, i + SITES_VISIBLE_INITIAL)).join('')}</div>
+           <button class="pop-chip" id="show-more-sites-btn" onclick="showMoreSites()" style="width:100%; margin-top:4px; grid-column:1/-1;">Show ${hiddenSites.length} more sites ↓</button>`
+        : '');
+
+  const canGoBack = currentDisplayedResults && currentDisplayedResults.length > 1;
+
+  area.innerHTML = `
+    <div class="movie-header">
+      <div class="movie-poster${data.poster ? ' poster-loading' : ''}" id="poster-box">
+        ${data.poster
+          ? `<img class="poster-img" src="${data.poster}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${data.type === 'series' ? '📺' : '🎬'}'">`
+          : (data.type === 'series' ? '📺' : '🎬')}
+        <button class="fav-btn ${isFavorited ? 'favorited' : ''}" onclick="toggleFavorite(event)" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-label="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-pressed="${isFavorited}">⭐</button>
+      </div>
+      <div class="movie-info">
+        <div class="movie-title">${data.title || query}</div>
+        <div class="movie-meta">
+          ${data.year ? `<span class="badge badge-year">${data.year}</span>` : ''}
+          ${data.rating ? `<span class="badge badge-rating">⭐ ${data.rating}</span>` : ''}
+          <span class="badge" style="background:rgba(255,255,255,.05);color:var(--muted)">${data.type === 'series' ? '📺 Series' : '🎬 Movie'}</span>
+        </div>
+        <button class="pop-chip" onclick="scrollToSites()" style="margin-top:10px; background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;">🌐 See free streaming sites ↓</button>
+        <p class="movie-desc" id="movie-desc" onclick="toggleDescription()">${escapeAttr(data.description || '')}</p>
+        <button class="movie-desc-toggle" id="movie-desc-toggle" onclick="toggleDescription()" style="display:none;">Show more</button>
+      </div>
+    </div>
+
+    <div id="ai-verify-section">
+      <div class="section-label" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        🔮 Verifying sites with AI
+        <span id="ai-verify-indicator" style="font-size:.68rem; font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); display:inline-flex; align-items:center; gap:5px;">
+          <span style="width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; animation:aiPulse 1s ease-in-out infinite;"></span>
+          Checking in real time... (up to 12s)
+        </span>
+      </div>
+      <div class="loading" style="padding:16px 0;"><div class="spinner"></div></div>
+    </div>
+    <div id="ai-debug-box"></div>
+
+    <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
+      ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
+      <button class="pop-chip" onclick="resetSearch()">${canGoBack ? '🔄 New search' : '← Search again'}</button>
+      <button class="pop-chip" onclick="shareMovie()">📤 Share</button>
+    </div>
+
+    ${data.id ? `
+      <div class="section-label" style="margin-top:32px;">🎯 You might also like</div>
+      <div class="results-grid" id="similar-grid">
+        <div class="loading" style="grid-column:1/-1;"><div class="spinner"></div></div>
+      </div>` : ''}
+  `;
+
+  // Store current data for favorites
+  window.currentMovie = data;
+
+  if (data.id) loadSimilar(data);
+
+  // Automatically kick off the AI verification check in the background —
+  // no button needed. The static list above is already fully visible and
+  // usable regardless of what happens here.
+  // AI-verified check now runs FIRST and is what the user sees immediately.
+  // The static list (siteCards/data.tip, already built above) is kept as a
+  // fallback — it only gets shown if Gemini hasn't answered within 12s, or
+  // answers with no confidently-verified sites.
+  checkAIVerifiedSites(data, { siteCards, tip: data.tip });
+
+  // Deferred so the browser has painted the just-inserted innerHTML first —
+  // scrollHeight reads 0 (or a stale value) if checked synchronously right
+  // after setting innerHTML.
+  setTimeout(checkDescOverflow, 0);
+}
+
+// ========== AI-VERIFIED SITES (automatic, background, real-time Gemini check) ==========
+// Uses the same Worker + prompt structure/rules as the older Gemini-powered
+// version of CineFind, adapted to verify sites for a title we already know
+// (from TMDB) instead of asking Gemini to identify the title itself.
+// Runs automatically per search with a 5s budget. If Gemini doesn't answer
+// in time (or errors), the small "Checking..." indicator just quietly
+// disappears — the static list was already visible the whole time, so
+// nothing on screen breaks or needs explaining.
+async function checkAIVerifiedSites(movie, staticFallback) {
+  const indicator = document.getElementById('ai-verify-indicator');
+  const container = document.getElementById('ai-verify-section');
+  if (!movie || !indicator || !container) return;
+
+  const categoryHint = movie.category === 'anime' ? ' — this is anime'
+    : movie.category === 'drama' ? ' — this is a K-Drama/J-Drama'
+    : '';
+
+  const prompt = `Verify current, real, working FREE streaming sites where someone can watch "${movie.title}"${movie.year ? ' (' + movie.year + ')' : ''} right now. This is a ${movie.type === 'series' ? 'TV series' : 'movie'}${categoryHint}.
+
+Respond ONLY in this exact JSON format, no markdown, no extra text:
+{
+  "sites": [
+    {
+      "name": "Site name",
+      "url": "https://full-direct-url-to-the-title-on-that-site",
+      "note": "Short note e.g. English sub, Free with ads",
+      "linkType": "direct"
+    }
+  ],
+  "tip": "One helpful tip for watching this right now"
+}
+
+Rules:
+- Use Google Search to verify real-time whether this title is actually available on each site before including it. Do not rely on memory alone.
+- Only include REAL, working, free streaming sites (no paid/subscription required)
+- Good sites to check: MyAsianTV (myasiantv.com.lv), DramaCool (dramacool.com.tw), KissKH (kisskh.co), AsianCrush, Viki (free tier), 1Shows (1shows.org), FlickyStream (flickystream.dad), ReAnime (reanime.to), Animepahe (animepahe.pw), Miruro (miruro.to), MovieBox (movie-box.co), 1Flex (1flex.org), 1Tube (1tube.org), Anikoto (anikototv.to), Enma (enma.lol), Cineby (cineby.at), FMovies (fmovies-hd.to)
+- Additional K-Drama / J-Drama / Asian drama sites to check: Viu (viu.com), Kocowa (kocowa.com), OnDemandKorea (ondemandkorea.com), WeTV (wetv.vip), Amasian TV (amasiantv.com)
+- IMPORTANT: Only recommend a site if you are CONFIDENT this specific title is actually available and watchable there right now
+- Put the site where the title is MOST LIKELY available and working at the TOP of the list
+- URL rule (follow in this priority order):
+  1. ONLY set "linkType": "direct" if you have 100% verified through actual search that this exact URL leads directly to this specific title and it is currently watchable. If there is ANY doubt, do NOT use "direct".
+  2. If you're confident the title exists on the site but are not 100% sure of the exact URL, use that site's search results page URL instead and set "linkType": "search_required"
+  3. Never invent or guess a direct URL — a wrong guessed link is worse than a search-page link.
+- Include up to 5 sites, ranked from MOST reliable to least reliable
+- If no sites can be confidently verified, respond with {"sites": [], "tip": ""}
+- Keep it family-friendly`;
+
+  const controller = new AbortController();
+  // 12s budget: AI-verified results are now shown FIRST (nothing else is on
+  // screen for this section yet), so if Gemini hasn't answered within 12s we
+  // fall back to the static list rather than leaving the user staring at a
+  // spinner indefinitely.
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const startTime = performance.now();
+
+  // Debug trail collected on every run (cheap — just array pushes + console.log,
+  // no user-visible effect). Only rendered on-page when ?debug=1 is in the URL
+  // (see renderDebugBox), so normal users never see this; useful for diagnosing
+  // on mobile where devtools aren't easily available.
+  const debugLines = [];
+  const since = () => `+${((performance.now() - startTime) / 1000).toFixed(1)}s`;
+  const log = (msg) => { debugLines.push(`[${since()}] ${msg}`); console.log('[AI-verify]', msg); };
+
+  log(`Worker URL: ${AI_VERIFY_WORKER_URL}`);
+  log(`Prompt length: ${prompt.length} chars`);
+
+  try {
+    log('Sending POST request...');
+    const res = await fetch(AI_VERIFY_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    log(`HTTP response received: ${res.status} ${res.statusText}`);
+
+    // Read as raw text first so a non-JSON response (HTML error page, plain
+    // text, etc.) doesn't just throw an opaque "Unexpected token" error —
+    // we can show exactly what the Worker actually sent back.
+    const rawBody = await res.text();
+    log(`Raw response body (${rawBody.length} chars): ${rawBody.slice(0, 500)}${rawBody.length > 500 ? '…' : ''}`);
+
+    let resData;
+    try {
+      resData = JSON.parse(rawBody);
+    } catch (parseErr) {
+      throw new Error(`Worker did not return valid JSON (HTTP ${res.status} ${res.statusText}).`);
+    }
+
+    if (!res.ok || resData.error) {
+      const apiMsg = resData.details
+        || (typeof resData.error === 'string' ? resData.error : resData.error?.message)
+        || `HTTP ${res.status} ${res.statusText}`;
+      throw new Error(apiMsg);
+    }
+
+    const text = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!text) {
+      throw new Error(`Empty response from Gemini. Full JSON: ${JSON.stringify(resData).slice(0, 400)}`);
+    }
+
+    const clean = text.replace(/```json|```/g, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(clean); }
+    catch (e) {
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+      else throw new Error('Could not parse AI response as JSON.');
+    }
+
+    log(`✅ Success — Gemini returned ${(parsed.sites || []).length} site(s)`);
+
+    // Only apply if the user is still looking at the same movie
+    // (they may have navigated away during the 12s window).
+    if (window.currentMovie === movie) renderAIVerifiedSites(parsed, staticFallback);
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (window.currentMovie !== movie) return;
+
+    const isTimeout = err.name === 'AbortError';
+    // "Failed to fetch" from the fetch() call itself (before any HTTP
+    // response is even received) almost always means CORS or a network/
+    // DNS problem, not something wrong with Gemini or the JSON — flag
+    // that distinctly since the fix is completely different. A genuine CORS
+    // block normally fails FAST (well under 12s) since the browser blocks
+    // it client-side before waiting for a real response — so isTimeout and
+    // isNetworkFail are treated as mutually exclusive, distinguishable
+    // failure modes.
+    const isNetworkFail = !isTimeout && /failed to fetch|networkerror|load failed/i.test(err.message || '');
+    const isQuota = /quota|429|rate limit|resource_exhausted/i.test(err.message || '');
+    const elapsed = since();
+    const failureType = isTimeout ? 'TIMEOUT (12s cap hit)'
+      : isNetworkFail ? 'CORS/network error (blocked before any HTTP response)'
+      : isQuota ? 'QUOTA/RATE LIMIT — Gemini API quota likely exhausted'
+      : 'error';
+    log(`❌ Failed at ${elapsed} — ${failureType}: ${err.message || err.toString()}`);
+
+    const el = document.getElementById('ai-verify-indicator');
+    if (el) el.remove();
+
+    renderStaticFallbackSites(staticFallback, { err, elapsed: elapsed.replace('+', '').replace('s', ''), isTimeout, isNetworkFail, isQuota });
+  } finally {
+    renderDebugBox(debugLines);
+  }
+}
+
+// Always-on debug trail, written directly into the page (collapsible) so the
+// exact request/response/error is visible without needing devtools —
+// especially useful when debugging on mobile. Only rendered when the page
+// is loaded with ?debug=1 in the URL; regular users never see this panel.
+function renderDebugBox(lines) {
+  const box = document.getElementById('ai-debug-box');
+  if (!box || lines.length === 0) return;
+  if (!DEBUG_MODE) { box.innerHTML = ''; return; }
+  box.innerHTML = `
+    <details open style="margin-top:10px; font-size:.72rem; color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
+      <summary style="cursor:pointer; font-weight:600; color:var(--text);">🐛 AI check debug log</summary>
+      <pre style="white-space:pre-wrap; word-break:break-word; margin-top:8px; font-family:monospace; font-size:.68rem; line-height:1.5;">${escapeAttr(lines.join('\n'))}</pre>
+    </details>
+  `;
+}
+
+// Renders the plain static site list into the AI-verify slot — used when
+// Gemini times out (12s), errors, or comes back with no confidently
+// verified sites. `failure`, if present, is shown as a short on-screen note
+// (timed out / CORS-or-network / other) so failures are diagnosable without
+// opening devtools — especially useful on mobile.
+function renderStaticFallbackSites(staticFallback, failure) {
+  const container = document.getElementById('ai-verify-section');
+  if (!container || !staticFallback) return;
+
+  // User-facing note is intentionally generic — no raw error text, timing,
+  // or technical details. Full failure detail (timeout vs network vs quota,
+  // exact error message, elapsed time) goes to the debug log instead
+  // (see the `log(...)` calls in the caller), visible only with ?debug=1.
+  const errNote = failure
+    ? `<p style="font-size:.7rem; color:var(--muted); margin-bottom:10px;">⚠️ AI check unavailable — showing the regular list instead.</p>`
+    : '';
+
+  container.innerHTML = `
+    <div class="section-label">🌐 Free streaming sites</div>
+    ${errNote}
+    <div class="sites-grid">${staticFallback.siteCards}</div>
+    ${staticFallback.tip ? `<div class="tips-box">💡 <strong>Tip:</strong> ${staticFallback.tip}</div>` : ''}
+  `;
+  applyStatusDots();
+}
+
+function renderAIVerifiedSites(parsed, staticFallback) {
+  const container = document.getElementById('ai-verify-section');
+  if (!container) return;
+  const rawSites = parsed.sites || [];
+
+  if (rawSites.length === 0) {
+    // Gemini answered but didn't confidently verify anything — fall back
+    // to the static list rather than leaving this section empty.
+    renderStaticFallbackSites(staticFallback);
+    return;
+  }
+
+  // Dedup: Gemini sometimes returns the same site twice under a slightly
+  // different name or URL variant (e.g. "Tubi" / "tubi.tv", or a trailing-
+  // slash variant of the same domain). We key on both a normalized name and
+  // a normalized hostname, and keep only the FIRST occurrence of each —
+  // Gemini's own ranking already puts the most reliable match first, so
+  // this preserves that AI-first order rather than re-sorting anything.
+  const seenNames = new Set();
+  const seenDomains = new Set();
+  const sites = rawSites.filter(s => {
+    const nameKey = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    let domainKey = '';
+    try { domainKey = new URL(s.url).hostname.replace(/^www\./, '').replace(/^m\./, ''); }
+    catch (e) { domainKey = (s.url || '').toLowerCase(); }
+    if (seenNames.has(nameKey) || (domainKey && seenDomains.has(domainKey))) return false;
+    seenNames.add(nameKey);
+    if (domainKey) seenDomains.add(domainKey);
+    return true;
+  });
+
+  // Resolve each Gemini-returned site against SITES_DIRECTORY + customSites
+  // FIRST (built-in + admin-added, same combined list renderSitesDirectory
+  // uses), so hot/status lookups below use the same canonical name the admin
+  // panel's "Hot" tag and status.json entries are keyed on — not whatever
+  // exact phrasing Gemini happened to use for the site name.
+  const allKnownSites = [...SITES_DIRECTORY, ...customSites];
+  const resolved = sites.map(s => {
+    const dirMatch = allKnownSites.find(d =>
+      normalizeSiteName(s.name).includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normalizeSiteName(s.name))
+    );
+    return { s, dirMatch, canonicalName: dirMatch ? dirMatch.name : s.name };
+  });
+
+  // Priority order: 🔥 Hot first, then by status — green (up) → yellow
+  // (blocked/may-issue) → unknown (no status data) → red (down) last.
+  // Gemini's own relative ranking is preserved within each tier (stable sort).
+  const statusRank = (name) => {
+    const status = getSiteStatus(name);
+    if (status === 'up') return 0;
+    if (status === 'blocked') return 1;
+    if (status === 'down') return 3;
+    return 2; // unknown / not yet checked
+  };
+  resolved.sort((a, b) => {
+    const hotDiff = (isHotSite(b.canonicalName) ? 1 : 0) - (isHotSite(a.canonicalName) ? 1 : 0);
+    if (hotDiff !== 0) return hotDiff;
+    return statusRank(a.canonicalName) - statusRank(b.canonicalName);
+  });
+
+  const cards = resolved.map(({ s, dirMatch, canonicalName }, i) => {
+    const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
+    return `
+    <a href="${s.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(canonicalName)}" style="animation-delay:${i * 0.07}s">
+      <div class="site-logo-box">${logoInner}</div>
+      <div class="site-info">
+        <div class="site-name"><span class="status-dot-mini" data-status-dot style="display:none; width:13px; height:13px; margin-right:6px; vertical-align:middle;"></span>${escapeAttr(s.name)}</div>
+        <div class="site-note">${escapeAttr(s.note || 'AI-verified')}</div>
+        ${s.linkType === 'direct' ? '<div style="font-size:.7rem;color:#06d6a0;margin-top:3px;">✅ Direct link (AI-verified)</div>' : '<div style="font-size:.7rem;color:#ffd166;margin-top:3px;">⚠️ Search inside site</div>'}
+      </div>
+      <button class="copy-link-btn" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(s.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken" style="font-size:.85rem;">🚩</button>
+      <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(s.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+      <span class="arrow">→</span>
+    </a>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="section-label" style="margin-top:4px; display:flex; align-items:center; gap:6px;">🔮 AI-Verified <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--green); font-size:.7rem;">(checked just now)</span></div>
+    <div class="sites-grid">${cards}</div>
+    ${parsed.tip ? `<div class="tips-box" style="margin-top:10px;">💡 <strong>Tip:</strong> ${escapeAttr(parsed.tip)}</div>` : ''}
+  `;
+  applyStatusDots();
+}
+
+// ========== SIMILAR / RELATED ==========
+let similarResults = [];
+
+function loadSimilar(movie) {
+  const mediaType = movie.type === 'series' ? 'tv' : 'movie';
+  fetch(`${TMDB_PROXY_URL}?mode=recommendations&media_type=${mediaType}&id=${movie.id}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(tmdb => {
+      const results = (tmdb.results || [])
+        .filter(m => m.poster_path)
+        .slice(0, 6)
+        .map(r => parseTmdbItem(r, mediaType));
+
+      similarResults = results;
+      const grid = document.getElementById('similar-grid');
+      if (!grid) return; // user may have navigated away already
+
+      if (results.length === 0) {
+        grid.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">No recommendations found for this title.</p>`;
+        return;
+      }
+
+      grid.innerHTML = results.map((m, i) => `
+        <div class="result-card" onclick="selectSimilar(${i})" style="animation-delay:${i * 0.05}s">
+          <div class="result-poster${m.poster ? ' poster-loading' : ''}">
+            ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+          </div>
+          <div class="result-info">
+            <div class="result-title">${m.title}</div>
+            <div class="result-meta">
+              ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
+              ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
+            </div>
+          </div>
+        </div>`).join('');
+    })
+    .catch(() => {
+      const grid = document.getElementById('similar-grid');
+      if (grid) grid.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">Couldn't load recommendations right now.</p>`;
+    });
+}
+
+function selectSimilar(index) {
+  const movie = similarResults[index];
+  if (!movie) return;
+  currentDisplayedResults = similarResults; // lets "Back to results" return to this list
+  renderResult(movie, movie.title);
+}
+
+function toggleFavorite(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const movie = window.currentMovie;
+  if (!movie) return;
+
+  const btn = e.target.closest('.fav-btn');
+  const isFav = btn.classList.contains('favorited');
+  
+  if (isFav) {
+    removeFavorite(movie.title);
+    btn.classList.remove('favorited');
+    btn.title = 'Add to favorites';
+    btn.setAttribute('aria-label', 'Add to favorites');
+    btn.setAttribute('aria-pressed', 'false');
+  } else {
+    addFavorite(movie);
+    btn.classList.add('favorited');
+    btn.title = 'Remove from favorites';
+    btn.setAttribute('aria-label', 'Remove from favorites');
+    btn.setAttribute('aria-pressed', 'true');
+  }
+}
+
+function resetSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('year-filter').value = '';
+  document.getElementById('rating-filter').value = '';
+  document.getElementById('type-filter').value = '';
+  renderHomepage();
+  lastSearchResult = null;
+  currentDisplayedResults = null;
+  currentResultsRaw = null;
+  currentSortBy = 'default';
+}
+
+// ========== FREE WEBSITES DIRECTORY ==========
+// Add more entries here anytime — categories: 'drama', 'anime', 'movie' (a site can have more than one)
+// logoHtml: stylized wordmark shown in the card (falls back to icon+name split if omitted)
+// ========== SITE STATUS DOTS (public-facing, reuses the same status.json ==========
+// the admin panel already generates from the daily GitHub Action checker) ==========
+let siteStatusMap = null; // { normalizedName: 'up' | 'blocked' | 'down' }
+
+// Strips everything but letters/numbers before comparing site names, so
+// "1Shows" / "1-Shows" / "1 Shows" (AI output, directory entries, and
+// status.json entries don't always agree on spacing/punctuation) all match
+// the same status.json entry instead of silently missing each other.
+function normalizeSiteName(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// ========== REPORT BROKEN SITE (user-facing) ==========
+// Small inline modal any visitor can use to flag a site card as broken —
+// no login needed. Submits to REPORT_WORKER_URL (a separate Worker that
+// holds a GitHub token server-side) which appends to reports.json. The
+// admin panel's "🚩 User Reports" section reads that same file.
+function openReportModal(siteName, url) {
+  const existing = document.getElementById('report-modal-overlay');
+  if (existing) existing.remove();
+
+  const movieTitle = window.currentMovie?.title || '';
+  const overlay = document.createElement('div');
+  overlay.id = 'report-modal-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
+  overlay.innerHTML = `
+    <div style="background:#1a1a2e; border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:20px; max-width:340px; width:100%;">
+      <div style="font-weight:700; color:#f0f0f5; margin-bottom:4px;">🚩 Report "${escapeAttr(siteName)}"</div>
+      <div style="font-size:.75rem; color:#9494b5; margin-bottom:14px;">What's wrong with this site?</div>
+      <div id="report-reason-buttons" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+        ${['Broken / dead link', 'Too many ads/popups', 'Wrong movie/title', 'Other'].map(r => `
+          <button class="quick-test-btn" onclick="selectReportReason(this)" data-reason="${escapeAttr(r)}" style="flex:1 1 auto;">${r}</button>
+        `).join('')}
+      </div>
+      <div id="report-modal-status" style="font-size:.72rem; color:#9494b5; margin-bottom:10px; min-height:16px;"></div>
+      <div style="display:flex; gap:8px;">
+        <button class="pop-chip" style="flex:1;" onclick="document.getElementById('report-modal-overlay').remove()">Cancel</button>
+        <button class="pop-chip" id="report-submit-btn" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent);" disabled onclick="submitReport('${escapeAttr(siteName)}', '${escapeAttr(url)}', '${escapeAttr(movieTitle)}')">Submit</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function selectReportReason(btn) {
+  document.querySelectorAll('#report-reason-buttons .quick-test-btn').forEach(b => {
+    b.style.background = ''; b.style.borderColor = ''; b.style.color = '';
+    b.removeAttribute('data-selected');
+  });
+  btn.style.background = 'var(--accent)'; btn.style.borderColor = 'var(--accent)'; btn.style.color = '#fff';
+  btn.setAttribute('data-selected', 'true');
+  const submitBtn = document.getElementById('report-submit-btn');
+  if (submitBtn) submitBtn.disabled = false;
+}
+
+async function submitReport(siteName, url, movieTitle) {
+  const selected = document.querySelector('#report-reason-buttons .quick-test-btn[data-selected="true"]');
+  const reason = selected ? selected.dataset.reason : 'Other';
+  const statusEl = document.getElementById('report-modal-status');
+  const submitBtn = document.getElementById('report-submit-btn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending...'; }
+  if (statusEl) statusEl.textContent = '';
+
+  try {
+    const res = await fetch(REPORT_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ siteName, url, movieTitle, reason, timestamp: Date.now() }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (statusEl) { statusEl.textContent = '✅ Thanks — report sent!'; statusEl.style.color = 'var(--green)'; }
+    setTimeout(() => { const o = document.getElementById('report-modal-overlay'); if (o) o.remove(); }, 1200);
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = `❌ Couldn't send report — try again later.`; statusEl.style.color = 'var(--accent2)'; }
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit'; }
+  }
+}
+
+async function loadSiteStatus() {
+  try {
+    const res = await fetch('./status.json?t=' + Date.now());
+    if (!res.ok) return;
+    const data = await res.json();
+    const map = {};
+    (data.results || []).forEach(r => { if (r.name) map[normalizeSiteName(r.name)] = r.status; });
+    siteStatusMap = map;
+    applyStatusDots();
+  } catch (err) {
+    // Silent fail — dots just stay hidden. Not worth bothering the user
+    // with an error over a nice-to-have indicator.
+  }
+}
+
+// ========== LIVE URL OVERRIDES ==========
+// overrides.json is written by the admin panel (via the GitHub API — see
+// updateLiveLink()) whenever a "down"/"blocked" site's link is replaced.
+// It's a simple { normalizedSiteName: newUrl } map. If it doesn't exist yet
+// (first-time setup, no overrides saved) that's normal — sites just use
+// their default URL from SITES_DIRECTORY.
+let siteUrlOverrides = null;
+
+async function loadUrlOverrides() {
+  try {
+    const res = await fetch('./overrides.json?t=' + Date.now());
+    siteUrlOverrides = res.ok ? await res.json() : {};
+  } catch (err) {
+    siteUrlOverrides = {};
+  }
+  renderSitesDirectory(); // re-render so any overridden links take effect immediately
+}
+
+function getOverriddenUrl(name, fallbackUrl) {
+  if (!siteUrlOverrides) return fallbackUrl;
+  return siteUrlOverrides[normalizeSiteName(name)] || fallbackUrl;
+}
+
+// ========== HOT (FEATURED) SITES ==========
+// hot-sites.json is written by the admin panel's 🔥 toggle (see toggleHotSite())
+// — same GitHub-commit approach as overrides.json/custom-sites.json. It's just
+// an array of normalized site names. Hot sites are pinned to the very front of
+// the directory grid, ahead of the up/blocked/down status sort.
+let hotSiteNames = [];
+
+async function loadHotSites() {
+  try {
+    const res = await fetch('./hot-sites.json?t=' + Date.now());
+    hotSiteNames = res.ok ? await res.json() : [];
+  } catch (err) {
+    hotSiteNames = [];
+  }
+  renderSitesDirectory();
+}
+
+function isHotSite(name) {
+  return hotSiteNames.includes(normalizeSiteName(name));
+}
+
+// ========== CUSTOM (ADMIN-ADDED) SITES ==========
+// custom-sites.json is written by the admin panel's "Add New Website" form
+// (see addNewWebsite()) — same GitHub-commit approach as overrides.json.
+// It's an array of site objects in the same shape as SITES_DIRECTORY entries,
+// so they render with the exact same card component/design. If the file
+// doesn't exist yet, that just means no one has added a site through the
+// admin panel yet.
+let customSites = [];
+let removedSiteNames = []; // normalized names deleted via admin — see deleteWebsite()
+
+async function loadCustomSites() {
+  try {
+    const res = await fetch('./custom-sites.json?t=' + Date.now());
+    customSites = res.ok ? await res.json() : [];
+  } catch (err) {
+    customSites = [];
+  }
+  try {
+    const res2 = await fetch('./removed-sites.json?t=' + Date.now());
+    removedSiteNames = res2.ok ? await res2.json() : [];
+  } catch (err) {
+    removedSiteNames = [];
+  }
+  renderSitesDirectory();
+}
+
+function getSiteStatus(name) {
+  if (!siteStatusMap) return null;
+  const key = normalizeSiteName(name);
+  if (siteStatusMap[key] !== undefined) return siteStatusMap[key];
+  const found = Object.keys(siteStatusMap).find(k => key.includes(k) || k.includes(key));
+  return found ? siteStatusMap[found] : null;
+}
+
+function statusDotColor(status) {
+  return status === 'up' ? 'var(--green)' : status === 'blocked' ? 'var(--gold)' : status === 'down' ? 'var(--accent2)' : null;
+}
+
+function statusDotLabel(status) {
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'Usually works — flagged by the site\'s bot protection, not necessarily down' : status === 'down' ? 'Might be down' : '';
+}
+
+// Short word shown directly on the card (not just a tooltip) so users don't
+// have to guess what a colored dot means. "Flagged" (not "Offline") for
+// blocked, since that status is often a false alarm — see statusDotLabel above.
+function statusLabelText(status) {
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'Flagged' : status === 'down' ? 'Offline' : '';
+}
+
+// Distinct SHAPE per status (not just color) so the indicator still reads
+// correctly for colorblind users — a checkmark, a warning triangle, and an
+// X read as different symbols even if the colors look similar to someone.
+// Icons sit inside a dark circular badge (see .status-dot-mini CSS) so they
+// stay legible on top of any card color instead of floating as bare strokes.
+function statusDotIcon(status, color) {
+  if (status === 'up') {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l4.5 4.5L20 6"/></svg>`;
+  }
+  if (status === 'blocked') {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5" stroke-dasharray="2.6 2.6"/><path d="M9.6 9.3a2.4 2.4 0 1 1 3.2 2.3c-.7.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.6" r="0.55" fill="${color}" stroke="none"/></svg>`;
+  }
+  if (status === 'down') {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="3.4" stroke-linecap="round"><path d="M5.5 5.5 L18.5 18.5 M18.5 5.5 L5.5 18.5"/></svg>`;
+  }
+  return '';
+}
+
+// Re-applies status dots to whatever site cards are currently on screen
+// (homepage directory or a movie's site list) once status.json has loaded.
+// Cards render before this data is ready, so dots get filled in afterward
+// rather than delaying the initial paint.
+function applyStatusDots() {
+  if (!siteStatusMap) return;
+  document.querySelectorAll('[data-site-name]').forEach(el => {
+    const dot = el.querySelector('[data-status-dot]');
+    if (!dot) return;
+    const status = getSiteStatus(el.dataset.siteName);
+    const color = statusDotColor(status);
+    const label = el.querySelector('[data-status-label]');
+    if (color) {
+      const tooltipText = statusDotLabel(status);
+      dot.innerHTML = statusDotIcon(status, color);
+      dot.style.display = 'inline-flex';
+      dot.style.borderColor = color;
+      dot.style.filter = `drop-shadow(0 0 4px ${color})`;
+      dot.title = tooltipText;
+      dot.setAttribute('role', 'img');
+      dot.setAttribute('aria-label', tooltipText);
+      if (label) {
+        label.textContent = statusLabelText(status);
+        label.style.display = 'block';
+        label.style.background = status === 'up'
+          ? 'linear-gradient(0deg, rgba(6,214,160,.85), rgba(6,214,160,.55))'
+          : status === 'blocked'
+          ? 'linear-gradient(0deg, rgba(240,180,40,.85), rgba(240,180,40,.55))'
+          : 'linear-gradient(0deg, rgba(230,57,70,.85), rgba(230,57,70,.55))';
+        label.title = tooltipText;
+      }
+    } else {
+      dot.style.display = 'none';
+      dot.innerHTML = '';
+      dot.style.filter = '';
+      dot.removeAttribute('aria-label');
+      if (label) { label.style.display = 'none'; label.textContent = ''; }
+    }
+  });
+}
+
+const SITES_DIRECTORY = [
+  { name: 'MyAsianTV', url: 'https://myasiantv.com.lv/', domain: 'myasiantv.com.lv', categories: ['drama'], icon: '🏔️',
+    logoHtml: `<span class="logo-mtn" aria-hidden="true"><svg viewBox="0 0 40 26" width="34" height="22"><path d="M2 24 L14 6 L20 15 L24 9 L38 24 Z" fill="#fff"/><path d="M20 15 L24 9 L38 24 L22 24 Z" fill="#e63946"/><path d="M13 8 L15 6 L17 9" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-word"><span class="lw-white">M</span><span class="lw-accent">A</span></span>` },
+  { name: 'DramaCool',  url: 'https://dramacool.com.tw/', domain: 'dramacool.com.tw', categories: ['drama'], icon: '🎬',
+    logoHtml: `<span class="logo-clapper" aria-hidden="true"><svg viewBox="0 0 40 30" width="30" height="22"><rect x="4" y="12" width="32" height="16" rx="2" fill="none" stroke="#5b8def" stroke-width="2.4"/><path d="M4 12 L10 4 L16 4 L11 12 Z" fill="#5b8def"/><path d="M15 12 L21 4 L27 4 L22 12 Z" fill="#5b8def"/><path d="M26 12 L32 4 L36 4 L36 12 Z" fill="#5b8def"/></svg></span><span class="logo-word"><span class="lw-outline">D</span><span class="lw-white">C</span></span>` },
+  { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span style="color:#ff4d8f;">Kiss</span><span class="lw-white">KH</span></span>` },
+  { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:#fff;">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
+  { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:#00c2b8;">ki</span></span>` },
+  { name: 'Viu',           url: 'https://www.viu.com/',         domain: 'viu.com',              categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span style="color:#00c2b8;">Vi</span><span class="lw-white">u</span></span>` },
+  { name: 'Kocowa',        url: 'https://www.kocowa.com/',      domain: 'kocowa.com',           categories: ['drama'],
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#ff7a59;">Ko</span><span class="lw-white">cowa</span></span>` },
+  { name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', domain: 'ondemandkorea.com',  categories: ['drama'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.7rem;letter-spacing:.06em;color:rgba(255,255,255,.5);text-transform:uppercase;">OnDemand</span><span style="font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:1.5rem;letter-spacing:.04em;color:var(--accent);">KOREA</span></div>` },
+  { name: 'WeTV',          url: 'https://wetv.vip/',            domain: 'wetv.vip',             categories: ['drama'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">We</span><span style="color:#06d6a0;">TV</span></span>` },
+  { name: 'Amasian TV',    url: 'https://amasiantv.com/',       domain: 'amasiantv.com',        categories: ['drama'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.15rem;line-height:1.05;color:#fff;">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
+  { name: '1Shows',        url: 'https://1shows.org/',          domain: '1shows.org',           categories: ['movie'],
+    logoHtml: `<span class="logo-word"><span style="color:#4da6ff;">1</span><span class="lw-white">Shows</span></span>` },
+  { name: 'FlickyStream',  url: 'https://flickystream.dad/',    domain: 'flickystream.dad',     categories: ['movie'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.35rem;line-height:1.05;background:linear-gradient(90deg,#5b8def,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">flicky</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.1rem;line-height:1.05;background:linear-gradient(90deg,#c084fc,#ff6b9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">stream</span></div>` },
+  { name: 'MovieBox',      url: 'https://movie-box.co/',        domain: 'movie-box.co',         categories: ['movie'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
+  { name: '1Flex',         url: 'https://1flex.org/',           domain: '1flex.org',            categories: ['movie'],
+    logoHtml: `<span class="logo-word" style="font-style:italic;transform:skewX(-6deg);display:inline-block;color:#ef4444;">1FLEX</span>` },
+  { name: '1Tube',         url: 'https://1tube.org/',           domain: '1tube.org',            categories: ['movie'],
+    logoHtml: `<span class="logo-word"><span style="color:#a855f7;">1</span><span class="lw-white">Tube</span></span>` },
+  { name: 'Cineby',        url: 'https://cineby.at/',           domain: 'cineby.at',            categories: ['movie'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:#06d6a0;">by</span></span>` },
+  { name: 'FMovies',       url: 'https://fmovies-hd.to/',       domain: 'fmovies-hd.to',        categories: ['movie'],
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--accent);">F</span><span class="lw-white">Movies</span></span>` },
+  { name: 'ReAnime',       url: 'https://reanime.to/',          domain: 'reanime.to',           categories: ['anime'],
+    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:#06d6a0;">Re</span><span class="lw-white">Anime</span></span>` },
+  { name: 'Animepahe',     url: 'https://animepahe.pw/',        domain: 'animepahe.pw',         categories: ['anime'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:#fff;">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">pahe</span></div>` },
+  { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:#a855f7;">ro</span></span>` },
+  { name: 'Anikoto',       url: 'https://anikototv.to/',        domain: 'anikototv.to',         categories: ['anime'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.25rem;line-height:1.05;color:#fff;">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
+  { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'],
+    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:#ff8a3d;">ma</span></span>` },
+  // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
+  // No aggregator/mirror sites here on purpose — those are usually unlicensed
+  // and get taken down constantly. These are the actual rights-holders
+  // streaming their own library for free (ad-supported), so links stay
+  // working long-term instead of rotting in a few months.
+  { name: 'iWantTFC',      url: 'https://www.iwanttfc.com/',    domain: 'iwanttfc.com',         categories: ['pinoy'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">iWant</span><span style="color:var(--accent);">TFC</span></span>` },
+  { name: 'Star Cinema',   url: 'https://www.youtube.com/@ABSstarcinema', domain: 'youtube.com', categories: ['pinoy'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:#fff;text-transform:uppercase;">Cinema</span></div>` },
+  { name: 'Viva Films',    url: 'https://www.youtube.com/@VIVAFilms/videos', domain: 'youtube.com', categories: ['pinoy'],
+    logoHtml: `<span class="logo-word"><span style="color:#ef4444;">VIVA</span><span class="lw-white" style="font-size:1rem;"> Films</span></span>` },
+  { name: 'Regal Entertainment', url: 'https://www.youtube.com/@RegalEntertainmentInc/', domain: 'youtube.com', categories: ['pinoy'],
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:#fff;">Regal</span></div>` },
+  { name: 'Cinema One',    url: 'https://www.youtube.com/@CinemaOnePH/', domain: 'youtube.com',   categories: ['pinoy'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
+  { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'],
+    logoHtml: `<span class="logo-word"><span class="lw-white">TBA</span><span style="color:#06d6a0;"> Studios</span></span>` },
+];
+
+let activeDirFilters = []; // multi-select: any combo of 'drama' / 'anime' / 'movie'
+
+function getDirFavs() {
+  try { return JSON.parse(localStorage.getItem('cinefind-dir-favs') || '[]'); }
+  catch (e) { return []; }
+}
+
+function toggleDirFav(e, name) {
+  e.preventDefault();
+  e.stopPropagation();
+  let favs = getDirFavs();
+  if (favs.includes(name)) favs = favs.filter(n => n !== name);
+  else favs.push(name);
+  localStorage.setItem('cinefind-dir-favs', JSON.stringify(favs));
+  renderSitesDirectory();
+  updateFavCount();
+}
+
+function renderSitesDirectory() {
+  const wrap = document.getElementById('sites-directory-grid');
+  if (!wrap) return; // user may have navigated away already
+
+  const favs = getDirFavs();
+  const allSites = [...SITES_DIRECTORY, ...customSites] // built-in + admin-added, rendered identically
+    .filter(s => !removedSiteNames.includes(normalizeSiteName(s.name)));
+
+  // "pinned" isn't a real category on the site data — it's derived from favs —
+  // so it's filtered separately here instead of via s.categories like the rest.
+  let filtered;
+  if (activeDirFilters.includes('pinned')) {
+    filtered = allSites.filter(s => favs.includes(s.name));
+  } else if (activeDirFilters.length === 0) {
+    filtered = allSites;
+  } else {
+    filtered = allSites.filter(s => s.categories.some(c => activeDirFilters.includes(c)));
+  }
+
+  // Sort: 🔥 hot sites first, then by live status (up, then blocked, then
+  // unknown/pending, then down last). Sites within the same tier keep their
+  // original relative order (Array.sort is stable in modern browsers).
+  const statusRank = { up: 0, blocked: 1, down: 3 };
+  filtered = [...filtered].sort((a, b) => {
+    const hotDiff = (isHotSite(b.name) ? 1 : 0) - (isHotSite(a.name) ? 1 : 0);
+    if (hotDiff !== 0) return hotDiff;
+    const rankA = statusRank[getSiteStatus(a.name)] ?? 2;
+    const rankB = statusRank[getSiteStatus(b.name)] ?? 2;
+    return rankA - rankB;
+  });
+
+  const countEl = document.getElementById('dir-results-count');
+  if (countEl) countEl.textContent = `${filtered.length} site${filtered.length === 1 ? '' : 's'}`;
+
+  if (filtered.length === 0) {
+    const emptyMsg = activeDirFilters.includes('pinned')
+      ? 'No pinned sites yet — tap the 📌 on any site to save it here.'
+      : 'No sites in this category yet.';
+    wrap.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">${emptyMsg}</p>`;
+    return;
+  }
+
+  const buildCard = (s, i) => {
+    const isFav = favs.includes(s.name);
+    const isHot = isHotSite(s.name);
+    const liveUrl = getOverriddenUrl(s.name, s.url);
+    const pinIcon = isFav
+      ? `<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`
+      : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>`;
+    return `
+    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
+      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content" aria-label="${s.name} — opens in new tab">
+        <span class="status-dot-mini" data-status-dot style="position:absolute; top:7px; left:9px; width:15px; height:15px; z-index:2; filter:drop-shadow(0 0 2px rgba(0,0,0,.6));"></span>
+        <span class="status-label-mini" data-status-label></span>
+        ${isHot ? `<span class="hot-label-mini">🔥 HOT</span>` : ''}
+        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:10px; z-index:2;" onclick="toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
+        <button class="pin-icon" style="position:absolute; bottom:6px; right:8px; z-index:2; font-size:.85rem;" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken">🚩</button>
+        <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
+      </a>
+    </div>`;
+  };
+
+  // Homepage directory can grow long as more sites get added — same
+  // "show more" pattern already used for per-movie search results, so the
+  // homepage doesn't dump the entire list on first load.
+  const DIR_VISIBLE_INITIAL = 6;
+  const visible = filtered.slice(0, DIR_VISIBLE_INITIAL);
+  const hidden = filtered.slice(DIR_VISIBLE_INITIAL);
+
+  wrap.innerHTML = visible.map(buildCard).join('') + (
+    hidden.length > 0
+      ? `<div id="hidden-dir-sites" style="display:none;">${hidden.map((s, i) => buildCard(s, i + DIR_VISIBLE_INITIAL)).join('')}</div>
+         <button class="pop-chip" id="show-more-dir-sites-btn" onclick="showMoreDirSites()" style="width:100%; margin-top:4px; grid-column:1/-1;">Show ${hidden.length} more sites ↓</button>`
+      : ''
+  );
+  applyStatusDots();
+}
+
+function showMoreDirSites() {
+  const hidden = document.getElementById('hidden-dir-sites');
+  const btn = document.getElementById('show-more-dir-sites-btn');
+  if (hidden) hidden.style.display = 'contents';
+  if (btn) btn.remove();
+}
+
+// Fallback logo for any directory entry that doesn't have a custom logoHtml wordmark.
+// Currently every entry in SITES_DIRECTORY supplies its own logoHtml, so this only
+// kicks in for new entries added without one — keeps the grid from breaking either way.
+function defaultLogoHtml(s) {
+  return `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; width:100%; padding:0 8px; overflow:hidden;">
+    <span style="font-size:1.4rem; line-height:1;">${s.icon || '🎥'}</span>
+    <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:.68rem; color:#f0f0f5; text-align:center; line-height:1.15; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; width:100%;">${escapeAttr(s.name)}</span>
+  </div>`;
+}
+
+// Selects exactly one category filter at a time (radio-button style — picking
+// Movie clears K-Drama/Anime/Hot, and vice versa). Clicking the currently
+// active pill again clears the filter back to "All". "pinned" is treated the
+// same way, so only one filter (a category or Pinned) is ever active at once.
+function toggleDirFilter(cat, el) {
+  if (activeDirFilters.length === 1 && activeDirFilters[0] === cat) {
+    activeDirFilters = []; // clicking the active pill again resets to "All"
+  } else {
+    activeDirFilters = [cat];
+  }
+  syncDirFilterChipsUI();
+  renderSitesDirectory();
+}
+
+function clearDirFilters(el) {
+  activeDirFilters = [];
+  syncDirFilterChipsUI();
+  renderSitesDirectory();
+}
+
+function syncDirFilterChipsUI() {
+  const allBtn = document.querySelector('#dir-filter-chips .dual-gradient-pill:first-child');
+  if (allBtn) allBtn.classList.toggle('active', activeDirFilters.length === 0);
+  document.querySelectorAll('#dir-filter-chips .dual-gradient-pill[data-cat]').forEach(c => {
+    c.classList.toggle('active', activeDirFilters.includes(c.dataset.cat));
+  });
+}
+
+function renderHomepage() {
+  hideFiltersBar();
+  document.getElementById('result-area').innerHTML = `
+    <div style="margin-bottom:12px" class="popular-label">🌐 Free Websites</div>
+    <div class="pill-container" id="dir-filter-chips">
+      <button class="genre-pill dual-gradient-pill active" onclick="clearDirFilters(this)">All</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="movie" onclick="toggleDirFilter('movie', this)">Movie</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="drama" onclick="toggleDirFilter('drama', this)">K-Drama</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="anime" onclick="toggleDirFilter('anime', this)">Anime</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="pinoy" onclick="toggleDirFilter('pinoy', this)">🇵🇭 Pinoy</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="hot" onclick="toggleDirFilter('hot', this)">Hot</button>
+      <button class="genre-pill dual-gradient-pill" data-cat="pinned" onclick="toggleDirFilter('pinned', this)">📌 Pinned</button>
+    </div>
+    <div class="safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
+      <span class="tip-icon">🛡️</span>
+      <span>Tip: these are third-party sites we don't control — use a browser with built-in ad/tracker blocking (like <strong>Brave Browser <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Brave_lion_icon.svg" width="15" height="15" alt="Brave lion logo" style="vertical-align:-3px; display:inline-block;"></strong>) and avoid clicking pop-ups or "download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" style="color:var(--accent); font-weight:600; text-decoration:underline;">Download Brave here →</a></span>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:0 0 12px;">
+      <div id="dir-results-count" style="font-size:.78rem; color:var(--muted);"></div>
+      <div style="font-size:.7rem; color:var(--muted); display:flex; align-items:center; gap:6px;">
+        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px var(--green));"><path d="M4 12l5 5L20 6"/></svg> Online</span>
+        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 0 3px var(--gold));"><path d="M12 3 L22 20 L2 20 Z"/><line x1="12" y1="9.5" x2="12" y2="14.5"/><circle cx="12" cy="17.3" r="0.5" fill="var(--gold)" stroke="none"/></svg> Issues</span>
+        <span style="display:inline-flex; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 8px 3px 6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="3.5" stroke-linecap="round" style="filter:drop-shadow(0 0 3px var(--accent2));"><path d="M5 5 L19 19 M19 5 L5 19"/></svg> Down</span>
+      </div>
+    </div>
+    <div class="dir-grid" id="sites-directory-grid"></div>
+
+    <div style="margin:24px 0 12px" class="popular-label">🎭 Browse by Genre</div>
+    <div class="genre-grid" id="genre-grid">
+      <button class="genre-chip" data-genre="28" onclick="browseGenre(28, 'Action', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></span>Action</button>
+      <button class="genre-chip" data-genre="35" onclick="browseGenre(35, 'Comedy', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 13c1 1.5 2.5 2.3 4 2.3s3-.8 4-2.3"/><circle cx="9" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".6" fill="currentColor" stroke="none"/></svg></span>Comedy</button>
+      <button class="genre-chip" data-genre="18" onclick="browseGenre(18, 'Drama', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="6"/><path d="M5.5 14c1 1 2 1.3 2.5 1.3s1.5-.3 2.5-1.3"/><circle cx="16" cy="12" r="6"/><path d="M13.5 10c1-1 2-1.3 2.5-1.3s1.5.3 2.5 1.3"/></svg></span>Drama</button>
+      <button class="genre-chip" data-genre="27" onclick="browseGenre(27, 'Horror', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 00-7 7v4l1.5 2v2h2v-2h1v2h1v-2h2v2h1v-2h1v2h2v-2L19 14v-4a7 7 0 00-7-7z"/><circle cx="9.3" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg></span>Horror</button>
+      <button class="genre-chip" data-genre="10749" onclick="browseGenre(10749, 'Romance', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C1 8 2 4.5 5.5 4 8 3.6 10 5 12 7c2-2 4-3.4 6.5-3 3.5.5 4.5 4 3 7-2.5 4.5-9.5 9-9.5 9z"/></svg></span>Romance</button>
+      <button class="genre-chip" data-genre="878" onclick="browseGenre(878, 'Sci-Fi', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2 4.5 6 4 10l-4 4-4-4c-.5-4 1-8 4-10z"/><path d="M8.5 13.5 5 15l1-4"/><path d="M15.5 13.5 19 15l-1-4"/><path d="M10 21l1-3h2l1 3"/><circle cx="12" cy="9" r="1.3" fill="currentColor" stroke="none"/></svg></span>Sci-Fi</button>
+      <button class="genre-chip" data-genre="16" onclick="browseGenre(16, 'Animation', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.2 0 2-1 2-2 0-.6-.3-1-.6-1.4-.3-.4-.4-.8-.1-1.2.3-.4.9-.4 1.4-.4H16a4 4 0 004-4c0-5-3.6-9-8-9z"/><circle cx="7.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="9.5" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="11" r="1" fill="currentColor" stroke="none"/></svg></span>Animation</button>
+      <button class="genre-chip" data-genre="53" onclick="browseGenre(53, 'Thriller', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span>Thriller</button>
+    </div>
+
+    <div style="margin:24px 0 12px" class="popular-label">🔎 Popular searches</div>
+    <div class="popular-chips">
+      <button class="pop-chip" onclick="quickSearch('0.5 no Otoko')">0.5 no Otoko</button>
+      <button class="pop-chip" onclick="quickSearch('Squid Game')">Squid Game</button>
+      <button class="pop-chip" onclick="quickSearch('Your Name')">Your Name</button>
+      <button class="pop-chip" onclick="quickSearch('Parasite')">Parasite</button>
+      <button class="pop-chip" onclick="quickSearch('Demon Slayer')">Demon Slayer</button>
+      <button class="pop-chip" onclick="quickSearch('My Love from the Star')">My Love from the Star</button>
+      <button class="pop-chip" onclick="quickSearch('Attack on Titan')">Attack on Titan</button>
+      <button class="pop-chip" onclick="quickSearch('Crash Landing on You')">Crash Landing on You</button>
+    </div>`;
+  renderSitesDirectory();
+}
+
+function browseGenre(genreId, label, el) {
+  const grid = document.getElementById('genre-grid');
+  if (grid) grid.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const area = document.getElementById('result-area');
+  area.innerHTML = `<div class="loading"><div class="spinner"></div><p>Loading ${label}...</p></div>`;
+
+  fetch(`${TMDB_PROXY_URL}?mode=genre&media_type=movie&genre_id=${genreId}`, { signal: AbortSignal.timeout(8000) })
+    .then(r => r.json())
+    .then(tmdb => {
+      const results = (tmdb.results || [])
+        .filter(m => m.poster_path)
+        .map(r => parseTmdbItem(r, 'movie'));
+
+      if (results.length === 0) {
+        area.innerHTML = `
+          <div class="empty">
+            <div class="big">🤔</div>
+            <p>No titles found for ${label} right now.</p>
+            <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
+          </div>`;
+        return;
+      }
+
+      lastSearchResult = results; // so Year/Rating/Type filters work on genre results too
+      renderResultsGrid(results, label);
+    })
+    .catch(() => {
+      area.innerHTML = `
+        <div class="empty">
+          <div class="big">😔</div>
+          <p>Couldn't load ${label} right now. Try again.</p>
+          <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
+        </div>`;
+    });
+}
+
+// Initialize on load
+window.addEventListener('load', () => {
+  initTheme();
+  updateFavCount();
+  renderHomepage();
+  loadSiteStatus();
+  loadUrlOverrides();
+  loadCustomSites();
+  loadHotSites();
+  checkAdminAccess();
+  const yearEl = document.getElementById('footer-year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  // Populate recent individual years (current year down to 2020) dynamically
+  const yearFilterEl = document.getElementById('year-filter');
+  if (yearFilterEl) {
+    const currentYear = new Date().getFullYear();
+    const decadesOption = yearFilterEl.querySelector('option[value="2010s"]');
+    for (let y = currentYear; y >= 2020; y--) {
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = String(y);
+      yearFilterEl.insertBefore(opt, decadesOption);
+    }
+  }
+});
+
+// Event listeners
+document.getElementById('search-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    closeSuggestions();
+    searchMovie();
+  }
+});
+document.getElementById('search-input').addEventListener('input', handleSuggestInput);
+document.getElementById('search-input').addEventListener('focus', () => {
+  if (document.getElementById('search-input').value.trim() === '') showSearchHistory();
+});
+
+// ========== HIDDEN ADMIN PANEL ==========
+// Access by visiting: yoursite.com/?admin=cf_x7k9m2
+// Only shows up with the exact secret code in the URL — regular visitors never see it.
+const ADMIN_SECRET = 'cf_x7k9m2';
+
+function checkAdminAccess() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('admin') === ADMIN_SECRET) {
+    loadAdminPanel();
+  }
+}
+
+async function loadAdminPanel() {
+  // Inject admin panel styles
+  const style = document.createElement('style');
+  style.textContent = `
+    #admin-overlay {
+      position: fixed; inset: 0; background: #0a0a0f; z-index: 9999;
+      overflow-y: auto; padding: 24px 16px 60px; font-family: 'Space Grotesk', sans-serif;
+    }
+    #admin-overlay .admin-header { text-align: center; margin-bottom: 20px; }
+    #admin-overlay .admin-header h1 { color: #e63946; font-size: 1.6rem; margin-bottom: 4px; }
+    #admin-overlay .admin-header p { color: #9494b5; font-size: .8rem; }
+    #admin-overlay .admin-summary {
+      display: flex; gap: 10px; justify-content: center; margin: 16px 0 24px; flex-wrap: wrap;
+    }
+    #admin-overlay .admin-stat {
+      background: #16161f; border: 1px solid #ffffff0f; border-radius: 10px;
+      padding: 10px 18px; text-align: center;
+    }
+    #admin-overlay .admin-stat .num { font-size: 1.4rem; font-weight: 700; }
+    #admin-overlay .admin-stat .lbl { font-size: .7rem; color: #9494b5; text-transform: uppercase; }
+    #admin-overlay .site-row {
+      display: flex; align-items: center; gap: 12px; background: #16161f;
+      border: 1px solid #ffffff0f; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+    }
+    #admin-overlay .site-row.down { border-color: rgba(230,57,70,.4); background: rgba(230,57,70,.06); }
+    #admin-overlay .site-row.blocked { border-color: rgba(240,180,40,.4); background: rgba(240,180,40,.06); }
+    #admin-overlay .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    #admin-overlay .status-dot.up { background: #06d6a0; }
+    #admin-overlay .status-dot.down { background: #e63946; }
+    #admin-overlay .status-dot.blocked { background: #f0b428; }
+    #admin-overlay .status-dot.pending { background: #6c7086; }
+    #admin-overlay .quick-test-btn {
+      background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px;
+    }
+    #admin-overlay .delete-site-btn {
+      background: #2a1216; border: 1px solid #e6394666; color: #ff6b74;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px; margin-left: 6px;
+    }
+    #admin-overlay .delete-site-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .site-name { font-weight: 600; color: #f0f0f5; flex: 1; }
+    #admin-overlay .site-meta { font-size: .72rem; color: #9494b5; }
+    #admin-overlay .replace-input {
+      width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 6px;
+      border: 1px solid #3A3448; background: #0a0a0f; color: #f0f0f5; font-size: .8rem;
+    }
+    #admin-overlay .close-admin {
+      position: fixed; top: 14px; right: 14px; background: #16161f; border: 1px solid #ffffff0f;
+      color: #f0f0f5; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 1rem;
+    }
+    #admin-overlay .refresh-note { text-align: center; color: #9494b5; font-size: .72rem; margin-top: 20px; }
+    #admin-overlay .test-link-box {
+      background: #16161f; border: 1px solid #ffffff0f; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 20px;
+    }
+    #admin-overlay .test-link-title { font-weight: 600; color: #f0f0f5; font-size: .85rem; margin-bottom: 10px; }
+    #admin-overlay .test-link-row { display: flex; gap: 8px; }
+    #admin-overlay .test-link-input {
+      flex: 1; min-width: 0; padding: 8px 10px; border-radius: 6px; border: 1px solid #3A3448;
+      background: #0a0a0f; color: #f0f0f5; font-size: .8rem; font-family: inherit;
+    }
+    #admin-overlay .test-link-btn {
+      background: #e63946; color: #fff; border: none; border-radius: 6px;
+      padding: 8px 16px; font-size: .8rem; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    }
+    #admin-overlay .test-link-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .test-link-result { margin-top: 10px; font-size: .78rem; display: none; }
+    #admin-overlay .test-link-result.show { display: block; }
+    #admin-overlay .test-link-status { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    #admin-overlay .test-link-note { color: #9494b5; font-size: .72rem; margin-bottom: 10px; line-height: 1.4; }
+    #admin-overlay .test-link-open-btn {
+      background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
+      border-radius: 6px; padding: 6px 14px; font-size: .76rem; cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'admin-overlay';
+  const gh = getGithubConfig();
+  overlay.innerHTML = `
+    <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
+    <div class="admin-header">
+      <h1>🔒 Site Status Admin</h1>
+      <p>Loading status.json...</p>
+    </div>
+    <div class="test-link-box" style="font-size:.74rem; color:#9494b5; line-height:1.5;">
+      <div class="test-link-title" style="margin-bottom:6px;">ℹ️ What the dots mean</div>
+      <div><span style="color:#06d6a0;">🟢 Up</span> — site responded normally.</div>
+      <div><span style="color:#f0b428;">🟡 Blocked</span> — GitHub's checker got a 403/429/503 or timed out. This is usually <strong>not</strong> the site being down — Cloudflare/DDoS-Guard etc. often flag GitHub Actions' datacenter IP as a bot, even when the site works fine for real visitors. Use "Test a Link" above or open the URL yourself to confirm before assuming it's broken.</div>
+      <div><span style="color:#e63946;">🔴 Down</span> — confirmed failure (DNS error, connection refused, or a real 4xx/5xx not tied to bot-protection).</div>
+      <div><span style="color:#6c7086;">⚪ Pending</span> — added recently, not checked yet.</div>
+      <div style="margin-top:6px;">Just updated a link and it's still yellow after reload? The re-check likely ran and got bot-blocked on this new URL too — see 🟡 above.</div>
+    </div>
+    <div class="test-link-box" id="gh-config-box">
+      <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="gh-owner" class="test-link-input" placeholder="GitHub username (repo owner)" value="${escapeForAttr(gh.owner || '')}">
+        <input type="text" id="gh-repo" class="test-link-input" placeholder="Repository name" value="${escapeForAttr(gh.repo || '')}">
+        <input type="password" id="gh-token" class="test-link-input" placeholder="Personal Access Token" value="${escapeForAttr(gh.token || '')}">
+        <button class="test-link-btn" style="width:100%;" onclick="saveGithubConfig()">Save Connection</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${gh.token ? '✅ Connection saved on this device.' : 'Not connected yet — set this up once.'}</div>
+      </div>
+    </div>
+    <div class="test-link-box">
+      <div class="test-link-title">🔗 Test a Link</div>
+      <div class="test-link-row">
+        <input type="text" id="test-link-input" class="test-link-input" placeholder="Paste a URL to test..." onkeydown="if(event.key==='Enter') testLink()">
+        <button class="test-link-btn" onclick="testLink()">Test</button>
+      </div>
+      <div id="test-link-result" class="test-link-result"></div>
+    </div>
+    <div class="test-link-box" id="add-site-box">
+      <div class="test-link-title">➕ Add New Website</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://...">
+        <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-drama"> K-Drama</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-anime"> Anime</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> 🇵🇭 Pinoy</label>
+        </div>
+        <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
+        <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  try {
+    const res = await fetch('./status.json?t=' + Date.now()); // cache-bust
+    if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
+    const data = await res.json();
+
+    // Newly-added sites (via "Add New Website" below) live in
+    // custom-sites.json but won't be in status.json's results until the
+    // next scheduled checker run — without this, they'd only show up here
+    // right after adding (in the same session) and vanish again on reopen.
+    try {
+      const customRes = await fetch('./custom-sites.json?t=' + Date.now());
+      const customList = customRes.ok ? await customRes.json() : [];
+      const checkedNames = new Set((data.results || []).map(r => normalizeSiteName(r.name)));
+      customList.forEach(s => {
+        if (!checkedNames.has(normalizeSiteName(s.name))) {
+          data.results.push({ name: s.name, url: s.url, status: 'pending' });
+        }
+      });
+    } catch (customErr) {
+      // Non-fatal — admin list just won't show pending custom sites this time.
+    }
+
+    renderAdminPanel(data);
+    
+    // Sync front-end status dots with the latest admin data
+    const map = {};
+    (data.results || []).forEach(r => { if (r.name) map[normalizeSiteName(r.name)] = r.status; });
+    siteStatusMap = map;
+    applyStatusDots();
+  } catch (err) {
+    console.error('Admin panel load error:', err);
+    overlay.querySelector('.admin-header p').textContent =
+      '⚠️ Error: ' + err.message + ' (check browser console for details)';
+  }
+}
+
+function renderAdminPanel(data) {
+  const overlay = document.getElementById('admin-overlay');
+  const lastRun = new Date(data.lastRun).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
+
+  const rowsHtml = data.results.map(site => {
+    const icon = site.status === 'up' ? '🟢' : site.status === 'blocked' ? '🟡' : site.status === 'pending' ? '⚪' : '🔴';
+    const metaText = site.status === 'up'
+      ? 'HTTP ' + site.httpStatus
+      : site.status === 'pending'
+      ? 'Not checked yet — next automatic check within 6h'
+      : (site.httpStatus ? 'HTTP ' + site.httpStatus : (site.error || site.status));
+    const safeUrl = site.url.replace(/'/g, "\\'");
+    const safeName = site.name.replace(/'/g, "\\'");
+    const isHot = isHotSite(site.name);
+    return `
+    <div class="site-row ${site.status}">
+      <div class="status-dot ${site.status}"></div>
+      <div style="flex:1;">
+        <div class="site-name">${site.name} ${icon}</div>
+        <button class="quick-test-btn hot-toggle-btn" style="margin-top:4px; padding:2px 9px; font-size:.7rem; ${isHot ? 'background:#f0b428; color:#1a1a2e; border-color:#f0b428;' : ''}" onclick="toggleHotSite('${safeName}', this)">${isHot ? '🔥 Hot — tap to unhot' : '🔥 Mark as Hot'}</button>
+        <div class="site-meta">${site.url} — ${metaText}</div>
+        ${site.status === 'blocked' ? `
+          <div class="site-meta" style="margin-top:2px; color:#f0b428;">Might just be blocking this server's IP — verify from your own browser.</div>
+          <button class="quick-test-btn" onclick="document.getElementById('test-link-input').value='${safeUrl}'; testLink(); document.getElementById('test-link-input').scrollIntoView({behavior:'smooth', block:'center'});">🔗 Test This Link</button>
+        ` : ''}
+        ${site.status === 'down' ? `
+          <input class="replace-input" placeholder="Paste replacement URL here (for your notes only)..." 
+                 onchange="saveReplacementNote('${site.name.replace(/'/g, "\\'")}', this.value)"
+                 value="${getReplacementNote(site.name)}">
+        ` : ''}
+        ${(site.status === 'down' || site.status === 'blocked') ? `
+          <div class="live-update-wrap" style="margin-top:8px;">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input class="replace-input live-update-input" style="margin-top:0; flex:1;" placeholder="Paste new working URL to go LIVE...">
+              <button class="quick-test-btn" style="margin-top:0; white-space:nowrap;" onclick="updateLiveLink('${site.name.replace(/'/g, "\\'")}', this)">Update Live Link</button>
+            </div>
+            <div class="live-update-status site-meta" style="margin-top:4px;"></div>
+          </div>
+        ` : ''}
+        <button class="delete-site-btn" onclick="confirmDeleteWebsite('${site.name.replace(/'/g, "\\'")}', this)">🗑️ Delete Website</button>
+        <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  const gh = getGithubConfig();
+  overlay.innerHTML = `
+    <button class="close-admin" onclick="document.getElementById('admin-overlay').remove()">✕</button>
+    <div class="admin-header">
+      <h1>🔒 Site Status Admin</h1>
+      <p>Last checked: ${lastRun}</p>
+    </div>
+    <div class="test-link-box" id="gh-config-box">
+      <div class="test-link-title">⚙️ GitHub Connection (needed for live link updates)</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="gh-owner" class="test-link-input" placeholder="GitHub username (repo owner)" value="${escapeForAttr(gh.owner || '')}">
+        <input type="text" id="gh-repo" class="test-link-input" placeholder="Repository name" value="${escapeForAttr(gh.repo || '')}">
+        <input type="password" id="gh-token" class="test-link-input" placeholder="Personal Access Token" value="${escapeForAttr(gh.token || '')}">
+        <button class="test-link-btn" style="width:100%;" onclick="saveGithubConfig()">Save Connection</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${gh.token ? '✅ Connection saved on this device.' : 'Not connected yet — set this up once.'}</div>
+      </div>
+    </div>
+    <div class="test-link-box">
+      <div class="test-link-title">🔗 Test a Link</div>
+      <div class="test-link-row">
+        <input type="text" id="test-link-input" class="test-link-input" placeholder="Paste a URL to test..." onkeydown="if(event.key==='Enter') testLink()">
+        <button class="test-link-btn" onclick="testLink()">Test</button>
+      </div>
+      <div id="test-link-result" class="test-link-result"></div>
+    </div>
+    <div class="test-link-box" id="add-site-box">
+      <div class="test-link-title">➕ Add New Website</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://...">
+        <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-drama"> K-Drama</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-anime"> Anime</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> 🇵🇭 Pinoy</label>
+        </div>
+        <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
+        <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
+      </div>
+    </div>
+    <div class="admin-summary">
+      <div class="admin-stat"><div class="num" style="color:#06d6a0;">${data.upCount}</div><div class="lbl">Up</div></div>
+      <div class="admin-stat"><div class="num" style="color:#f0b428;">${data.blockedCount || 0}</div><div class="lbl">Blocked</div></div>
+      <div class="admin-stat"><div class="num" style="color:#e63946;">${data.downCount}</div><div class="lbl">Down</div></div>
+      <div class="admin-stat"><div class="num">${data.totalSites}</div><div class="lbl">Total</div></div>
+    </div>
+    <div class="test-link-box" style="margin-bottom:16px;">
+      <div class="test-link-title">🚩 User Reports <span id="reports-count-badge" style="font-size:.7rem; color:#9494b5;"></span></div>
+      <div id="admin-reports-list"><p style="font-size:.75rem; color:#9494b5;">Loading reports...</p></div>
+    </div>
+    <div id="admin-site-rows">
+    ${rowsHtml}
+    </div>
+    <p class="refresh-note">Checked automatically every day. Replacement notes are saved only on this device — update SITES_DIRECTORY in the code when ready.</p>
+  `;
+  loadReportsIntoAdmin();
+}
+
+// Replacement notes are stored locally so only you (on your device) see them —
+// they don't publish anywhere or affect the live site automatically.
+function getReplacementNote(siteName) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('cinefind-admin-notes') || '{}');
+    return notes[siteName] || '';
+  } catch (e) { return ''; }
+}
+
+function saveReplacementNote(siteName, value) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('cinefind-admin-notes') || '{}');
+    notes[siteName] = value;
+    localStorage.setItem('cinefind-admin-notes', JSON.stringify(notes));
+  } catch (e) { /* ignore */ }
+}
+
+// ========== USER REPORTS (submitted via the report-broken-site Worker, ==========
+// stored in reports.json in the repo — read here with a plain fetch since
+// it's a public file; dismissing uses the admin's own GitHub token, same
+// commit pattern as toggleHotSite(), so no extra Worker endpoint is needed
+// for that half.
+async function loadReportsIntoAdmin() {
+  const list = document.getElementById('admin-reports-list');
+  const badge = document.getElementById('reports-count-badge');
+  if (!list) return;
+  try {
+    const res = await fetch('./reports.json?t=' + Date.now());
+    const reports = res.ok ? await res.json() : [];
+    if (badge) badge.textContent = reports.length ? `(${reports.length})` : '';
+    if (reports.length === 0) {
+      list.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">No reports right now. 🎉</p>`;
+      return;
+    }
+    list.innerHTML = reports.map((r, i) => `
+      <div class="site-row" style="flex-direction:column; align-items:flex-start; gap:4px;">
+        <div style="display:flex; justify-content:space-between; width:100%; gap:8px;">
+          <strong style="color:#f0f0f5;">${escapeAttr(r.siteName || 'Unknown site')}</strong>
+          <button class="quick-test-btn" onclick="dismissReport(${i}, this)">✕ Dismiss</button>
+        </div>
+        <div class="site-meta">${escapeAttr(r.reason || 'No reason given')}${r.movieTitle ? ' — while watching "' + escapeAttr(r.movieTitle) + '"' : ''}</div>
+        <div class="site-meta" style="opacity:.7;">${r.url ? escapeAttr(r.url) : ''} ${r.timestamp ? '· ' + new Date(r.timestamp).toLocaleString() : ''}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load reports: ${err.message}</p>`;
+  }
+}
+
+async function dismissReport(index, btn) {
+  const config = getGithubConfig();
+  if (!config.owner || !config.repo || !config.token) {
+    alert('⚠️ Set up GitHub Connection above first.');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/reports.json`;
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    const getRes = await fetch(apiUrl, { headers });
+    if (!getRes.ok) throw new Error(`Could not read reports.json (HTTP ${getRes.status})`);
+    const fileData = await getRes.json();
+    const current = JSON.parse(b64DecodeUtf8(fileData.content));
+    current.splice(index, 1);
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Dismiss a site report',
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        sha: fileData.sha,
+      }),
+    });
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+    loadReportsIntoAdmin();
+  } catch (err) {
+    alert(`❌ Failed to dismiss report: ${err.message}`);
+    btn.disabled = false;
+    btn.textContent = '✕ Dismiss';
+  }
+}
+
+// ========== LIVE LINK UPDATES (via GitHub API) ==========
+// GitHub Pages is static — there's no server to write files to on demand.
+// So "publishing" a link update means committing a change to overrides.json
+// straight to the repo via GitHub's REST API, using a Personal Access Token
+// the admin enters once (stored only in this browser's localStorage, never
+// sent anywhere except directly to api.github.com).
+function getGithubConfig() {
+  try { return JSON.parse(localStorage.getItem('cinefind-gh-config') || '{}'); }
+  catch (e) { return {}; }
+}
+
+function saveGithubConfig() {
+  const owner = document.getElementById('gh-owner').value.trim();
+  const repo = document.getElementById('gh-repo').value.trim();
+  const token = document.getElementById('gh-token').value.trim();
+  const statusEl = document.getElementById('gh-config-status');
+  if (!owner || !repo || !token) {
+    statusEl.textContent = 'Fill in all 3 fields first.';
+    statusEl.style.color = '#e63946';
+    return;
+  }
+  localStorage.setItem('cinefind-gh-config', JSON.stringify({ owner, repo, token }));
+  statusEl.textContent = '✅ Saved on this device.';
+  statusEl.style.color = '#06d6a0';
+}
+
+// UTF-8 safe base64 helpers — plain btoa()/atob() break on non-ASCII chars.
+function b64EncodeUtf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64DecodeUtf8(str) { return decodeURIComponent(escape(atob(str.replace(/\n/g, '')))); }
+
+async function updateLiveLink(siteName, btn) {
+  const wrap = btn.closest('.live-update-wrap');
+  const input = wrap.querySelector('.live-update-input');
+  const statusEl = wrap.querySelector('.live-update-status');
+  const newUrl = input.value.trim();
+  const config = getGithubConfig();
+
+  if (!config.owner || !config.repo || !config.token) {
+    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  if (!newUrl) {
+    statusEl.textContent = 'Paste a URL first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  statusEl.textContent = '';
+
+  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/overrides.json`;
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    let sha, current = {};
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read overrides.json (HTTP ${getRes.status})`);
+    } // 404 is fine — file doesn't exist yet, we'll create it
+
+    current[normalizeSiteName(siteName)] = newUrl;
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Update live link for ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    statusEl.textContent = '✅ Live! Re-checking for real now...';
+    statusEl.style.color = '#06d6a0';
+    input.value = '';
+
+    // The dot turning green above is just this session's optimistic guess —
+    // status.json (what a reload actually reads) won't agree until the
+    // checker runs again. Trigger it now instead of leaving the admin to
+    // wait up to 6h, so a reload shows the real, confirmed result sooner.
+    try {
+      const dispatchRes = await fetch(
+        `https://api.github.com/repos/${config.owner}/${config.repo}/actions/workflows/check-sites.yml/dispatches`,
+        {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref: 'main' }),
+        }
+      );
+      if (dispatchRes.ok) {
+        statusEl.textContent = '✅ Live! Real check running now — reload in ~1–2 min for the confirmed result.';
+      } else if (dispatchRes.status === 403 || dispatchRes.status === 404) {
+        // 403/404 on this endpoint almost always means the token's scope
+        // doesn't cover Actions — not that the workflow itself is missing.
+        statusEl.textContent = '✅ Live! (⚠️ Your GitHub token is missing "workflow" permission, so the status check couldn\'t auto-run. Go to GitHub → Settings → Developer settings → your token, enable "workflow" (classic) or "Actions: Read and write" (fine-grained), then re-save it in the GitHub Connection section above. For now, run it manually from the Actions tab or wait up to 6h.)';
+      } else {
+        statusEl.textContent = `✅ Live! (Auto re-check failed — HTTP ${dispatchRes.status}. Run it manually from the Actions tab, or just wait up to 6h.)`;
+      }
+    } catch (dispatchErr) {
+      statusEl.textContent = '✅ Live! (Could not auto-trigger a re-check — check your internet connection, or run it manually from the Actions tab.)';
+    }
+
+    // Don't make the admin wait for tomorrow's automated check to see a
+    // green dot — a link they just pasted in is presumably working, so
+    // reflect that immediately in this session's status map.
+    if (!siteStatusMap) siteStatusMap = {};
+    siteStatusMap[normalizeSiteName(siteName)] = 'up';
+    applyStatusDots();
+
+    // The admin panel's own site-row (dot/icon/meta/warning) is built once
+    // from status.json and doesn't read siteStatusMap, so update it directly.
+    const row = btn.closest('.site-row');
+    if (row) {
+      row.classList.remove('down', 'blocked');
+      row.classList.add('up');
+      const dot = row.querySelector('.status-dot');
+      if (dot) { dot.classList.remove('down', 'blocked'); dot.classList.add('up'); }
+      const nameEl = row.querySelector('.site-name');
+      if (nameEl) nameEl.textContent = nameEl.textContent.replace(/[🟢🟡🔴]/g, '').trim() + ' 🟢';
+      const metaEl = row.querySelector('.site-meta');
+      if (metaEl) metaEl.textContent = `${newUrl} — Updated just now`;
+      row.querySelectorAll('.site-meta').forEach(el => {
+        if (el !== metaEl && el.textContent.includes('blocking this server')) el.remove();
+      });
+      row.querySelectorAll('.quick-test-btn').forEach(b => {
+        if (b.textContent.includes('Test This Link')) b.remove();
+      });
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== HOT (FEATURED) TOGGLE ==========
+// Marks/unmarks a site as "hot" — pinned to the front of the directory grid.
+// Same GitHub-commit pattern as updateLiveLink(), but writes to hot-sites.json,
+// a simple array of normalized site names.
+async function toggleHotSite(siteName, btn) {
+  const config = getGithubConfig();
+  if (!config.owner || !config.repo || !config.token) {
+    alert('⚠️ Set up GitHub Connection above first.');
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/hot-sites.json`;
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+  const key = normalizeSiteName(siteName);
+
+  try {
+    let sha, current = [];
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read hot-sites.json (HTTP ${getRes.status})`);
+    } // 404 is fine — file doesn't exist yet, we'll create it
+
+    const nowHot = !current.includes(key);
+    current = nowHot ? [...current, key] : current.filter(k => k !== key);
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `${nowHot ? 'Mark' : 'Unmark'} ${siteName} as hot`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    // Reflect immediately in this session so the admin doesn't have to reload.
+    hotSiteNames = current;
+    renderSitesDirectory();
+    btn.textContent = nowHot ? '🔥 Hot — tap to unhot' : '🔥 Mark as Hot';
+    btn.style.background = nowHot ? '#f0b428' : '';
+    btn.style.color = nowHot ? '#1a1a2e' : '';
+    btn.style.borderColor = nowHot ? '#f0b428' : '';
+  } catch (err) {
+    alert(`❌ Failed to update hot status: ${err.message}`);
+    btn.textContent = originalLabel;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Adds a brand-new site card to the homepage directory — writes to
+// custom-sites.json the same way updateLiveLink() writes to overrides.json.
+// No custom logo needed: cards without a hand-crafted logoHtml automatically
+// fall back to defaultLogoHtml() (icon + site name, same font/spacing as
+// every other card) so new sites match the existing design immediately.
+async function addNewWebsite(btn) {
+  const name = document.getElementById('new-site-name').value.trim();
+  const url = document.getElementById('new-site-url').value.trim();
+  const icon = document.getElementById('new-site-icon').value.trim();
+  const cats = [];
+  if (document.getElementById('new-site-cat-movie').checked) cats.push('movie');
+  if (document.getElementById('new-site-cat-drama').checked) cats.push('drama');
+  if (document.getElementById('new-site-cat-anime').checked) cats.push('anime');
+  if (document.getElementById('new-site-cat-pinoy').checked) cats.push('pinoy');
+  const statusEl = document.getElementById('add-site-status');
+  const config = getGithubConfig();
+
+  if (!config.owner || !config.repo || !config.token) {
+    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  if (!name || !url) {
+    statusEl.textContent = 'Fill in at least the name and URL.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  let domain;
+  try { domain = new URL(url).hostname.replace(/^www\./, ''); }
+  catch (e) { statusEl.textContent = "That URL doesn't look valid — include https://"; statusEl.style.color = '#e63946'; return; }
+  if (cats.length === 0) cats.push('movie');
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+  statusEl.textContent = '';
+
+  const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    let sha, current = [];
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read custom-sites.json (HTTP ${getRes.status})`);
+    }
+
+    if (current.some(s => normalizeSiteName(s.name) === normalizeSiteName(name))) {
+      throw new Error(`"${name}" is already in the list.`);
+    }
+
+    current.push({ name, url, domain, categories: cats, icon: icon || undefined });
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Add new site: ${name}`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    statusEl.textContent = `✅ "${name}" added! Takes ~1 min to appear on the site.`;
+    statusEl.style.color = '#06d6a0';
+    document.getElementById('new-site-name').value = '';
+    document.getElementById('new-site-url').value = '';
+    document.getElementById('new-site-icon').value = '';
+
+    // The admin list below is rendered from status.json, which only refreshes
+    // once a day via the GitHub Action — so a freshly-added site wouldn't show
+    // up here until tomorrow's check. Insert a placeholder row now so it's
+    // visible (and deletable) right away.
+    const rowsContainer = document.getElementById('admin-site-rows');
+    if (rowsContainer) {
+      const safeName = escapeForAttr(name);
+      const row = document.createElement('div');
+      row.className = 'site-row';
+      row.innerHTML = `
+        <div class="status-dot"></div>
+        <div style="flex:1;">
+          <div class="site-name">${name} 🆕</div>
+          <div class="site-meta">${url} — Not checked yet (next automatic check within 24h)</div>
+          <button class="delete-site-btn" onclick="confirmDeleteWebsite('${safeName}', this)">🗑️ Delete Website</button>
+          <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
+        </div>
+      `;
+      rowsContainer.prepend(row);
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== DELETE WEBSITE (admin panel) ==========
+// Removes a site from sites.json (so it stops being checked by the daily
+// GitHub Action) and, if it was admin-added, from custom-sites.json too
+// (so its homepage card disappears). Built-in sites that live in
+// SITES_DIRECTORY (hardcoded in this file) still need their code line
+// removed manually — that part can't be safely automated via the API.
+// Cuts a matching { name: '...', ... } entry out of the SITES_DIRECTORY
+// array inside raw index.html source text. Safe because every entry in that
+// array is a single flat object with no nested {}. Returns the updated
+// source, or null if the array or the named entry wasn't found.
+function removeFromSitesDirectorySource(sourceText, siteName) {
+  const target = normalizeSiteName(siteName);
+  const dirStart = sourceText.indexOf('const SITES_DIRECTORY = [');
+  if (dirStart === -1) return null;
+  const dirEnd = sourceText.indexOf('\n];', dirStart);
+  if (dirEnd === -1) return null;
+
+  const before = sourceText.slice(0, dirStart);
+  const arrayBlock = sourceText.slice(dirStart, dirEnd + 3);
+  const after = sourceText.slice(dirEnd + 3);
+
+  let found = false;
+  const newArrayBlock = arrayBlock.replace(/\n?\s*\{[^{}]*\},?/g, (entryText) => {
+    const nameMatch = entryText.match(/name:\s*['"]([^'"]*)['"]/);
+    if (nameMatch && normalizeSiteName(nameMatch[1]) === target) {
+      found = true;
+      return '';
+    }
+    return entryText;
+  });
+
+  if (!found) return null;
+  return before + newArrayBlock + after;
+}
+
+function confirmDeleteWebsite(siteName, btn) {
+  const ok = confirm(`Sigurado ka bang gusto mong i-delete ang "${siteName}"?\n\nHindi na ito mababawi.`);
+  if (!ok) return;
+  deleteWebsite(siteName, btn);
+}
+
+async function deleteWebsite(siteName, btn) {
+  const statusEl = btn.closest('.site-row').querySelector('.delete-site-status');
+  const config = getGithubConfig();
+
+  if (!config.owner || !config.repo || !config.token) {
+    statusEl.textContent = '⚠️ Set up GitHub Connection above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+  statusEl.textContent = '';
+
+  const headers = { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    // 1) Remove from sites.json (the checker list) — if the site isn't in
+    // there at all (e.g. a built-in SITES_DIRECTORY entry that was never
+    // added to the checker list), that's fine, just skip this step instead
+    // of aborting the whole deletion.
+    let removedFromSitesJson = false;
+    const sitesUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/sites.json`;
+    const sitesGetRes = await fetch(sitesUrl, { headers });
+    if (!sitesGetRes.ok) throw new Error(`Could not read sites.json (HTTP ${sitesGetRes.status})`);
+    const sitesFileData = await sitesGetRes.json();
+    let sitesCurrent = JSON.parse(b64DecodeUtf8(sitesFileData.content));
+    const beforeCount = sitesCurrent.length;
+    sitesCurrent = sitesCurrent.filter(s => normalizeSiteName(s.name) !== normalizeSiteName(siteName));
+
+    if (sitesCurrent.length !== beforeCount) {
+      const sitesPutRes = await fetch(sitesUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Remove site: ${siteName}`,
+          content: b64EncodeUtf8(JSON.stringify(sitesCurrent, null, 2)),
+          sha: sitesFileData.sha,
+        }),
+      });
+      if (!sitesPutRes.ok) {
+        const errData = await sitesPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `GitHub rejected the sites.json update (HTTP ${sitesPutRes.status})`);
+      }
+      removedFromSitesJson = true;
+    }
+
+    // 2) If it was an admin-added site, also remove it from custom-sites.json
+    // so its homepage card disappears. Built-in SITES_DIRECTORY sites don't
+    // live here, so a 404/miss here is expected and not an error.
+    let removedFromCustom = false;
+    const customUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/custom-sites.json`;
+    const customGetRes = await fetch(customUrl, { headers });
+    if (customGetRes.status === 200) {
+      const customFileData = await customGetRes.json();
+      const customCurrent = JSON.parse(b64DecodeUtf8(customFileData.content));
+      const filteredCustom = customCurrent.filter(s => normalizeSiteName(s.name) !== normalizeSiteName(siteName));
+      if (filteredCustom.length !== customCurrent.length) {
+        const customPutRes = await fetch(customUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Remove site: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(filteredCustom, null, 2)),
+            sha: customFileData.sha,
+          }),
+        });
+        if (!customPutRes.ok) {
+          const errData = await customPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Removed from sites.json but failed on custom-sites.json (HTTP ${customPutRes.status})`);
+        }
+        removedFromCustom = true;
+      }
+    }
+
+    // 3) Add to removed-sites.json regardless of site type — this is a small,
+    // cache-busted file the front-end filters against on every load, so the
+    // card disappears immediately even before index.html's own edit (below,
+    // for built-ins) or GitHub Pages' cache has caught up.
+    const removedUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/removed-sites.json`;
+    const removedGetRes = await fetch(removedUrl, { headers });
+    let removedList = [];
+    let removedSha = null;
+    if (removedGetRes.status === 200) {
+      const removedFileData = await removedGetRes.json();
+      removedList = JSON.parse(b64DecodeUtf8(removedFileData.content));
+      removedSha = removedFileData.sha;
+    } else if (removedGetRes.status !== 404) {
+      throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
+    }
+    const normalizedTarget = normalizeSiteName(siteName);
+    if (!removedList.some(n => normalizeSiteName(n) === normalizedTarget)) {
+      removedList.push(siteName);
+      const removedBody = {
+        message: `Mark site as removed: ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(removedList, null, 2)),
+      };
+      if (removedSha) removedBody.sha = removedSha;
+      const removedPutRes = await fetch(removedUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(removedBody),
+      });
+      if (!removedPutRes.ok) {
+        const errData = await removedPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `Removed from sites.json but failed on removed-sites.json (HTTP ${removedPutRes.status})`);
+      }
+    }
+    removedSiteNames.push(normalizedTarget); // reflect in this session's own view too
+
+    // 4) If it's a built-in site (lives in SITES_DIRECTORY, hardcoded in this
+    // very file), remove its entry from the source too so the homepage card
+    // disappears — every SITES_DIRECTORY entry is a flat { ... } object with
+    // no nested braces, so a brace-matched regex can safely cut it out.
+    // (removed-sites.json above already hides it either way — this just
+    // keeps index.html's own source clean long-term.)
+    let removedFromDirectory = false;
+    if (SITES_DIRECTORY.some(s => normalizeSiteName(s.name) === normalizeSiteName(siteName))) {
+      const idxUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/index.html`;
+      const idxGetRes = await fetch(idxUrl, { headers });
+      if (!idxGetRes.ok) throw new Error(`Could not read index.html (HTTP ${idxGetRes.status})`);
+      const idxFileData = await idxGetRes.json();
+      const idxSource = b64DecodeUtf8(idxFileData.content);
+      const updatedSource = removeFromSitesDirectorySource(idxSource, siteName);
+      if (!updatedSource) throw new Error(`Could not find "${siteName}" inside SITES_DIRECTORY in index.html.`);
+      const idxPutRes = await fetch(idxUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Remove built-in site from SITES_DIRECTORY: ${siteName}`,
+          content: b64EncodeUtf8(updatedSource),
+          sha: idxFileData.sha,
+        }),
+      });
+      if (!idxPutRes.ok) {
+        const errData = await idxPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `Removed from sites.json but failed removing from SITES_DIRECTORY (HTTP ${idxPutRes.status})`);
+      }
+      removedFromDirectory = true;
+    }
+
+    statusEl.textContent = removedFromDirectory
+      ? `✅ Deleted "${siteName}" and its SITES_DIRECTORY entry in index.html. Takes ~1 min to appear on both admin and user sides.`
+      : removedFromCustom
+      ? `✅ Deleted "${siteName}" from custom-sites.json.`
+      : removedFromSitesJson
+      ? `✅ Deleted "${siteName}" from sites.json.`
+      : `✅ Marked "${siteName}" as removed.`;
+    statusEl.style.color = '#06d6a0';
+    btn.textContent = 'Deleted ✓';
+
+    // The admin list is rendered from status.json, which only refreshes once
+    // a day via the GitHub Action — so without this, a successfully deleted
+    // site would keep showing here until tomorrow. Remove the row now so the
+    // panel reflects reality immediately.
+    const row = btn.closest('.site-row');
+    if (row) {
+      setTimeout(() => {
+        row.style.transition = 'opacity .4s ease';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 400);
+      }, 900);
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== TEST LINK (admin panel) ==========
+// Client-side only reachability check. Browsers block cross-origin fetches
+// from reading the real response (CORS), so this can't confirm HTTP status
+// or page content — it can only tell you whether the request errored out
+// (DNS failure, connection refused, timeout, offline) vs. got some kind of
+// response back. Always eyeball the actual page via "Open This Link".
+let testLinkAbortController = null;
+
+function escapeForAttr(str) {
+  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+async function testLink() {
+  const input = document.getElementById('test-link-input');
+  const resultBox = document.getElementById('test-link-result');
+  const btn = document.querySelector('.test-link-btn');
+  if (!input || !resultBox) return;
+
+  let url = input.value.trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  const safeUrl = escapeForAttr(url);
+
+  if (testLinkAbortController) testLinkAbortController.abort();
+  testLinkAbortController = new AbortController();
+  const timeoutId = setTimeout(() => testLinkAbortController.abort(), 8000);
+
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  resultBox.classList.add('show');
+  resultBox.innerHTML = `<div class="test-link-status"><span>⏳</span><span>Checking ${url}...</span></div>`;
+
+  try {
+    // no-cors gives an opaque response we can't inspect — but if it resolves
+    // without throwing, the browser was at least able to reach the host.
+    await fetch(url, { mode: 'no-cors', signal: testLinkAbortController.signal, cache: 'no-store' });
+    clearTimeout(timeoutId);
+    resultBox.innerHTML = `
+      <div class="test-link-status"><span style="color:#06d6a0;">🟢</span><span>Looks reachable — the browser was able to connect.</span></div>
+      <div class="test-link-note">Note: due to browser security (CORS), this can't confirm the actual page content or HTTP status — just that something answered. Open the link to verify visually.</div>
+      <button class="test-link-open-btn" onclick="window.open('${safeUrl}', '_blank')">↗ Open This Link</button>
+    `;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    const timedOut = err.name === 'AbortError';
+    resultBox.innerHTML = `
+      <div class="test-link-status"><span style="color:#e63946;">🔴</span><span>${timedOut ? 'Timed out — no response after 8 seconds.' : 'Could not reach this link (blocked, offline, or invalid URL).'}</span></div>
+      <div class="test-link-note">This check can have false negatives too (e.g. sites that block automated requests). Open the link to double-check yourself.</div>
+      <button class="test-link-open-btn" onclick="window.open('${safeUrl}', '_blank')">↗ Open This Link Anyway</button>
+    `;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Test';
+  }
+}
+
+// (checkAdminAccess is already called once in the main window 'load' handler above —
+// having a second listener here used to create a duplicate #admin-overlay, which
+// silently broke the panel: the data would load into the hidden first copy while
+// the visible one stayed stuck on "Loading status.json...")
+</script>
+</body>
+</html>
