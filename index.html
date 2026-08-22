@@ -3129,17 +3129,6 @@ const TMDB_PROXY_URL = 'https://cinefind-proxy.manio-james-g-5588.workers.dev';
 const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const REPORT_WORKER_URL = 'https://cinefin-report-worker.manio-james-g-5588.workers.dev';
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
-
-// ========== AI-VERIFIED SITES (new, separate from the removed Tavily
-// fallback below — uses the Gemini worker instead) ==========
-// Toggle: set to false to instantly turn this off without touching any
-// other code (e.g. if it turns out unreliable like the old Tavily one did).
-const ENABLE_AI_VERIFY = false; // Turned off — was hiding the static site list behind an "AI verifying..." spinner, and falling back to a generic KissKH link (instead of the confirmed direct one) whenever all Gemini keys failed. Static list now shows immediately again. Flip back to true once the KissKH-fallback bug is fixed.
-const AI_VERIFY_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev';
-// (DEBUG_MODE already defined elsewhere in this file — ai-verify.js reuses it.)
-// All the actual logic (prompt, fetch, rendering) lives in ai-verify.js —
-// loaded via <script src="ai-verify.js"> near the bottom of this file.
-
 // Tavily fallback was removed (2026-08-21) — too unreliable in practice
 // (missed niche/poorly-indexed streaming sites, returned generic homepages
 // instead of title pages, sometimes ignored the domain restriction
@@ -3385,13 +3374,8 @@ const ANIME_SITES = (title) => [
 // original language/origin country rather than just the movie/series split —
 // so "Iron Man" gets movie sites, an anime movie or series gets anime sites,
 // and a K-drama gets drama sites, regardless of type.
-// Anime = Animation genre (16) alone, NOT gated on original_language === 'ja'.
-// That gate missed anime-style shows made outside Japan with English as the
-// original_language on TMDB — e.g. "Devil May Cry" (2025, Studio Mir/Adi
-// Shankar) fell through to the generic series bucket and got movie/series
-// sites instead of anime sites.
 function detectCategory(r, type) {
-  const isAnime = (r.genre_ids || []).includes(16);
+  const isAnime = (r.genre_ids || []).includes(16) && r.original_language === 'ja';
   if (isAnime) return 'anime';
   if (type === 'series') {
     const isKDrama = r.original_language === 'ko' || (r.origin_country || []).includes('KR');
@@ -4093,7 +4077,7 @@ function showMoreSites() {
 // Scrolls down to the streaming sites section — triggered by the dedicated
 // "Jump to streaming sites" button under the movie description.
 function scrollToSites() {
-  const target = document.getElementById('ai-verify-section') || document.getElementById('sites-section');
+  const target = document.getElementById('sites-section');
   if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -4322,26 +4306,11 @@ function renderResult(data, query) {
       </div>
     </div>
 
-    <div id="sites-section" style="${ENABLE_AI_VERIFY ? 'display:none;' : ''}">
+    <div id="sites-section">
       <div class="section-label">Free streaming sites</div>
       <div class="sites-grid">${siteCards}</div>
       ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
-      <div id="kisskh-debug-box"></div>
     </div>
-
-    ${ENABLE_AI_VERIFY ? `
-    <style>@keyframes aiPulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
-    <div id="ai-verify-section">
-      <div class="section-label" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        🔮 Verifying sites with AI
-        <span id="ai-verify-indicator" style="font-size:.68rem; font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); display:inline-flex; align-items:center; gap:5px;">
-          <span style="width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; animation:aiPulse 1s ease-in-out infinite;"></span>
-          Checking in real time... (up to 18s)
-        </span>
-      </div>
-      <div class="loading" style="padding:16px 0;"><div class="spinner"></div></div>
-    </div>
-    <div id="ai-debug-box"></div>` : ''}
 
     <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
       ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
@@ -4363,17 +4332,6 @@ function renderResult(data, query) {
   if (data.id) loadSimilar(data);
 
   applyStatusDots();
-
-  // AI-verified check (Gemini-based, separate from the removed Tavily
-  // fallback below) — runs in the background; static list above already
-  // fully visible/usable regardless of what happens here.
-  if (ENABLE_AI_VERIFY) checkAIVerifiedSites(data, { siteCards, tip: data.tip });
-
-  // Standalone KissKH direct-link check — independent of ENABLE_AI_VERIFY
-  // (no Gemini involved, see checkKissKHDirectLink in ai-verify.js), so
-  // this still runs and can upgrade the KissKH card to a confirmed direct
-  // link even while the AI-verify flow above is turned off.
-  checkKissKHDirectLink(data);
 
   // Tavily fallback removed (2026-08-21) — see comment near
   // TAVILY_PROXY_URL's old location for why.
@@ -7050,10 +7008,5 @@ async function testLink() {
 // silently broke the panel: the data would load into the hidden first copy while
 // the visible one stayed stuck on "Loading status.json...")
 </script>
-<!-- ?v=2 cache-buster: browsers/CDNs cache .js files aggressively, so a
-     GitHub Pages update to ai-verify.js alone can silently keep serving the
-     old cached copy for a while. Bump this number any time ai-verify.js
-     changes, to force a fresh fetch instead of relying on cache headers. -->
-<script src="ai-verify.js?v=5"></script>
 </body>
 </html>
