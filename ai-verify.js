@@ -39,32 +39,76 @@
 // every time someone searches a title. Everything the AI is allowed
 // to do, and everything it's told NOT to do, lives here.
 //
+// IMPORTANT (found 2026-08-22): Google Search grounding does not cost
+// "1 search" per API call — Gemini internally fires a SEPARATE search
+// query for each site it tries to verify. Listing all 5 sites and
+// trusting the model to "only check the relevant ones" still let it
+// fan out and search all 5, burning 5x the grounding quota per single
+// title lookup. The fix: decide the relevant site(s) HERE in JS,
+// BEFORE building the prompt text, so sites that don't apply are
+// never even mentioned to the model — nothing for it to search.
+//
 // Whole intent, in plain terms:
 //   1. Tell Gemini exactly which title/year/type (movie, series,
 //      anime, K-Drama) the user is looking for.
-//   2. Force Gemini to actually use Google Search to check in real
-//      time whether the title is really watchable on each site —
-//      never just guess from memory.
-//   3. Force a strict JSON reply (name, url, note, linkType) so the
+//   2. Only mention the 1-2 sites that are actually relevant to this
+//      title's category — never all 5, to keep grounding search
+//      fan-out (and quota use) to a minimum per lookup.
+//   3. Force Gemini to actually use Google Search to check in real
+//      time whether the title is really watchable there — never
+//      just guess from memory.
+//   4. Force a strict JSON reply (name, url, note, linkType) so the
 //      front-end code can render it directly as clickable cards —
 //      no free-text answers allowed.
-//   4. Only allow "linkType": "direct" (a real clickable link straight
+//   5. Only allow "linkType": "direct" (a real clickable link straight
 //      to the title) when Gemini is 100% sure the exact URL is right.
 //      Otherwise it must fall back to "search_required" (a link to
 //      the site's search page instead) rather than invent a URL that
 //      might be wrong or dead.
-//   5. Rank the sites from most to least reliable, and cap it at 5.
 //   6. If nothing can be confidently verified, return an empty list
 //      instead of forcing a bad guess — the front-end then falls back
 //      to the static site list.
 //
-// If you want to change WHICH sites the AI checks, or HOW strict it
-// is about direct links, this is the only place you need to edit.
+// If you want to change WHICH sites the AI checks, edit
+// CATEGORY_SITES below — this is the only place you need to edit.
 // ============================================================
+// NOTE: named AI_VERIFY_SITE_MAP (not CATEGORY_SITES) — index.html
+// already has its own global CATEGORY_SITES for the static site
+// directory. Since this file loads as a plain <script src>, it shares
+// the same global scope as index.html's inline script, so reusing
+// that name would collide and break the whole page's JS.
+//
+// Keys match what index.html's own detectCategory(r, type) already
+// returns — 'anime', 'drama', 'movie', 'series' — so this plugs
+// straight into the category the app already computes, no guessing.
+const AI_VERIFY_SITE_MAP = {
+  anime: [
+    { name: 'Animepahe', domain: 'animepahe.pw' },
+  ],
+  drama: [
+    { name: 'DramaCool', domain: 'dramacool.com.tw' },
+    { name: 'KissKH', domain: 'kisskh.co' },
+  ],
+  movie: [
+    { name: 'Cineby', domain: 'cineby.at' },
+  ],
+  series: [
+    { name: 'Cineby', domain: 'cineby.at' },
+  ],
+};
+
 function buildVerifyPrompt(movie) {
   const categoryHint = movie.category === 'anime' ? ' — this is anime'
     : movie.category === 'drama' ? ' — this is a K-Drama/J-Drama'
     : '';
+
+  // Only the sites relevant to THIS title's category get mentioned in
+  // the prompt text below — everything else in AI_VERIFY_SITE_MAP is
+  // never sent, so Gemini has nothing else to search for.
+  const relevantSites = AI_VERIFY_SITE_MAP[movie.category] || AI_VERIFY_SITE_MAP.movie;
+  const siteChecklist = relevantSites
+    .map((s, i) => `  ${i + 1}. ${s.name} (${s.domain})`)
+    .join('\n');
 
   return `Verify current, real, working FREE streaming sites where someone can watch "${movie.title}"${movie.year ? ' (' + movie.year + ')' : ''} right now. This is a ${movie.type === 'series' ? 'TV series' : 'movie'}${categoryHint}.
 
@@ -82,23 +126,17 @@ Respond ONLY in this exact JSON format, no markdown, no extra text:
 }
 
 Rules:
-- Use Google Search to verify real-time whether this title is actually available on each site before including it. Do not rely on memory alone.
+- Use Google Search to verify real-time whether this title is actually available on the site(s) below before including it. Do not rely on memory alone.
 - Only include REAL, working, free streaming sites (no paid/subscription required)
-- Good sites to check (ONLY these 5 — do not check or suggest any other site):
-  1. DramaCool (dramacool.com.tw) — K-Drama/J-Drama/Asian drama
-  2. KissKH (kisskh.co) — K-Drama/J-Drama/Asian drama
-  3. Cineby (cineby.at) — general movies/TV
-  4. Animepahe (animepahe.pw) — anime
-  5. Viva Films (youtube.com/@VIVAFilms/videos) — Filipino movies
-- Only check the site(s) relevant to this title's category (e.g. for a K-Drama, only check DramaCool and KissKH — don't bother checking Animepahe or Viva Films for it)
+- Check ONLY these site(s) — do not check or suggest any other site:
+${siteChecklist}
 - IMPORTANT: Only recommend a site if you are CONFIDENT this specific title is actually available and watchable there right now
-- Put the site where the title is MOST LIKELY available and working at the TOP of the list
 - URL rule (follow in this priority order):
   1. ONLY set "linkType": "direct" if you have 100% verified through actual search that this exact URL leads directly to this specific title and it is currently watchable. If there is ANY doubt, do NOT use "direct".
   2. If you're confident the title exists on the site but are not 100% sure of the exact URL, use that site's search results page URL instead and set "linkType": "search_required"
   3. Never invent or guess a direct URL — a wrong guessed link is worse than a search-page link.
-- Include only the relevant sites from the checklist above that you can verify, ranked from MOST reliable to least reliable
-- If no sites can be confidently verified, respond with {"sites": [], "tip": ""}
+- Rank the site(s) above from MOST reliable to least reliable if more than one applies
+- If none can be confidently verified, respond with {"sites": [], "tip": ""}
 - Keep it family-friendly`;
 }
 
