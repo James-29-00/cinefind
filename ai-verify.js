@@ -392,8 +392,34 @@ function renderAIVerifiedSites(parsed, staticFallback) {
 // already-visible static KissKH card in place once a confirmed match comes
 // back, and silently does nothing on any failure — the generic KissKH
 // search link already showing is a perfectly fine fallback either way.
+//
+// Debug trail: every branch below logs a line and renders it into
+// #kisskh-debug-box, but ONLY when ?debug=1 is in the URL (DEBUG_MODE,
+// defined in index.html) — regular users never see this, same pattern as
+// the AI-verify debug log above. Use this to see exactly why a KissKH card
+// didn't upgrade (wrong category, network error, no confident match, etc.)
+// instead of it just silently staying generic with no visible reason.
+function renderKissKHDebug(lines) {
+  const box = document.getElementById('kisskh-debug-box');
+  if (!box || !DEBUG_MODE || lines.length === 0) return;
+  box.innerHTML = `
+    <details open style="margin-top:10px; font-size:.72rem; color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:8px 10px;">
+      <summary style="cursor:pointer; font-weight:600; color:var(--text);">🐛 KissKH check debug log</summary>
+      <pre style="white-space:pre-wrap; word-break:break-word; margin-top:8px; font-family:monospace; font-size:.68rem; line-height:1.5;">${escapeAttr(lines.join('\n'))}</pre>
+    </details>
+  `;
+}
+
 async function checkKissKHDirectLink(movie) {
-  if (!movie || movie.category !== 'drama' || !movie.title) return;
+  const debugLines = [];
+  const log = (msg) => { debugLines.push(msg); if (DEBUG_MODE) console.log('[KissKH]', msg); };
+
+  if (!movie || movie.category !== 'drama' || !movie.title) {
+    log(`Skipped — category is "${movie && movie.category}", not "drama" (or no title).`);
+    renderKissKHDebug(debugLines);
+    return;
+  }
+  log(`Checking KissKH direct link for "${movie.title}"...`);
   try {
     const res = await fetch(AI_VERIFY_WORKER_URL, {
       method: 'POST',
@@ -401,15 +427,33 @@ async function checkKissKHDirectLink(movie) {
       body: JSON.stringify({ mode: 'kisskh', title: movie.title }),
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) return;
+    log(`Worker responded: HTTP ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+      log('Stopping — non-OK HTTP status. Generic KissKH card left as-is.');
+      renderKissKHDebug(debugLines);
+      return;
+    }
     const data = await res.json();
+    log(`Response body: ${JSON.stringify(data).slice(0, 300)}`);
     const result = data && data.result;
-    if (!result || !result.url) return;
+    if (!result || !result.url) {
+      log('No confident match returned by the Worker (result is null/empty). Generic KissKH card left as-is.');
+      renderKissKHDebug(debugLines);
+      return;
+    }
     // Movie may have changed while this request was in flight.
-    if (window.currentMovie !== movie) return;
+    if (window.currentMovie !== movie) {
+      log('Movie changed while request was in flight — discarding result.');
+      renderKissKHDebug(debugLines);
+      return;
+    }
 
     const card = document.querySelector('.site-card[data-site-name="KissKH"]');
-    if (!card) return;
+    if (!card) {
+      log('No KissKH card found in the DOM to update — was it renamed or removed from the sites list?');
+      renderKissKHDebug(debugLines);
+      return;
+    }
     card.href = result.url;
 
     const noteDiv = card.querySelector('.site-info > div.site-note');
@@ -432,7 +476,10 @@ async function checkKissKHDirectLink(movie) {
     if (copyBtn) {
       copyBtn.setAttribute('onclick', `copySiteLink(event, '${escapeAttr(result.url)}', this)`);
     }
+    log(`✅ Success — KissKH card upgraded to confirmed direct link: ${result.url}`);
+    renderKissKHDebug(debugLines);
   } catch (e) {
-    // Network error/timeout — leave the generic KissKH card as-is.
+    log(`❌ Failed — ${e.name}: ${e.message}. Generic KissKH card left as-is.`);
+    renderKissKHDebug(debugLines);
   }
 }

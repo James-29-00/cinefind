@@ -4326,6 +4326,7 @@ function renderResult(data, query) {
       <div class="section-label">Free streaming sites</div>
       <div class="sites-grid">${siteCards}</div>
       ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
+      <div id="kisskh-debug-box"></div>
     </div>
 
     ${ENABLE_AI_VERIFY ? `
@@ -7053,6 +7054,6 @@ async function testLink() {
      GitHub Pages update to ai-verify.js alone can silently keep serving the
      old cached copy for a while. Bump this number any time ai-verify.js
      changes, to force a fresh fetch instead of relying on cache headers. -->
-<script src="ai-verify.js?v=2"></script>
+<script src="ai-verify.js?v=4"></script>
 </body>
 </html>
