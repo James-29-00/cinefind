@@ -435,6 +435,12 @@ async function checkKissKHDirectLink(movie) {
     }
     const data = await res.json();
     log(`Response body: ${JSON.stringify(data).slice(0, 300)}`);
+    if (data.debug) {
+      log(`kisskh.co fetch — HTTP ${data.debug.httpStatus}, ${data.debug.resultCount ?? '?'} result(s) returned${data.debug.error ? `, error: ${data.debug.error}` : ''}.`);
+      if (data.debug.sampleTitles && data.debug.sampleTitles.length > 0) {
+        log(`First few titles kisskh.co returned: ${data.debug.sampleTitles.join(' | ')}`);
+      }
+    }
     const result = data && data.result;
     if (!result || !result.url) {
       log('No confident match returned by the Worker (result is null/empty). Generic KissKH card left as-is.');
