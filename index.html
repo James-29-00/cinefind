@@ -3385,8 +3385,13 @@ const ANIME_SITES = (title) => [
 // original language/origin country rather than just the movie/series split —
 // so "Iron Man" gets movie sites, an anime movie or series gets anime sites,
 // and a K-drama gets drama sites, regardless of type.
+// Anime = Animation genre (16) alone, NOT gated on original_language === 'ja'.
+// That gate missed anime-style shows made outside Japan with English as the
+// original_language on TMDB — e.g. "Devil May Cry" (2025, Studio Mir/Adi
+// Shankar) fell through to the generic series bucket and got movie/series
+// sites instead of anime sites.
 function detectCategory(r, type) {
-  const isAnime = (r.genre_ids || []).includes(16) && r.original_language === 'ja';
+  const isAnime = (r.genre_ids || []).includes(16);
   if (isAnime) return 'anime';
   if (type === 'series') {
     const isKDrama = r.original_language === 'ko' || (r.origin_country || []).includes('KR');
