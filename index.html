@@ -3134,7 +3134,7 @@ const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev
 // fallback below — uses the Gemini worker instead) ==========
 // Toggle: set to false to instantly turn this off without touching any
 // other code (e.g. if it turns out unreliable like the old Tavily one did).
-const ENABLE_AI_VERIFY = true;
+const ENABLE_AI_VERIFY = false; // Turned off — was hiding the static site list behind an "AI verifying..." spinner, and falling back to a generic KissKH link (instead of the confirmed direct one) whenever all Gemini keys failed. Static list now shows immediately again. Flip back to true once the KissKH-fallback bug is fixed.
 const AI_VERIFY_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev';
 // (DEBUG_MODE already defined elsewhere in this file — ai-verify.js reuses it.)
 // All the actual logic (prompt, fetch, rendering) lives in ai-verify.js —
@@ -4367,6 +4367,12 @@ function renderResult(data, query) {
   // fallback below) — runs in the background; static list above already
   // fully visible/usable regardless of what happens here.
   if (ENABLE_AI_VERIFY) checkAIVerifiedSites(data, { siteCards, tip: data.tip });
+
+  // Standalone KissKH direct-link check — independent of ENABLE_AI_VERIFY
+  // (no Gemini involved, see checkKissKHDirectLink in ai-verify.js), so
+  // this still runs and can upgrade the KissKH card to a confirmed direct
+  // link even while the AI-verify flow above is turned off.
+  checkKissKHDirectLink(data);
 
   // Tavily fallback removed (2026-08-21) — see comment near
   // TAVILY_PROXY_URL's old location for why.

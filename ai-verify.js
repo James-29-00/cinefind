@@ -383,3 +383,56 @@ function renderAIVerifiedSites(parsed, staticFallback) {
   `;
   applyStatusDots();
 }
+
+// ===== Standalone KissKH direct-link check =====
+// Independent of ENABLE_AI_VERIFY and the Gemini flow above — hits the
+// Worker's dedicated mode=kisskh branch, which only calls kisskh.co's own
+// search API, no Gemini/API keys involved. Call this unconditionally for
+// drama titles regardless of whether AI-verify is on; it patches the
+// already-visible static KissKH card in place once a confirmed match comes
+// back, and silently does nothing on any failure — the generic KissKH
+// search link already showing is a perfectly fine fallback either way.
+async function checkKissKHDirectLink(movie) {
+  if (!movie || movie.category !== 'drama' || !movie.title) return;
+  try {
+    const res = await fetch(AI_VERIFY_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'kisskh', title: movie.title }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const result = data && data.result;
+    if (!result || !result.url) return;
+    // Movie may have changed while this request was in flight.
+    if (window.currentMovie !== movie) return;
+
+    const card = document.querySelector('.site-card[data-site-name="KissKH"]');
+    if (!card) return;
+    card.href = result.url;
+
+    const noteDiv = card.querySelector('.site-info > div.site-note');
+    if (noteDiv) noteDiv.textContent = result.note || 'English sub, Free streaming';
+
+    const badgeSpan = card.querySelector('.site-info > span.site-note, .site-info > span.site-free');
+    if (badgeSpan) {
+      badgeSpan.outerHTML = '<span class="site-free" style="margin-top:2px; display:inline-block;">✅ Direct link</span>';
+    }
+
+    // Report/Copy buttons had the old generic URL baked into their onclick
+    // strings when the card was first built — refresh those too so they
+    // stay consistent with the new href instead of silently pointing at
+    // the stale search-page link.
+    const reportBtn = card.querySelector('.copy-link-btn.report-icon');
+    if (reportBtn) {
+      reportBtn.setAttribute('onclick', `event.preventDefault(); event.stopPropagation(); openReportModal('KissKH', '${escapeAttr(result.url)}')`);
+    }
+    const copyBtn = card.querySelector('.copy-link-btn:not(.report-icon)');
+    if (copyBtn) {
+      copyBtn.setAttribute('onclick', `copySiteLink(event, '${escapeAttr(result.url)}', this)`);
+    }
+  } catch (e) {
+    // Network error/timeout — leave the generic KissKH card as-is.
+  }
+}
