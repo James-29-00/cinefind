@@ -1,6 +1,8 @@
 {
   "primary": "dramacool.rest",
   "pattern": "/drama/{slug}",
-  "fallbacks": [],
-  "last_verified": "2026-08-21"
+  "fallbacks": [
+    { "domain": "dramacool.baby" }
+  ],
+  "last_verified": "2026-08-23"
 }
