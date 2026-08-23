@@ -3384,6 +3384,84 @@ function detectCategory(r, type) {
   return 'movie';
 }
 
+// ========== DRAMACOOL LIVE SEARCH INTEGRATION ==========
+// See dramacool-status-update-2-1.md for the full backend roadmap.
+// The Search Worker (dramacool-search-worker.js) is already deployed,
+// tested, and debugged — this is just the front-end wiring: decide
+// when to call it, and render whatever it returns.
+const DRAMACOOL_SEARCH_WORKER_URL = 'https://dramacool-search.manio-james-g-5588.workers.dev';
+// K-drama/J-drama/C-drama/Taiwanese/Thai only — no PH (dedicated sites
+// already handle Pinoy content) and no anime (dedicated anime sites
+// already handle that). Matches the exact rule from the roadmap doc.
+const DRAMACOOL_COUNTRIES = ['KR', 'JP', 'CN', 'TW', 'TH'];
+function isDramaCoolEligible(data) {
+  return data.category !== 'anime' && DRAMACOOL_COUNTRIES.includes((data.origin_country || [])[0]);
+}
+
+async function checkDramaCool(data) {
+  const section = document.getElementById('dramacool-section');
+  if (!section) return;
+
+  const t0 = performance.now();
+  const dcLog = [];
+  const logDC = (msg) => dcLog.push(`[+${((performance.now() - t0) / 1000).toFixed(1)}s] ${msg}`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000); // Worker's live-search path: D1 query + GitHub registry fetch + ~5s parallel domain fetch — 8s gives real margin instead of cutting it close
+
+  const url = `${DRAMACOOL_SEARCH_WORKER_URL}?query=${encodeURIComponent(data.title)}`;
+  logDC(`Worker URL: ${url}`);
+
+  try {
+    logDC('Sending GET request...');
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    logDC(`HTTP response received: ${res.status}`);
+    const result = await res.json();
+    logDC(`Raw response: ${JSON.stringify(result).slice(0, 500)}`);
+
+    const top = result.matched && Array.isArray(result.results) ? result.results[0] : null;
+
+    if (top && top.url) {
+      logDC(`✅ Matched (source: ${result.source}) — url: ${top.url}`);
+      section.innerHTML = `
+        <div class="section-label">DramaCool</div>
+        <div class="sites-grid">
+          <a href="${escapeAttr(top.url)}" target="_blank" rel="noopener" class="site-card">
+            <div class="site-card-name">DramaCool</div>
+            <div class="site-card-note">${escapeAttr(top.title || 'Direct link found')}${top.year ? ' (' + top.year + ')' : ''}</div>
+          </a>
+        </div>
+        ${DEBUG_MODE ? renderDCDebugBox(dcLog) : ''}`;
+    } else {
+      logDC('No confident match — removing section, static list above still covers this title.');
+      if (DEBUG_MODE) {
+        section.innerHTML = renderDCDebugBox(dcLog);
+      } else {
+        section.remove();
+      }
+    }
+  } catch (err) {
+    clearTimeout(timeout);
+    const reason = err.name === 'AbortError' ? 'TIMEOUT (8s cap hit)' : err.message;
+    logDC(`❌ Failed — ${reason}`);
+    // Timeout or network error — fail silently (unless debugging). The
+    // static sites-section above already rendered and is fully usable.
+    if (DEBUG_MODE) {
+      section.innerHTML = renderDCDebugBox(dcLog);
+    } else {
+      section.remove();
+    }
+  }
+}
+
+function renderDCDebugBox(lines) {
+  return `<details style="margin-top:10px; font-size:.78rem; color:var(--muted); font-family:monospace; background:rgba(255,255,255,.03); border-radius:8px; padding:8px 12px;">
+    <summary style="cursor:pointer;">🐛 DramaCool debug log</summary>
+    <div style="white-space:pre-wrap; margin-top:8px;">${escapeAttr(lines.join('\n'))}</div>
+  </details>`;
+}
+
 // Used as a sort tiebreaker (never a filter) to nudge ambiguous results
 // toward the K-drama/anime/Asian-content audience this app is actually
 // built for, instead of TMDB's raw popularity order which skews Western.
@@ -4312,6 +4390,12 @@ function renderResult(data, query) {
       ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
     </div>
 
+    ${isDramaCoolEligible(data) ? `
+    <div id="dramacool-section">
+      <div class="section-label">Checking DramaCool</div>
+      <div class="loading" style="padding:12px 0;"><div class="spinner"></div></div>
+    </div>` : ''}
+
     <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
       ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
       <button class="pop-chip" onclick="resetSearch()">${canGoBack ? 'New search' : '← Search again'}</button>
@@ -4332,6 +4416,8 @@ function renderResult(data, query) {
   if (data.id) loadSimilar(data);
 
   applyStatusDots();
+
+  if (isDramaCoolEligible(data)) checkDramaCool(data);
 
   // Tavily fallback removed (2026-08-21) — see comment near
   // TAVILY_PROXY_URL's old location for why.
