@@ -1,3 +1,23 @@
 name = "dramacool-search"
 main = "dramacool-search-worker.js"
 compatibility_date = "2026-08-23"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cinefind-catalog"
+database_id = "5d8cf44a-fe6e-412d-a8f7-566c26ebf21c"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "51a458a52bc647f386976bbcaf83c881"
+
+[[kv_namespaces]]
+binding = "SEARCH_CACHE"
+id = "98e86250456d40be8e7c546966e171d1"
+
+[[kv_namespaces]]
+binding = "STATS_KV"
+id = "cb9cf5617a4e4ba59fcc1004ec7cc78d"
+
+[vars]
+GITHUB_REPO = "James-29-00/cinefind"
