@@ -1,0 +1,18 @@
+name = "dramacool-crawler"
+main = "crawler.js"
+compatibility_date = "2026-08-23"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cinefind-catalog"
+database_id = "5d8cf44a-fe6e-412d-a8f7-566c26ebf21c"
+
+[[kv_namespaces]]
+binding = "CRAWL_STATE"
+id = "15cd2c2589294c6c86000813e7443ff5"
+
+[vars]
+GITHUB_REPO = "James-29-00/cinefind"
+
+[triggers]
+crons = ["*/5 * * * *"]
