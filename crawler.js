@@ -93,7 +93,12 @@ async function runCrawl(env) {
     fetchState.fetchCount++; // loadDomainRegistry itself costs 1 fetch
   } catch (err) {
     await log(env, 'error', 'registry_load_failed', String(err));
-    summary.errors.push('Could not load dramacool-domains.json — aborting crawl entirely.');
+    // Include the real error (e.g. "HTTP 404" or "HTTP 401") directly in
+    // the returned summary — previously this was a fixed generic message,
+    // so the actual reason was only visible in D1's scraper_log table,
+    // not in the response body someone sees when hitting the Worker URL
+    // directly to debug (as opposed to a scheduled cron run).
+    summary.errors.push(`Could not load dramacool-domains.json — aborting crawl entirely. Reason: ${String(err)}`);
     return summary;
   }
 
@@ -374,26 +379,72 @@ async function fetchExplorePage(url, env, state) {
   return { body: listEntry.b.body, hasNext: !!listEntry.b.hasNext };
 }
 
+// Characters allowed in a DramaCool slug based on normal URL slugs seen in
+// practice (lowercase letters, digits, hyphens). Anything else in
+// entry.slug is a sign the scraped value isn't a clean slug — either the
+// page structure changed in an unexpected way, or (worst case) the source
+// site was compromised and is trying to inject something like a
+// protocol-relative URL or a path that escapes /drama/. Rejecting instead
+// of best-effort-cleaning means a suspicious entry is dropped and logged
+// rather than silently saved in some partially-sanitized form.
+const SAFE_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,199}$/i;
+
 async function upsertEntries(env, entries, domain, target) {
   let count = 0;
   const today = new Date().toISOString().slice(0, 10);
   for (const entry of entries) {
     if (!entry.name || !entry.slug) continue;
-    const normalized = normalizeTitle(entry.name);
+
+    // Phase 0.5 — URL/domain validation. Building the URL from a slug
+    // that isn't validated first means a malicious/malformed slug value
+    // could smuggle in things like "../" path traversal or an embedded
+    // "http://other-site.com" that changes what domain the final link
+    // actually points to. Requiring the slug to match a plain
+    // letters/digits/hyphens pattern guarantees the resulting URL can only
+    // ever point at ${domain}/drama/<slug> — never anywhere else.
+    if (!SAFE_SLUG_PATTERN.test(entry.slug)) {
+      await log(env, 'warning', 'unsafe_slug_rejected', `domain=${domain} slug=${JSON.stringify(entry.slug).slice(0, 100)}`);
+      continue;
+    }
+
+    // Defense-in-depth: the front-end render path should also escape
+    // title text before inserting it into the page (see roadmap Phase
+    // 0.5), but sanitizing here too means a raw, unescaped title from a
+    // compromised source is never even stored — one less place downstream
+    // code has to remember to handle it safely.
+    const cleanTitle = sanitizeScrapedText(entry.name);
+    if (!cleanTitle) continue; // name was nothing but disallowed content after cleaning
+
+    const normalized = normalizeTitle(cleanTitle);
     const url = `https://${domain}/drama/${entry.slug}`;
-    const country = entry.country || (target.kind === 'country' ? target.value : null);
+    const country = entry.country ? sanitizeScrapedText(entry.country) : (target.kind === 'country' ? target.value : null);
     try {
       await env.DB.prepare(
         `INSERT INTO dramacool_catalog (title, normalized_title, url, source_domain, country, year, last_seen)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(normalized_title, url) DO UPDATE SET last_seen = excluded.last_seen, year = excluded.year`
-      ).bind(entry.name, normalized, url, domain, country, entry.releaseYear || null, today).run();
+      ).bind(cleanTitle, normalized, url, domain, country, entry.releaseYear || null, today).run();
       count++;
     } catch (err) {
       await log(env, 'error', 'd1_write_failed', `${url} — ${String(err)}`);
     }
   }
   return count;
+}
+
+// Strips HTML tags and control characters from scraped text fields (title,
+// country) before they're stored. This is not a substitute for proper
+// output-escaping at render time (HTML tags stripped here could still
+// legitimately be part of a title in some edge case, and the front-end
+// must escape regardless of what's in D1) — it's a floor: even if a
+// render path somewhere forgets to escape, raw "<script>" text can't have
+// gotten into the database in the first place via this crawler.
+function sanitizeScrapedText(text) {
+  return String(text)
+    .replace(/<[^>]*>/g, '')           // strip HTML tags
+    .replace(/[\u0000-\u001F\u007F]/g, '') // strip control characters
+    .trim()
+    .slice(0, 500); // guard against absurdly long scraped strings
 }
 
 function normalizeTitle(title) {
