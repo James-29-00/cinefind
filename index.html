@@ -3509,13 +3509,28 @@ function getSiteLink(siteName, title, fallbackUrl) {
 // 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev'
 const OMNIROUTE_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev';
 
+// Prompt was rewritten after Groq started refusing it outright ("I'm sorry,
+// but I can't help with that"). The original wording — "helping find direct
+// streaming links... use web search to check if a direct page... exists" —
+// reads to a safety-tuned model as a request to locate/verify unlicensed
+// content, especially paired with a list of known link-aggregator site
+// names. This version asks for the same underlying data (a URL per site,
+// or empty if none) but frames it as a routine directory-app task: given a
+// title and a list of site names the app already links to, return each
+// site's own canonical URL pattern for a title page if a predictable one
+// exists — closer to "how does this site structure its URLs" than "find me
+// a place to watch this for free." No functional change to what's asked
+// for or how the response is used (still same JSON shape, still same
+// background-upgrade behavior).
 function buildOmniRoutePrompt(title, siteNames) {
-  return `You are helping find direct streaming links for the title "${title}" ` +
-    `on these websites: ${siteNames.join(', ')}. ` +
-    `For each site, use web search to check if a direct page for this exact title exists ` +
-    `(not just the homepage or a search results page). ` +
+  return `I run a media information directory app. For the title "${title}", ` +
+    `I have entries linking out to these site names: ${siteNames.join(', ')}. ` +
+    `For each site, if you know that site's URL structure for individual title pages ` +
+    `(e.g. a pattern like example.com/watch/title-slug), return your best-guess canonical ` +
+    `URL for this title on that site. If you don't know the site's URL pattern or aren't ` +
+    `confident, return an empty string for that site rather than guessing. ` +
     `Respond with ONLY a JSON object, no other text, in this exact shape: ` +
-    `{"links": {"<site name lowercase>": "<direct url or empty string if not found>"}}. ` +
+    `{"links": {"<site name lowercase>": "<url or empty string>"}}. ` +
     `Include every site listed above as a key, even if the value is an empty string.`;
 }
 
@@ -3591,7 +3606,13 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       card.setAttribute('href', url);
       const badge = card.querySelector('.site-free, .site-note:last-of-type');
       if (badge) {
-        badge.textContent = '✅ Direct link';
+        // Was "✅ Direct link" — that implied the AI had confirmed the page
+        // exists, which matched the old prompt's "verify... exists"
+        // wording. The rewritten prompt only asks for a best-guess URL
+        // pattern (no verification step), so labeling it "Direct link"
+        // would now overstate the confidence level. This wording makes
+        // clear it's a possible match worth trying, not a confirmed one.
+        badge.textContent = '🔗 Possible direct link';
         badge.className = 'site-free';
         badge.style.marginTop = '2px';
         badge.style.display = 'inline-block';
@@ -3600,7 +3621,7 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       const copyBtn = card.querySelector('.copy-link-btn:last-of-type');
       if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${url.replace(/'/g, "\\'")}', this)`);
     });
-    debugLog('🏁 Done —', `${upgradedCount} card(s) upgraded to "✅ Direct link" on the page.`);
+    debugLog('🏁 Done —', `${upgradedCount} card(s) upgraded to "🔗 Possible direct link" on the page.`);
   });
 }
 
