@@ -11,5 +11,5 @@ binding = "SEARCH_CACHE"
 id = "98e86250456d40be8e7c546966e171d1"
 
 [vars]
-OMNIROUTE_URL = "https://your-omniroute-instance.example.com"
+OMNIROUTE_URL = "https://omniroute-server-sx66.onrender.com"
 OMNIROUTE_MODEL = "auto"
