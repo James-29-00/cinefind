@@ -1842,6 +1842,18 @@
     <!-- Filled in by renderHomepage() on page load -->
   </div>
 
+  <!-- OmniRoute debug panel — only shown when ?debug=1 is in the URL.
+       Shows a live log of every OmniRoute request/response/error so you
+       can confirm whether the Render/Groq backend is actually being
+       reached and answering, without needing browser DevTools. -->
+  <div id="omniroute-debug-panel" style="display:none; position:fixed; left:8px; right:8px; bottom:8px; max-height:40vh; overflow-y:auto; background:#0a0a0fee; border:1px solid #e63946; border-radius:10px; padding:10px 12px; font-family:monospace; font-size:11px; color:#9494b5; z-index:9999; backdrop-filter:blur(4px);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <strong style="color:#e63946;">🐛 OmniRoute debug log</strong>
+      <button onclick="document.getElementById('omniroute-debug-log').innerHTML=''" style="background:none; border:1px solid #9494b5; color:#9494b5; border-radius:6px; font-size:10px; padding:2px 8px; cursor:pointer;">clear</button>
+    </div>
+    <div id="omniroute-debug-log"></div>
+  </div>
+
   <button id="back-to-top-btn" onclick="window.scrollTo({top:0, behavior:'smooth'})" aria-label="Back to top" style="display:none; position:fixed; right:16px; bottom:20px; z-index:50; width:44px; height:44px; border-radius:50%; background:var(--accent); color:#fff; border:none; box-shadow:0 4px 12px rgba(0,0,0,.35); cursor:pointer; align-items:center; justify-content:center; font-size:1.1rem;">↑</button>
 
   <footer>
@@ -3206,6 +3218,27 @@ const DEBUG_HIDE_STATIC_SITES = false;
 // Without the URL param, regular users never see this panel.
 const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
 
+// Shows a timestamped line in the on-page debug panel (?debug=1) AND the
+// browser console. Safe to call even when DEBUG_MODE is off (no-op for the
+// panel, still logs to console).
+function debugLog(label, detail) {
+  const time = new Date().toLocaleTimeString();
+  const line = detail !== undefined ? `[${time}] ${label} ${detail}` : `[${time}] ${label}`;
+  console.log('[OmniRoute debug]', line);
+  if (!DEBUG_MODE) return;
+  const panel = document.getElementById('omniroute-debug-panel');
+  const log = document.getElementById('omniroute-debug-log');
+  if (panel) panel.style.display = 'block';
+  if (log) {
+    const row = document.createElement('div');
+    row.style.borderTop = '1px solid #ffffff14';
+    row.style.padding = '3px 0';
+    row.textContent = line;
+    log.appendChild(row);
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
 const COOLDOWN_MS = 4000;
 let isSearching = false;
 let cooldownUntil = 0;
@@ -3487,6 +3520,8 @@ function buildOmniRoutePrompt(title, siteNames) {
 }
 
 async function fetchOmniRouteDirectLinks(title, siteNames) {
+  debugLog('📤 Request →', `title="${title}" sites=[${siteNames.join(', ')}]`);
+  const startTime = Date.now();
   try {
     const res = await fetch(OMNIROUTE_WORKER_URL, {
       method: 'POST',
@@ -3494,18 +3529,42 @@ async function fetchOmniRouteDirectLinks(title, siteNames) {
       body: JSON.stringify({ prompt: buildOmniRoutePrompt(title, siteNames) }),
       signal: AbortSignal.timeout(15000), // AI calls are slower than TMDB — give it more time than the usual 8s
     });
-    if (!res.ok) return {};
+    const elapsed = Date.now() - startTime;
+    debugLog('📥 HTTP status:', `${res.status} (${elapsed}ms)`);
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '(could not read body)');
+      debugLog('❌ Worker returned non-OK response:', bodyText.slice(0, 300));
+      return {};
+    }
     const data = await res.json();
-    if (!data.text) return {};
+    debugLog('📦 Raw worker response:', JSON.stringify(data).slice(0, 300));
+    if (data.error) {
+      debugLog('❌ Worker/OmniRoute error field:', data.error + (data.details ? ' — ' + JSON.stringify(data.details).slice(0,200) : ''));
+      return {};
+    }
+    if (!data.text) {
+      debugLog('⚠️ No "text" field in response — nothing to parse.');
+      return {};
+    }
     const cleaned = data.text.replace(/^```json\s*|^```\s*|```\s*$/g, '').trim();
-    const parsed = JSON.parse(cleaned);
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch (parseErr) {
+      debugLog('❌ Failed to JSON.parse the AI text:', parseErr.message + ' — raw: ' + cleaned.slice(0, 200));
+      return {};
+    }
     // Expected shape: { "dramacool": "https://...", "viki": "" }
     // Empty string / missing key = OmniRoute found nothing for that site.
-    return parsed.links || {};
-    return data.links || {};
+    const links = parsed.links || {};
+    const foundCount = Object.values(links).filter(Boolean).length;
+    debugLog('✅ Parsed links:', `${foundCount}/${siteNames.length} sites had a direct link — ${JSON.stringify(links)}`);
+    return links;
   } catch (e) {
-    // Timeout, network error, OmniRoute down, etc. — fail silently.
-    // The static/fallback links already on screen stay exactly as they are.
+    // Timeout, network error, OmniRoute down, etc. — fail silently for
+    // normal users (fallback links stay as-is), but log it here for debug.
+    const elapsed = Date.now() - startTime;
+    debugLog('❌ Request failed/timed out:', `${e.name}: ${e.message} (after ${elapsed}ms)`);
     return {};
   }
 }
@@ -3514,7 +3573,9 @@ async function fetchOmniRouteDirectLinks(title, siteNames) {
 // results arrive. Call this once, right after renderResult() has already
 // painted the page with fallback links.
 function upgradeCardsWithOmniRoute(title, siteNames) {
+  debugLog('🚀 upgradeCardsWithOmniRoute started for:', title);
   fetchOmniRouteDirectLinks(title, siteNames).then(links => {
+    let upgradedCount = 0;
     Object.keys(links).forEach(siteKey => {
       const url = links[siteKey];
       if (!url) return; // OmniRoute found nothing for this one — leave the fallback link as-is
@@ -3522,7 +3583,11 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
         || Array.from(document.querySelectorAll('.site-card')).find(
              el => normalizeSiteName(el.dataset.siteName || '') === normalizeSiteName(siteKey)
            );
-      if (!card) return;
+      if (!card) {
+        debugLog('⚠️ Found a link but no matching card on page for:', siteKey);
+        return;
+      }
+      upgradedCount++;
       card.setAttribute('href', url);
       const badge = card.querySelector('.site-free, .site-note:last-of-type');
       if (badge) {
@@ -3535,6 +3600,7 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       const copyBtn = card.querySelector('.copy-link-btn:last-of-type');
       if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${url.replace(/'/g, "\\'")}', this)`);
     });
+    debugLog('🏁 Done —', `${upgradedCount} card(s) upgraded to "✅ Direct link" on the page.`);
   });
 }
 
