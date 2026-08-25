@@ -3384,84 +3384,6 @@ function detectCategory(r, type) {
   return 'movie';
 }
 
-// ========== DRAMACOOL LIVE SEARCH INTEGRATION ==========
-// See dramacool-status-update-2-1.md for the full backend roadmap.
-// The Search Worker (dramacool-search-worker.js) is already deployed,
-// tested, and debugged — this is just the front-end wiring: decide
-// when to call it, and render whatever it returns.
-const DRAMACOOL_SEARCH_WORKER_URL = 'https://dramacool-search.manio-james-g-5588.workers.dev';
-// K-drama/J-drama/C-drama/Taiwanese/Thai only — no PH (dedicated sites
-// already handle Pinoy content) and no anime (dedicated anime sites
-// already handle that). Matches the exact rule from the roadmap doc.
-const DRAMACOOL_COUNTRIES = ['KR', 'JP', 'CN', 'TW', 'TH'];
-function isDramaCoolEligible(data) {
-  return data.category !== 'anime' && DRAMACOOL_COUNTRIES.includes((data.origin_country || [])[0]);
-}
-
-async function checkDramaCool(data) {
-  const section = document.getElementById('dramacool-section');
-  if (!section) return;
-
-  const t0 = performance.now();
-  const dcLog = [];
-  const logDC = (msg) => dcLog.push(`[+${((performance.now() - t0) / 1000).toFixed(1)}s] ${msg}`);
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000); // Worker's live-search path: D1 query + GitHub registry fetch + ~5s parallel domain fetch — 8s gives real margin instead of cutting it close
-
-  const url = `${DRAMACOOL_SEARCH_WORKER_URL}?query=${encodeURIComponent(data.title)}`;
-  logDC(`Worker URL: ${url}`);
-
-  try {
-    logDC('Sending GET request...');
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    logDC(`HTTP response received: ${res.status}`);
-    const result = await res.json();
-    logDC(`Raw response: ${JSON.stringify(result).slice(0, 500)}`);
-
-    const top = result.matched && Array.isArray(result.results) ? result.results[0] : null;
-
-    if (top && top.url) {
-      logDC(`✅ Matched (source: ${result.source}) — url: ${top.url}`);
-      section.innerHTML = `
-        <div class="section-label">DramaCool</div>
-        <div class="sites-grid">
-          <a href="${escapeAttr(top.url)}" target="_blank" rel="noopener" class="site-card">
-            <div class="site-card-name">DramaCool</div>
-            <div class="site-card-note">${escapeAttr(top.title || 'Direct link found')}${top.year ? ' (' + top.year + ')' : ''}</div>
-          </a>
-        </div>
-        ${DEBUG_MODE ? renderDCDebugBox(dcLog) : ''}`;
-    } else {
-      logDC('No confident match — removing section, static list above still covers this title.');
-      if (DEBUG_MODE) {
-        section.innerHTML = renderDCDebugBox(dcLog);
-      } else {
-        section.remove();
-      }
-    }
-  } catch (err) {
-    clearTimeout(timeout);
-    const reason = err.name === 'AbortError' ? 'TIMEOUT (8s cap hit)' : err.message;
-    logDC(`❌ Failed — ${reason}`);
-    // Timeout or network error — fail silently (unless debugging). The
-    // static sites-section above already rendered and is fully usable.
-    if (DEBUG_MODE) {
-      section.innerHTML = renderDCDebugBox(dcLog);
-    } else {
-      section.remove();
-    }
-  }
-}
-
-function renderDCDebugBox(lines) {
-  return `<details style="margin-top:10px; font-size:.78rem; color:var(--muted); font-family:monospace; background:rgba(255,255,255,.03); border-radius:8px; padding:8px 12px;">
-    <summary style="cursor:pointer;">🐛 DramaCool debug log</summary>
-    <div style="white-space:pre-wrap; margin-top:8px;">${escapeAttr(lines.join('\n'))}</div>
-  </details>`;
-}
-
 // Used as a sort tiebreaker (never a filter) to nudge ambiguous results
 // toward the K-drama/anime/Asian-content audience this app is actually
 // built for, instead of TMDB's raw popularity order which skews Western.
@@ -3538,6 +3460,82 @@ function getSiteLink(siteName, title, fallbackUrl) {
     return { url: override, isDirect: true };
   }
   return { url: fallbackUrl, isDirect: false };
+}
+
+// ===== OmniRoute direct-link lookup =====
+// Calls the OmniRoute worker (separate from TMDB_PROXY_URL — that one only
+// handles TMDB modes). This worker takes a POST body { prompt }, forwards it
+// to OmniRoute, and returns { text: "...json string..." }. OmniRoute's AI is
+// given the title + our own site list, and tries to find a direct link per
+// site. This runs in the BACKGROUND after the page already shows static/
+// fallback links, so users never wait for it — cards just quietly upgrade to
+// "✅ Direct link" if/when OmniRoute finds one.
+//
+// TODO: set this to the actual deployed URL of the worker you just cleaned up
+// (the one now calling OmniRoute instead of Gemini) — e.g.
+// 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev'
+const OMNIROUTE_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev';
+
+function buildOmniRoutePrompt(title, siteNames) {
+  return `You are helping find direct streaming links for the title "${title}" ` +
+    `on these websites: ${siteNames.join(', ')}. ` +
+    `For each site, use web search to check if a direct page for this exact title exists ` +
+    `(not just the homepage or a search results page). ` +
+    `Respond with ONLY a JSON object, no other text, in this exact shape: ` +
+    `{"links": {"<site name lowercase>": "<direct url or empty string if not found>"}}. ` +
+    `Include every site listed above as a key, even if the value is an empty string.`;
+}
+
+async function fetchOmniRouteDirectLinks(title, siteNames) {
+  try {
+    const res = await fetch(OMNIROUTE_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: buildOmniRoutePrompt(title, siteNames) }),
+      signal: AbortSignal.timeout(15000), // AI calls are slower than TMDB — give it more time than the usual 8s
+    });
+    if (!res.ok) return {};
+    const data = await res.json();
+    if (!data.text) return {};
+    const cleaned = data.text.replace(/^```json\s*|^```\s*|```\s*$/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    // Expected shape: { "dramacool": "https://...", "viki": "" }
+    // Empty string / missing key = OmniRoute found nothing for that site.
+    return parsed.links || {};
+    return data.links || {};
+  } catch (e) {
+    // Timeout, network error, OmniRoute down, etc. — fail silently.
+    // The static/fallback links already on screen stay exactly as they are.
+    return {};
+  }
+}
+
+// Kicks off the background lookup and patches matching cards in place once
+// results arrive. Call this once, right after renderResult() has already
+// painted the page with fallback links.
+function upgradeCardsWithOmniRoute(title, siteNames) {
+  fetchOmniRouteDirectLinks(title, siteNames).then(links => {
+    Object.keys(links).forEach(siteKey => {
+      const url = links[siteKey];
+      if (!url) return; // OmniRoute found nothing for this one — leave the fallback link as-is
+      const card = document.querySelector(`.site-card[data-site-name="${CSS.escape(siteKey)}"]`)
+        || Array.from(document.querySelectorAll('.site-card')).find(
+             el => normalizeSiteName(el.dataset.siteName || '') === normalizeSiteName(siteKey)
+           );
+      if (!card) return;
+      card.setAttribute('href', url);
+      const badge = card.querySelector('.site-free, .site-note:last-of-type');
+      if (badge) {
+        badge.textContent = '✅ Direct link';
+        badge.className = 'site-free';
+        badge.style.marginTop = '2px';
+        badge.style.display = 'inline-block';
+      }
+      // Keep the copy/report buttons in sync with the upgraded link
+      const copyBtn = card.querySelector('.copy-link-btn:last-of-type');
+      if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${url.replace(/'/g, "\\'")}', this)`);
+    });
+  });
 }
 
 // Shared parser: turns a raw TMDB result object into the shape our UI uses.
@@ -4390,12 +4388,6 @@ function renderResult(data, query) {
       ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
     </div>
 
-    ${isDramaCoolEligible(data) ? `
-    <div id="dramacool-section">
-      <div class="section-label">Checking DramaCool</div>
-      <div class="loading" style="padding:12px 0;"><div class="spinner"></div></div>
-    </div>` : ''}
-
     <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
       ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
       <button class="pop-chip" onclick="resetSearch()">${canGoBack ? 'New search' : '← Search again'}</button>
@@ -4417,7 +4409,10 @@ function renderResult(data, query) {
 
   applyStatusDots();
 
-  if (isDramaCoolEligible(data)) checkDramaCool(data);
+  // Quietly try to upgrade cards to direct links via OmniRoute in the
+  // background — page is already fully rendered above, so this never
+  // delays what the user sees.
+  upgradeCardsWithOmniRoute(data.title || query, otherSites.map(s => s.name));
 
   // Tavily fallback removed (2026-08-21) — see comment near
   // TAVILY_PROXY_URL's old location for why.
@@ -5977,10 +5972,6 @@ function renderAdminPanel(data) {
       <div id="top-sites-body"><p style="font-size:.75rem; color:#9494b5;">Loading...</p></div>
     </div>
     <div class="test-link-box" style="margin-bottom:16px;">
-      <div class="test-link-title">🎬 DramaCool Match Rate <span style="font-size:.7rem; color:#9494b5; font-weight:400;">— last 7 days, from dramacool-search-worker.js</span></div>
-      <div id="dramacool-stats-body"><p style="font-size:.75rem; color:#9494b5;">Loading...</p></div>
-    </div>
-    <div class="test-link-box" style="margin-bottom:16px;">
       <div class="test-link-title">🚩 User Reports <span id="reports-count-badge" style="font-size:.7rem; color:#9494b5;"></span></div>
       <div id="admin-reports-list"><p style="font-size:.75rem; color:#9494b5;">Loading reports...</p></div>
     </div>
@@ -5992,7 +5983,6 @@ function renderAdminPanel(data) {
   loadReportsIntoAdmin();
   loadSearchAnalytics();
   loadTopSites();
-  loadDramaCoolStats();
 }
 
 // Renders two simple ranked lists (top titles, top genres) from the search
@@ -6065,59 +6055,6 @@ async function loadTopSites() {
     `).join('');
   } catch (err) {
     body.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load top websites: ${err.message}</p>`;
-  }
-}
-
-// Reads dramacool-search-worker.js's Phase 5 stats endpoint (mode=stats),
-// which tracks match-vs-fallback in the background on every DramaCool
-// search — see trackOutcome()/getStats() in that Worker. Same widget
-// pattern as loadSearchAnalytics/loadTopSites above (dedicated body div,
-// Loading... placeholder, replaced on success/failure).
-async function loadDramaCoolStats() {
-  const body = document.getElementById('dramacool-stats-body');
-  if (!body) return;
-  try {
-    const res = await fetch(`${DRAMACOOL_SEARCH_WORKER_URL}?mode=stats&days=7`, { signal: AbortSignal.timeout(6000) });
-    if (!res.ok) throw new Error(`Worker returned HTTP ${res.status}`);
-    const data = await res.json();
-
-    if (data.error) {
-      // STATS_KV not bound yet on the Worker — not a real error, just
-      // "monitoring isn't set up yet", so this shouldn't look alarming.
-      body.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">Monitoring not set up yet on the Worker (STATS_KV not bound).</p>`;
-      return;
-    }
-
-    const total = data.totalMatch + data.totalFallback;
-    if (total === 0) {
-      body.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">No DramaCool searches in the last 7 days yet.</p>`;
-      return;
-    }
-
-    // >50% fallback over the whole window is the same rough threshold
-    // discussed for Phase 5 — flips the rate number red as a simple visual
-    // alert instead of a separate notification mechanism.
-    const rateColor = data.fallbackRate > 50 ? '#e63946' : '#06d6a0';
-
-    body.innerHTML = `
-      <div style="display:flex; gap:16px; margin-bottom:10px;">
-        <div><span style="font-size:1.1rem; font-weight:700; color:#06d6a0;">${data.totalMatch}</span> <span style="font-size:.72rem; color:#9494b5;">matched</span></div>
-        <div><span style="font-size:1.1rem; font-weight:700; color:${rateColor};">${data.totalFallback}</span> <span style="font-size:.72rem; color:#9494b5;">fallback</span></div>
-        <div><span style="font-size:1.1rem; font-weight:700; color:${rateColor};">${data.fallbackRate}%</span> <span style="font-size:.72rem; color:#9494b5;">fallback rate</span></div>
-      </div>
-      <div style="display:flex; gap:4px; align-items:flex-end; height:40px;">
-        ${data.days.map(d => {
-          const dayTotal = d.match + d.fallback;
-          const barHeight = dayTotal > 0 ? Math.max(4, (dayTotal / Math.max(...data.days.map(x => x.match + x.fallback), 1)) * 40) : 2;
-          const dayRate = dayTotal > 0 ? Math.round((d.fallback / dayTotal) * 100) : 0;
-          const barColor = dayRate > 50 ? '#e63946' : '#06d6a0';
-          return `<div title="${d.date}: ${d.match} matched, ${d.fallback} fallback" style="flex:1; height:${barHeight}px; background:${barColor}; opacity:.75; border-radius:2px 2px 0 0;"></div>`;
-        }).join('')}
-      </div>
-      <div style="font-size:.68rem; color:#9494b5; margin-top:2px;">${data.days[0]?.date || ''} → ${data.days[data.days.length - 1]?.date || ''}</div>
-    `;
-  } catch (err) {
-    body.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load DramaCool stats: ${err.message}</p>`;
   }
 }
 
