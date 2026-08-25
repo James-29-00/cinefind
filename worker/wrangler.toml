@@ -1,0 +1,15 @@
+name = "cinefind-omniroute"
+main = "worker.js"
+compatibility_date = "2026-08-23"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "51a458a52bc647f386976bbcaf83c881"
+
+[[kv_namespaces]]
+binding = "SEARCH_CACHE"
+id = "98e86250456d40be8e7c546966e171d1"
+
+[vars]
+OMNIROUTE_URL = "https://your-omniroute-instance.example.com"
+OMNIROUTE_MODEL = "auto"
