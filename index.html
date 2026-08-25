@@ -3606,13 +3606,11 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       card.setAttribute('href', url);
       const badge = card.querySelector('.site-free, .site-note:last-of-type');
       if (badge) {
-        // Was "✅ Direct link" — that implied the AI had confirmed the page
-        // exists, which matched the old prompt's "verify... exists"
-        // wording. The rewritten prompt only asks for a best-guess URL
-        // pattern (no verification step), so labeling it "Direct link"
-        // would now overstate the confidence level. This wording makes
-        // clear it's a possible match worth trying, not a confirmed one.
-        badge.textContent = '🔗 Possible direct link';
+        // worker.js now verifies each guessed URL server-side (HEAD/GET
+        // check against the actual site) before ever returning it here —
+        // so by the time a URL reaches this point it's been confirmed to
+        // resolve, not just guessed. "Direct link" is accurate again.
+        badge.textContent = '✅ Direct link';
         badge.className = 'site-free';
         badge.style.marginTop = '2px';
         badge.style.display = 'inline-block';
@@ -3621,7 +3619,7 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       const copyBtn = card.querySelector('.copy-link-btn:last-of-type');
       if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${url.replace(/'/g, "\\'")}', this)`);
     });
-    debugLog('🏁 Done —', `${upgradedCount} card(s) upgraded to "🔗 Possible direct link" on the page.`);
+    debugLog('🏁 Done —', `${upgradedCount} card(s) upgraded to "✅ Direct link" on the page.`);
   });
 }
 
