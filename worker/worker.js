@@ -117,6 +117,29 @@ function similarity(a, b) {
   return 1 - levenshtein(a, b) / maxLen;
 }
 
+// Full-string similarity() breaks down when comparing a short search title
+// against a long, noisy string like a page's <title> tag — e.g. "dr
+// romantic season 2" vs "watch dr romantic season 2 online free
+// myasiantv". The extra site-name/"watch online free" text inflates the
+// edit distance against the FULL length, tanking the score even for a
+// genuinely correct match. This slides a window the length of the short
+// title across the long string and keeps the best local match instead —
+// only used for page-title verification (verifyLinkContent), not for
+// anchor-text matching where both sides are already comparable lengths.
+function partialSimilarity(shortNorm, longNorm) {
+  if (!shortNorm || !longNorm) return 0;
+  if (longNorm.length <= shortNorm.length) return similarity(shortNorm, longNorm);
+  const capped = longNorm.slice(0, 300); // page titles are rarely useful past this; keeps worst-case cost bounded
+  const winLen = shortNorm.length;
+  let best = 0;
+  for (let start = 0; start <= capped.length - winLen; start++) {
+    const score = similarity(shortNorm, capped.slice(start, start + winLen));
+    if (score > best) best = score;
+    if (best === 1) break;
+  }
+  return best;
+}
+
 const FUZZY_MATCH_THRESHOLD = 0.6;
 
 // ===== Layer 3: D1 fuzzy lookup =====
@@ -179,13 +202,17 @@ async function d1Upsert(env, normTitle, originalTitle, site, url) {
 const SITE_SEARCH_URLS = {
   '1shows': (t) => `https://1shows.org/?s=${encodeURIComponent(t)}`,
   'flickystream': (t) => `https://flickystream.dad/?s=${encodeURIComponent(t)}`,
-  'moviebox': (t) => `https://movie-box.co/?s=${encodeURIComponent(t)}`,
+  'moviebox': (t) => `https://movie-box.co/web/searchResult?keyword=${encodeURIComponent(t)}`, // confirmed live (Aug 26, 2026)
   '1flex': (t) => `https://1flex.org/?s=${encodeURIComponent(t)}`,
   '1tube': (t) => `https://1tube.org/?s=${encodeURIComponent(t)}`,
-  'cineby': (t) => `https://cineby.at/search?q=${encodeURIComponent(t)}`,
+  // 'cineby' intentionally omitted — domain moved to cineby.im and its
+  // search is client-side rendered (the URL never changes after
+  // searching, confirmed by live testing), so there's no URL Layer 4 can
+  // fetch to get real results. Routes straight to Layer 6 instead, same
+  // reasoning as the kisskh omission above.
+  'myasiantv': (t) => `https://myasiantv.com.lv/?type=movies&s=${encodeURIComponent(t)}`, // confirmed live (Aug 26, 2026)
   'fmovies': (t) => `https://fmovies-hd.to/?s=${encodeURIComponent(t)}`,
-  'myasiantv': (t) => `https://myasiantv.com.lv/?s=${encodeURIComponent(t)}`,
-  'dramacool': (t) => `https://dramacool.com.tw/search?type=movies&keyword=${encodeURIComponent(t)}`,
+  'dramacool': (t) => `https://dramacool.baby/search?q=${encodeURIComponent(t)}`, // confirmed live on dramacool.baby (Aug 26, 2026)
   // 'kisskh' intentionally omitted — kisskh.co has no working /search?q= page
   // (confirmed 404). Leaving it out of this map makes liveFetchSearch's
   // `template` lookup miss and return null immediately (no fetch, no wasted
@@ -200,9 +227,9 @@ const SITE_SEARCH_URLS = {
   'ondemandkorea': (t) => `https://www.ondemandkorea.com/search?query=${encodeURIComponent(t)}`,
   'wetv': (t) => `https://wetv.vip/en/search?q=${encodeURIComponent(t)}`,
   'amasian tv': (t) => `https://amasiantv.com/?s=${encodeURIComponent(t)}`,
-  'reanime': (t) => `https://reanime.to/?s=${encodeURIComponent(t)}`,
+  'reanime': (t) => `https://reanime.to/search?q=${encodeURIComponent(t)}&limit=36&offset=0`, // confirmed live (Aug 26, 2026)
   'animepahe': (t) => `https://animepahe.pw/?s=${encodeURIComponent(t)}`,
-  'miruro': (t) => `https://miruro.to/search?keyword=${encodeURIComponent(t)}`,
+  'miruro': (t) => `https://www.miruro.to/search?query=${encodeURIComponent(t)}&type=ANIME&sort=POPULARITY_DESC`, // confirmed live (Aug 26, 2026)
   'anikoto': (t) => `https://anikototv.to/?s=${encodeURIComponent(t)}`,
   'enma': (t) => `https://enma.lol/?s=${encodeURIComponent(t)}`,
 };
@@ -412,7 +439,7 @@ async function verifyLinkContent(env, url, normTitle, site) {
     const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
     const pageTitle = (ogMatch?.[1] || titleMatch?.[1] || '').trim();
     if (!pageTitle) return false;
-    return similarity(normTitle, normalizeTitle(pageTitle)) >= FUZZY_MATCH_THRESHOLD;
+    return partialSimilarity(normTitle, normalizeTitle(pageTitle)) >= FUZZY_MATCH_THRESHOLD;
   } catch (err) {
     return false;
   }
