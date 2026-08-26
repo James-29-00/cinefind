@@ -3593,6 +3593,13 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
   debugLog('🚀 upgradeCardsWithOmniRoute started for:', title);
   fetchOmniRouteDirectLinks(title, siteNames).then(({ links, linkTypes }) => {
     let upgradedCount = 0;
+    // links/linkTypes keys come back lowercase from the worker (site.toLowerCase()),
+    // but siteNames/data-site-name are display-case ("MovieBox") — build a
+    // lowercase-keyed lookup once so we're not comparing "MovieBox" against "moviebox".
+    const linksLC = {};
+    Object.keys(links).forEach(k => { linksLC[k.toLowerCase()] = links[k]; });
+    const linkTypesLC = {};
+    Object.keys(linkTypes).forEach(k => { linkTypesLC[k.toLowerCase()] = linkTypes[k]; });
     siteNames.forEach(siteKey => {
       const card = document.querySelector(`.site-card[data-site-name="${CSS.escape(siteKey)}"]`)
         || Array.from(document.querySelectorAll('.site-card')).find(
@@ -3601,7 +3608,7 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       if (!card) return;
       const badge = card.querySelector('.omni-pending, .site-free');
       if (!badge) return; // already a static-override direct link, nothing to resolve
-      const url = links[siteKey];
+      const url = linksLC[siteKey.toLowerCase()];
       if (!url) {
         // OmniRoute found nothing — stop showing "checking…", fall back to plain note.
         badge.textContent = '🔍 Search inside site';
@@ -3614,7 +3621,7 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       // "reachable" isn't the same as "points at the title" — a search
       // page is reachable too. linkTypes[siteKey] tells us which one this
       // actually is, so the badge doesn't overclaim.
-      const isDirect = linkTypes[siteKey] === 'direct';
+      const isDirect = linkTypesLC[siteKey.toLowerCase()] === 'direct';
       badge.textContent = isDirect ? '✅ Direct link' : '🔍 Search inside site';
       badge.className = 'site-free';
       badge.style.marginTop = '2px';
