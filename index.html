@@ -3542,7 +3542,7 @@ async function fetchOmniRouteDirectLinks(title, siteNames) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: buildOmniRoutePrompt(title, siteNames), title, sites: siteNames }),
-      signal: AbortSignal.timeout(15000), // AI calls are slower than TMDB — give it more time than the usual 8s
+      signal: AbortSignal.timeout(40000), // Layer 4/5 chain (live-fetch + batched Groq parse + content-verify) can take up to ~40s worst-case
     });
     const elapsed = Date.now() - startTime;
     debugLog('📥 HTTP status:', `${res.status} (${elapsed}ms)`);
