@@ -3593,31 +3593,32 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
   debugLog('🚀 upgradeCardsWithOmniRoute started for:', title);
   fetchOmniRouteDirectLinks(title, siteNames).then(({ links, linkTypes }) => {
     let upgradedCount = 0;
-    Object.keys(links).forEach(siteKey => {
-      const url = links[siteKey];
-      if (!url) return; // OmniRoute found nothing for this one — leave the fallback link as-is
+    siteNames.forEach(siteKey => {
       const card = document.querySelector(`.site-card[data-site-name="${CSS.escape(siteKey)}"]`)
         || Array.from(document.querySelectorAll('.site-card')).find(
              el => normalizeSiteName(el.dataset.siteName || '') === normalizeSiteName(siteKey)
            );
-      if (!card) {
-        debugLog('⚠️ Found a link but no matching card on page for:', siteKey);
+      if (!card) return;
+      const badge = card.querySelector('.omni-pending, .site-free');
+      if (!badge) return; // already a static-override direct link, nothing to resolve
+      const url = links[siteKey];
+      if (!url) {
+        // OmniRoute found nothing — stop showing "checking…", fall back to plain note.
+        badge.textContent = '🔍 Search inside site';
+        badge.classList.remove('omni-pending');
         return;
       }
       upgradedCount++;
       card.setAttribute('href', url);
-      const badge = card.querySelector('.site-free, .site-note:last-of-type');
-      if (badge) {
-        // worker.js verifies each URL is reachable before returning it, but
-        // "reachable" isn't the same as "points at the title" — a search
-        // page is reachable too. linkTypes[siteKey] tells us which one this
-        // actually is, so the badge doesn't overclaim.
-        const isDirect = linkTypes[siteKey] === 'direct';
-        badge.textContent = isDirect ? '✅ Direct link' : '🔍 Search inside site';
-        badge.className = 'site-free';
-        badge.style.marginTop = '2px';
-        badge.style.display = 'inline-block';
-      }
+      // worker.js verifies each URL is reachable before returning it, but
+      // "reachable" isn't the same as "points at the title" — a search
+      // page is reachable too. linkTypes[siteKey] tells us which one this
+      // actually is, so the badge doesn't overclaim.
+      const isDirect = linkTypes[siteKey] === 'direct';
+      badge.textContent = isDirect ? '✅ Direct link' : '🔍 Search inside site';
+      badge.className = 'site-free';
+      badge.style.marginTop = '2px';
+      badge.style.display = 'inline-block';
       // Keep the copy/report buttons in sync with the upgraded link
       const copyBtn = card.querySelector('.copy-link-btn:last-of-type');
       if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${url.replace(/'/g, "\\'")}', this)`);
@@ -4423,7 +4424,7 @@ function renderResult(data, query) {
     const linkInfo = getSiteLink(s.name, data.title, s.url);
     const linkBadge = linkInfo.isDirect
       ? `<span class="site-free" style="margin-top:2px; display:inline-block;">✅ Direct link</span>`
-      : `<span class="site-note" style="margin-top:2px; display:inline-block; opacity:.75;">🔍 Search inside site</span>`;
+      : `<span class="site-note omni-pending" style="margin-top:2px; display:inline-block; opacity:.75;">⏳ Checking for direct link…</span>`;
     return `
     <a href="${linkInfo.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" onclick="trackSiteClick('${escapeAttr(dirMatch ? dirMatch.name : s.name).replace(/'/g, "\\'")}')" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
       <div class="site-logo-box">${logoInner}</div>
