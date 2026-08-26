@@ -186,7 +186,13 @@ const SITE_SEARCH_URLS = {
   'fmovies': (t) => `https://fmovies-hd.to/?s=${encodeURIComponent(t)}`,
   'myasiantv': (t) => `https://myasiantv.com.lv/?s=${encodeURIComponent(t)}`,
   'dramacool': (t) => `https://dramacool.com.tw/search?type=movies&keyword=${encodeURIComponent(t)}`,
-  'kisskh': (t) => `https://kisskh.co/search?q=${encodeURIComponent(t)}`,
+  // 'kisskh' intentionally omitted — kisskh.co has no working /search?q= page
+  // (confirmed 404). Leaving it out of this map makes liveFetchSearch's
+  // `template` lookup miss and return null immediately (no fetch, no wasted
+  // Scrape.do credit), which routes kisskh straight to Layer 6 instead
+  // (Groq guesses the direct URL from its known pattern, then
+  // verifyLinkContent confirms it) — the right fit since kisskh doesn't
+  // have a static search page to scrape in the first place.
   'asiancrush': (t) => `https://www.asiancrush.com/?s=${encodeURIComponent(t)}`,
   'viki': (t) => `https://www.viki.com/search?q=${encodeURIComponent(t)}`,
   'viu': (t) => `https://www.viu.com/ott/global/en/search?q=${encodeURIComponent(t)}`,
