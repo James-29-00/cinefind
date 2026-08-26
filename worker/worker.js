@@ -1,5 +1,6 @@
 // worker.js — OmniRoute proxy worker
 const RATE_LIMIT_MAX = 20;
+const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const CACHE_TTL_SECONDS = 60 * 60 * 24;       // 24hr — used when at least one real link was verified
 const CACHE_TTL_EMPTY_SECONDS = 60 * 60;      // 1hr — used when nothing verified (likely a new/unlisted title, refresh sooner)
@@ -209,7 +210,11 @@ async function liveFetchSearch(site, title) {
   if (!template || !title) return null;
   const searchUrl = template(title);
   try {
-    const res = await fetch(searchUrl, { method: 'GET', signal: AbortSignal.timeout(5000) });
+    const res = await fetch(searchUrl, {
+      method: 'GET',
+      headers: { 'User-Agent': BROWSER_USER_AGENT },
+      signal: AbortSignal.timeout(5000),
+    });
     if (!res.ok) return null;
     const html = await res.text();
     return { searchUrl, html };
@@ -219,23 +224,60 @@ async function liveFetchSearch(site, title) {
 }
 
 // ===== Layer 5: AI-based generic HTML parser =====
-// Groq's role here is NOT to guess a URL from memory — it's given the
-// actual raw HTML from the live-fetch above and asked to pick out the
-// title+link pairs that are really on the page. Returns the best-matching
-// direct link, or null if nothing usable/confident enough.
-const HTML_PARSE_MAX_CHARS = 15000;
+// Instead of dumping raw HTML (mostly noise: scripts, nav, ads) at Groq,
+// extract every <a href>...</a> pair first — this works on ANY site's HTML
+// since it doesn't depend on that site's specific CSS/div structure, just
+// the universal fact that links are <a href> tags. Groq then only has to
+// pick the right entry out of a short, clean list instead of parsing raw
+// markup soup.
+const MAX_ANCHOR_CANDIDATES = 60;
 
-async function aiParseSearchResults(env, title, normTitle, html) {
-  if (!env.OMNIROUTE_URL || !html) return null;
-  const stripped = html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .slice(0, HTML_PARSE_MAX_CHARS);
+function extractAnchors(html, baseUrl) {
+  const anchors = [];
+  const re = /<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match;
+  let base;
+  try { base = new URL(baseUrl); } catch (err) { base = null; }
+  while ((match = re.exec(html)) && anchors.length < 500) {
+    const rawHref = match[1];
+    const text = match[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+    let href = rawHref;
+    if (base) {
+      try { href = new URL(rawHref, base).href; } catch (err) { continue; }
+    }
+    if (!/^https?:\/\//i.test(href)) continue;
+    anchors.push({ text, href });
+  }
+  return anchors;
+}
 
-  const prompt = `Ito ang raw HTML ng search results page para sa titulong "${title}". Hanapin mo ang title+link pairs na aktwal na nasa HTML na ito (huwag mang-imbento). Piliin ang pinakamalapit na match sa "${title}". Sumagot ka lang ng JSON, walang ibang teksto: {"title": "<eksaktong titulo na nakita sa HTML>", "link": "<buong URL ng detail page>"}. Kung walang malapit na match, isagot: {"title": null, "link": null}.
+// Narrow the full anchor list down to the ones most likely relevant, using
+// the same similarity() scoring Layer 3 uses — so Groq gets a short list
+// instead of hundreds of nav/footer/ad links.
+function rankAnchorCandidates(anchors, normTitle) {
+  return anchors
+    .map((a) => ({ ...a, score: similarity(normTitle, normalizeTitle(a.text)) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MAX_ANCHOR_CANDIDATES);
+}
 
-HTML:
-${stripped}`;
+// Batches ALL sites' candidate lists into ONE Groq call (instead of one
+// call per site) — same picking logic, just asked once for every site at
+// the same time. siteCandidates: { site: [{text, href}, ...] }.
+// Returns { site: pickedHref | null }.
+async function aiParseSearchResultsBatch(env, title, normTitle, siteCandidates) {
+  const siteNames = Object.keys(siteCandidates).filter((s) => siteCandidates[s].length);
+  if (!env.OMNIROUTE_URL || !siteNames.length) return {};
+
+  const sections = siteNames.map((site) => {
+    const list = siteCandidates[site].map((a, i) => `  ${i}. "${a.text}" -> ${a.href}`).join('\n');
+    return `Site: ${site}\n${list}`;
+  }).join('\n\n');
+
+  const prompt = `Para sa bawat site sa ibaba, may listahan ng title+link pairs na aktwal na nakuha mula sa search results page ng site na iyon para sa "${title}" (hindi ito imbento, mula mismo sa HTML). Piliin per site ang numero ng entry na pinakamalapit na tumutugma sa "${title}". Sumagot ka lang ng JSON, walang ibang teksto: {"<site name>": <numero o null>, ...} — isang entry per site na nakalista.
+
+${sections}`;
 
   try {
     const res = await fetch(`${env.OMNIROUTE_URL}/v1/chat/completions`, {
@@ -249,38 +291,87 @@ ${stripped}`;
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2,
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(30000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return {};
     const data = await res.json();
     const text = (data?.choices?.[0]?.message?.content || '').trim();
     const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     const parsed = JSON.parse(cleaned);
-    if (!parsed?.link || !parsed?.title) return null;
-    const score = similarity(normTitle, normalizeTitle(String(parsed.title)));
-    if (score < FUZZY_MATCH_THRESHOLD) return null;
-    return String(parsed.link);
+    const picks = {};
+    for (const site of siteNames) {
+      const idx = parsed?.[site];
+      if (idx === null || idx === undefined) continue;
+      const picked = siteCandidates[site][Number(idx)];
+      if (!picked) continue;
+      // Belt-and-suspenders: re-check similarity ourselves, don't just
+      // trust that Groq picked correctly.
+      if (similarity(normTitle, normalizeTitle(picked.text)) < FUZZY_MATCH_THRESHOLD) continue;
+      picks[site] = picked.href;
+    }
+    return picks;
   } catch (err) {
-    console.warn('AI HTML parse failed:', String(err));
-    return null;
+    console.warn('AI HTML parse batch failed:', String(err));
+    return {};
   }
 }
 
-// Live-fetch (Layer 4) -> AI parse (Layer 5) -> verify -> fallback to the
-// search URL itself if parsing didn't yield a confident direct link.
-async function resolveLiveSite(env, site, title, normTitle) {
-  const fetched = await liveFetchSearch(site, title);
-  if (!fetched) return null;
-  const parsedLink = await aiParseSearchResults(env, title, normTitle, fetched.html);
-  if (parsedLink) {
-    try {
-      const check = await fetch(parsedLink, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
-      if (check.ok) return { url: parsedLink, isDirect: true };
-    } catch (err) {
-      // HEAD can fail on sites that block it; fall through to search URL.
+// Live-fetch (Layer 4) for every remaining site in parallel, build each
+// site's candidate list, then a single batched AI parse (Layer 5) call
+// resolves all of them at once. Falls back to the search URL itself for
+// any site the batch didn't confidently resolve.
+async function resolveLiveSites(env, sites, title, normTitle) {
+  const fetched = await Promise.all(sites.map((site) => liveFetchSearch(site, title)));
+  const siteCandidates = {};
+  const searchUrls = {};
+  sites.forEach((site, i) => {
+    const f = fetched[i];
+    if (!f) return;
+    searchUrls[site] = f.searchUrl;
+    const anchors = extractAnchors(f.html, f.searchUrl);
+    siteCandidates[site] = rankAnchorCandidates(anchors, normTitle);
+  });
+
+  const picks = await aiParseSearchResultsBatch(env, title, normTitle, siteCandidates);
+
+  const verified = await Promise.all(
+    Object.entries(picks).map(async ([site, link]) => [site, await verifyLinkContent(link, normTitle)])
+  );
+  const confirmedDirect = new Set(verified.filter(([, ok]) => ok).map(([site]) => site));
+
+  const results = {};
+  sites.forEach((site) => {
+    if (!(site in searchUrls)) { results[site] = null; return; }
+    if (picks[site] && confirmedDirect.has(site)) {
+      results[site] = { url: picks[site], isDirect: true };
+    } else {
+      results[site] = { url: searchUrls[site], isDirect: false };
     }
+  });
+  return results;
+}
+
+// Reachability (HTTP 200) isn't proof a page is actually about the title —
+// many sites soft-404 (always return 200, e.g. serving their SPA shell for
+// any path). Fetch the page and check its <title>/og:title actually
+// resembles the requested title before calling it a confirmed direct link.
+async function verifyLinkContent(url, normTitle) {
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'User-Agent': BROWSER_USER_AGENT },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return false;
+    const html = await res.text();
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+    const pageTitle = (ogMatch?.[1] || titleMatch?.[1] || '').trim();
+    if (!pageTitle) return false;
+    return similarity(normTitle, normalizeTitle(pageTitle)) >= FUZZY_MATCH_THRESHOLD;
+  } catch (err) {
+    return false;
   }
-  return { url: fetched.searchUrl, isDirect: false };
 }
 
 export default {
@@ -342,20 +433,18 @@ export default {
     }
 
     // ===== Layer 4+5: Live-fetch + AI HTML parse (sites D1 didn't resolve) =====
-    // resolveLiveSite() hits the real search endpoint (Layer 4), asks Groq
-    // to pick the matching title+link out of the actual returned HTML
-    // (Layer 5), and falls back to the search URL itself if parsing comes
-    // up empty. Any site resolved here is skipped below the same way D1
-    // hits are.
+    // resolveLiveSites() hits every remaining site's real search endpoint
+    // (Layer 4) in parallel, then resolves ALL of them with a SINGLE
+    // batched Groq call (Layer 5) instead of one call per site — falls
+    // back to the search URL itself for any site parsing comes up empty
+    // on. Any site resolved here is skipped below the same way D1 hits are.
     let liveFetchLinks = {};
     let linkTypes = {}; // site -> 'direct' | 'search', for honest labeling in index.html
     if (normTitle && remainingSites.length) {
-      const liveResults = await Promise.all(
-        remainingSites.map((site) => resolveLiveSite(env, site, title, normTitle))
-      );
+      const liveResults = await resolveLiveSites(env, remainingSites, title, normTitle);
       const stillMissingAfterLiveFetch = [];
-      remainingSites.forEach((site, i) => {
-        const result = liveResults[i];
+      remainingSites.forEach((site) => {
+        const result = liveResults[site];
         if (result) {
           liveFetchLinks[site.toLowerCase()] = result.url;
           linkTypes[site.toLowerCase()] = result.isDirect ? 'direct' : 'search';
