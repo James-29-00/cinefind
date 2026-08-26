@@ -3359,10 +3359,10 @@ function genreIdsToLabel(genreIds) {
 const MOVIE_SITES = (title) => [
   {name: '1Shows', url: `https://1shows.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'FlickyStream', url: `https://flickystream.dad/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'MovieBox', url: `https://movie-box.co/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'MovieBox', url: `https://movie-box.co/web/searchResult?keyword=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
   {name: '1Flex', url: `https://1flex.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: '1Tube', url: `https://1tube.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Cineby', url: `https://cineby.at/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Cineby', url: `https://cineby.im/`, note: 'Search inside site', linkType: 'search'}, // domain moved to cineby.im; search is client-side rendered (no query-param pattern exists), so this just points at the homepage
   {name: 'FMovies', url: `https://fmovies-hd.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
 
@@ -3372,21 +3372,21 @@ const MOVIE_SITES = (title) => [
 const SERIES_SITES = (title) => [
   {name: '1Shows', url: `https://1shows.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'FlickyStream', url: `https://flickystream.dad/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'MovieBox', url: `https://movie-box.co/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'MovieBox', url: `https://movie-box.co/web/searchResult?keyword=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
   {name: '1Flex', url: `https://1flex.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: '1Tube', url: `https://1tube.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Cineby', url: `https://cineby.at/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Cineby', url: `https://cineby.im/`, note: 'Search inside site', linkType: 'search'}, // domain moved to cineby.im; search is client-side rendered (no query-param pattern exists), so this just points at the homepage
   {name: 'FMovies', url: `https://fmovies-hd.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
 
 // K-drama / Asian drama — only real drama-focused sites.
 // ===== DRAMA_SITES (PART 1: search-URL pattern, not homepage) =====
 const DRAMA_SITES = (title) => [
-  {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'},
-  {name: 'DramaCool', url: `https://dramacool.com.tw/search?type=movies&keyword=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?type=movies&s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
+  {name: 'DramaCool', url: `https://dramacool.baby/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live pattern (Aug 26, 2026)
   {name: 'KissKH', url: `https://kisskh.co/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'AsianCrush', url: `https://www.asiancrush.com/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Viki', url: `https://www.viki.com/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'Viki', url: `https://www.viki.com/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
   {name: 'Viu', url: `https://www.viu.com/ott/global/en/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'Kocowa', url: `https://www.kocowa.com/search?query=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'OnDemandKorea', url: `https://www.ondemandkorea.com/search?query=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
@@ -3397,9 +3397,9 @@ const DRAMA_SITES = (title) => [
 // Anime (movie or series) — dedicated anime sites only.
 // ===== ANIME_SITES (PART 1: search-URL pattern, not homepage) =====
 const ANIME_SITES = (title) => [
-  {name: 'ReAnime', url: `https://reanime.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Animepahe', url: `https://animepahe.pw/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Miruro', url: `https://miruro.to/search?keyword=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'ReAnime', url: `https://reanime.to/search?q=${encodeURIComponent(title)}&limit=36&offset=0`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
+  {name: 'Animepahe', url: `https://animepahe.pw/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY — reported to have bot protection, deprioritized for now
+  {name: 'Miruro', url: `https://www.miruro.to/search?query=${encodeURIComponent(title)}&type=ANIME&sort=POPULARITY_DESC`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
   {name: 'Anikoto', url: `https://anikototv.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'Enma', url: `https://enma.lol/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
@@ -5140,7 +5140,7 @@ function applyStatusDots() {
 const SITES_DIRECTORY = [
   { name: 'MyAsianTV', url: 'https://myasiantv.com.lv/', domain: 'myasiantv.com.lv', categories: ['drama'], icon: '🏔️', accent: '#e63946',
     logoHtml: `<span class="logo-word"><span class="lw-white">My</span><span style="color:#e63946;">Asian</span><span class="lw-white">TV</span></span>` },
-  { name: 'DramaCool',  url: 'https://dramacool.com.tw/', domain: 'dramacool.com.tw', categories: ['drama'], icon: '🎬', accent: '#5b8def',
+  { name: 'DramaCool',  url: 'https://dramacool.baby/', domain: 'dramacool.baby', categories: ['drama'], icon: '🎬', accent: '#5b8def',
     logoHtml: `<span class="logo-word"><span style="color:#5b8def;">Drama</span><span class="lw-white">Cool</span></span>` },
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'], accent: '#ff4d8f',
     logoHtml: `<span class="logo-word"><span style="color:var(--brand-pink);">Kiss</span><span class="lw-white">KH</span></span>` },
@@ -5168,7 +5168,7 @@ const SITES_DIRECTORY = [
     logoHtml: `<span class="logo-word" style="font-style:italic;transform:skewX(-6deg);display:inline-block;color:var(--brand-red);">1FLEX</span>` },
   { name: '1Tube',         url: 'https://1tube.org/',           domain: '1tube.org',            categories: ['movie'], accent: '#a855f7',
     logoHtml: `<span class="logo-word"><span style="color:var(--brand-purple);">1</span><span class="lw-white">Tube</span></span>` },
-  { name: 'Cineby',        url: 'https://cineby.at/',           domain: 'cineby.at',            categories: ['movie'], accent: '#06d6a0',
+  { name: 'Cineby',        url: 'https://cineby.im/',           domain: 'cineby.im',            categories: ['movie'], accent: '#06d6a0',
     logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:var(--brand-teal);">by</span></span>` },
   { name: 'FMovies',       url: 'https://fmovies-hd.to/',       domain: 'fmovies-hd.to',        categories: ['movie'], accent: '#3b82f6',
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--accent);">F</span><span class="lw-white">Movies</span></span>` },
