@@ -3549,17 +3549,17 @@ async function fetchOmniRouteDirectLinks(title, siteNames) {
     if (!res.ok) {
       const bodyText = await res.text().catch(() => '(could not read body)');
       debugLog('❌ Worker returned non-OK response:', bodyText.slice(0, 300));
-      return {};
+      return { links: {}, linkTypes: {} };
     }
     const data = await res.json();
     debugLog('📦 Raw worker response:', JSON.stringify(data).slice(0, 300));
     if (data.error) {
       debugLog('❌ Worker/OmniRoute error field:', data.error + (data.details ? ' — ' + JSON.stringify(data.details).slice(0,200) : ''));
-      return {};
+      return { links: {}, linkTypes: {} };
     }
     if (!data.text) {
       debugLog('⚠️ No "text" field in response — nothing to parse.');
-      return {};
+      return { links: {}, linkTypes: {} };
     }
     const cleaned = data.text.replace(/^```json\s*|^```\s*|```\s*$/g, '').trim();
     let parsed;
@@ -3567,20 +3567,21 @@ async function fetchOmniRouteDirectLinks(title, siteNames) {
       parsed = JSON.parse(cleaned);
     } catch (parseErr) {
       debugLog('❌ Failed to JSON.parse the AI text:', parseErr.message + ' — raw: ' + cleaned.slice(0, 200));
-      return {};
+      return { links: {}, linkTypes: {} };
     }
     // Expected shape: { "dramacool": "https://...", "viki": "" }
     // Empty string / missing key = OmniRoute found nothing for that site.
     const links = parsed.links || {};
+    const linkTypes = data.linkTypes || {};
     const foundCount = Object.values(links).filter(Boolean).length;
     debugLog('✅ Parsed links:', `${foundCount}/${siteNames.length} sites had a direct link — ${JSON.stringify(links)}`);
-    return links;
+    return { links, linkTypes };
   } catch (e) {
     // Timeout, network error, OmniRoute down, etc. — fail silently for
     // normal users (fallback links stay as-is), but log it here for debug.
     const elapsed = Date.now() - startTime;
     debugLog('❌ Request failed/timed out:', `${e.name}: ${e.message} (after ${elapsed}ms)`);
-    return {};
+    return { links: {}, linkTypes: {} };
   }
 }
 
@@ -3589,7 +3590,7 @@ async function fetchOmniRouteDirectLinks(title, siteNames) {
 // painted the page with fallback links.
 function upgradeCardsWithOmniRoute(title, siteNames) {
   debugLog('🚀 upgradeCardsWithOmniRoute started for:', title);
-  fetchOmniRouteDirectLinks(title, siteNames).then(links => {
+  fetchOmniRouteDirectLinks(title, siteNames).then(({ links, linkTypes }) => {
     let upgradedCount = 0;
     Object.keys(links).forEach(siteKey => {
       const url = links[siteKey];
@@ -3606,11 +3607,12 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       card.setAttribute('href', url);
       const badge = card.querySelector('.site-free, .site-note:last-of-type');
       if (badge) {
-        // worker.js now verifies each guessed URL server-side (HEAD/GET
-        // check against the actual site) before ever returning it here —
-        // so by the time a URL reaches this point it's been confirmed to
-        // resolve, not just guessed. "Direct link" is accurate again.
-        badge.textContent = '✅ Direct link';
+        // worker.js verifies each URL is reachable before returning it, but
+        // "reachable" isn't the same as "points at the title" — a search
+        // page is reachable too. linkTypes[siteKey] tells us which one this
+        // actually is, so the badge doesn't overclaim.
+        const isDirect = linkTypes[siteKey] === 'direct';
+        badge.textContent = isDirect ? '✅ Direct link' : '🔍 Search inside site';
         badge.className = 'site-free';
         badge.style.marginTop = '2px';
         badge.style.display = 'inline-block';
@@ -3619,7 +3621,7 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
       const copyBtn = card.querySelector('.copy-link-btn:last-of-type');
       if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${url.replace(/'/g, "\\'")}', this)`);
     });
-    debugLog('🏁 Done —', `${upgradedCount} card(s) upgraded to "✅ Direct link" on the page.`);
+    debugLog('🏁 Done —', `${upgradedCount} card(s) checked against OmniRoute.`);
   });
 }
 
