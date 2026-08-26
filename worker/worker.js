@@ -201,20 +201,51 @@ const SITE_SEARCH_URLS = {
   'enma': (t) => `https://enma.lol/?s=${encodeURIComponent(t)}`,
 };
 
+// Fetches a URL, routing through the Scrape.do proxy (real browser rendering +
+// residential proxies + Cloudflare/anti-bot handling) when SCRAPEDO_API_KEY is
+// configured. Falls back to a plain direct fetch otherwise (or if Scrape.do
+// itself errors), so this is safe to call even without the key set.
+// Only these sites are known (confirmed via live testing) to need the
+// Scrape.do proxy — everything else uses a plain direct fetch to conserve
+// the free 1,000-requests/month quota. Add a site's key here (matching
+// SITE_SEARCH_URLS) only after observing a blank/blocked result from it
+// in an actual search — don't add speculatively.
+const PROTECTED_SITES = new Set(['kisskh', 'dramacool']);
+
+// Fetches a URL, routing through the Scrape.do proxy (real browser rendering +
+// residential proxies + Cloudflare/anti-bot handling) when SCRAPEDO_API_KEY is
+// configured AND the given site is in PROTECTED_SITES. Falls back to a plain
+// direct fetch otherwise (unprotected sites, missing key, or Scrape.do error),
+// so this is safe to call even without the key set.
+async function smartFetch(env, url, opts = {}) {
+  const timeout = opts.timeoutMs || 8000;
+  const useProxy = opts.site && PROTECTED_SITES.has(opts.site.toLowerCase());
+  if (useProxy && env.SCRAPEDO_API_KEY) {
+    try {
+      const proxied = `https://api.scrape.do/?token=${env.SCRAPEDO_API_KEY}&url=${encodeURIComponent(url)}&render=true`;
+      const res = await fetch(proxied, { signal: AbortSignal.timeout(timeout) });
+      if (res.ok) return res;
+    } catch (err) {
+      // fall through to direct fetch below
+    }
+  }
+  return fetch(url, {
+    method: 'GET',
+    headers: { 'User-Agent': BROWSER_USER_AGENT },
+    signal: AbortSignal.timeout(timeout),
+  });
+}
+
 // Hits the site's real search endpoint and returns the raw HTML along with
 // the search URL itself (used as a fallback link if Layer 5 parsing below
 // can't extract anything better).
-async function liveFetchSearch(site, title) {
+async function liveFetchSearch(env, site, title) {
   const key = site.toLowerCase();
   const template = SITE_SEARCH_URLS[key];
   if (!template || !title) return null;
   const searchUrl = template(title);
   try {
-    const res = await fetch(searchUrl, {
-      method: 'GET',
-      headers: { 'User-Agent': BROWSER_USER_AGENT },
-      signal: AbortSignal.timeout(5000),
-    });
+    const res = await smartFetch(env, searchUrl, { timeoutMs: 8000, site });
     if (!res.ok) return null;
     const html = await res.text();
     return { searchUrl, html };
@@ -235,12 +266,18 @@ const MAX_ANCHOR_CANDIDATES = 60;
 function extractAnchors(html, baseUrl) {
   const anchors = [];
   const re = /<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const altRe = /<img\s[^>]*alt=["']([^"']*)["'][^>]*>/i;
   let match;
   let base;
   try { base = new URL(baseUrl); } catch (err) { base = null; }
   while ((match = re.exec(html)) && anchors.length < 500) {
     const rawHref = match[1];
-    const text = match[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const inner = match[2];
+    let text = inner.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!text) {
+      const altMatch = inner.match(altRe);
+      text = (altMatch?.[1] || '').trim();
+    }
     if (!text) continue;
     let href = rawHref;
     if (base) {
@@ -321,7 +358,7 @@ ${sections}`;
 // resolves all of them at once. Falls back to the search URL itself for
 // any site the batch didn't confidently resolve.
 async function resolveLiveSites(env, sites, title, normTitle) {
-  const fetched = await Promise.all(sites.map((site) => liveFetchSearch(site, title)));
+  const fetched = await Promise.all(sites.map((site) => liveFetchSearch(env, site, title)));
   const siteCandidates = {};
   const searchUrls = {};
   sites.forEach((site, i) => {
@@ -335,7 +372,7 @@ async function resolveLiveSites(env, sites, title, normTitle) {
   const picks = await aiParseSearchResultsBatch(env, title, normTitle, siteCandidates);
 
   const verified = await Promise.all(
-    Object.entries(picks).map(async ([site, link]) => [site, await verifyLinkContent(link, normTitle)])
+    Object.entries(picks).map(async ([site, link]) => [site, await verifyLinkContent(env, link, normTitle, site)])
   );
   const confirmedDirect = new Set(verified.filter(([, ok]) => ok).map(([site]) => site));
 
@@ -355,13 +392,12 @@ async function resolveLiveSites(env, sites, title, normTitle) {
 // many sites soft-404 (always return 200, e.g. serving their SPA shell for
 // any path). Fetch the page and check its <title>/og:title actually
 // resembles the requested title before calling it a confirmed direct link.
-async function verifyLinkContent(url, normTitle) {
+const LISTING_URL_PATTERN = /[?&](s|q|keyword|search)=|\/search(\/|$|\?)/i;
+
+async function verifyLinkContent(env, url, normTitle, site) {
+  if (LISTING_URL_PATTERN.test(url)) return false;
   try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { 'User-Agent': BROWSER_USER_AGENT },
-      signal: AbortSignal.timeout(6000),
-    });
+    const res = await smartFetch(env, url, { timeoutMs: 6000, site });
     if (!res.ok) return false;
     const html = await res.text();
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
