@@ -225,12 +225,14 @@ async function smartFetch(env, url, opts = {}) {
       const proxied = `https://api.scrape.do/?token=${env.SCRAPEDO_API_KEY}&url=${encodeURIComponent(url)}&render=true`;
       const res = await fetch(proxied, { signal: AbortSignal.timeout(timeout) });
       if (res.ok) return res;
+      console.error(`[smartFetch] scrape.do non-ok for site=${opts.site} status=${res.status} url=${url}`, (await res.text()).slice(0, 300));
     } catch (err) {
+      console.error(`[smartFetch] scrape.do threw for site=${opts.site} url=${url}`, String(err));
       // fall through to direct fetch below
     }
   }
   return fetch(url, {
-    method: 'GET',
+    method: opts.method || 'GET',
     headers: { 'User-Agent': BROWSER_USER_AGENT },
     signal: AbortSignal.timeout(timeout),
   });
@@ -554,16 +556,18 @@ export default {
     }
 
     if (parsedLinks && typeof parsedLinks === 'object') {
-      const entries = Object.entries(parsedLinks).filter(([, url]) => typeof url === 'string' && url.trim());
+      const entries = Object.entries(parsedLinks).filter(
+        ([site, url]) => typeof url === 'string' && url.trim() && !(site in d1Links) && !(site in liveFetchLinks)
+      );
       const VERIFY_TIMEOUT_MS = 5000;
       const verified = await Promise.allSettled(
         entries.map(async ([site, url]) => {
           try {
-            const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(VERIFY_TIMEOUT_MS) });
+            const res = await smartFetch(env, url, { method: 'HEAD', timeoutMs: VERIFY_TIMEOUT_MS, site });
             return [site, res.ok ? url : ''];
           } catch (err) {
             try {
-              const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(VERIFY_TIMEOUT_MS) });
+              const res = await smartFetch(env, url, { timeoutMs: VERIFY_TIMEOUT_MS, site });
               return [site, res.ok ? url : ''];
             } catch (err2) {
               return [site, ''];
