@@ -2511,6 +2511,7 @@ let currentSortBy = 'default';
 // search would multiply API calls for the common case where page 1-2
 // already has what the person wants.
 let currentSearchQueryForApi = null; // the cleaned query actually sent to TMDB (qForApi), for re-fetching further pages
+let currentSearchSeasonHint = null; // season number (if any) the user typed in this search — read by selectMovie() so grid picks get the same season enrichment the single-result path already applies
 let currentSearchPagesFetched = 0;   // 2 once the initial page1+2 merge completes; bumped by searchDeeper()
 const MAX_SEARCH_PAGES = 5;          // hard cap so this can't spiral into dozens of requests
 
@@ -2679,7 +2680,20 @@ function loadMoreResults() {
 function selectMovie(index) {
   const movie = currentDisplayedResults && currentDisplayedResults[index];
   if (!movie) return;
-  renderResult(movie, movie.title);
+  // Grid cards never went through enrichWithSeasonData() (that only ran on
+  // a single auto-rendered top result) — apply it now, lazily, only for
+  // the specific card actually picked, so OmniRoute gets the same season
+  // context the single-result path already had. Safe no-op for movies or
+  // when the user didn't type a season (enrichWithSeasonData() itself
+  // checks item.type/seasonNumber and just resolves the original item).
+  if (movie.type === 'series' && currentSearchSeasonHint) {
+    enrichWithSeasonData(movie, currentSearchSeasonHint).then(enriched => {
+      currentDisplayedResults[index] = enriched;
+      renderResult(enriched, enriched.title);
+    });
+  } else {
+    renderResult(movie, movie.title);
+  }
 }
 
 // ========== LIVE SEARCH SUGGESTIONS ==========
@@ -3524,27 +3538,15 @@ const OMNIROUTE_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.w
 // a place to watch this for free." No functional change to what's asked
 // for or how the response is used (still same JSON shape, still same
 // background-upgrade behavior).
-function buildOmniRoutePrompt(title, siteNames) {
-  return `I run a media information directory app. For the title "${title}", ` +
-    `I have entries linking out to these site names: ${siteNames.join(', ')}. ` +
-    `For each site, if you know that site's URL structure for individual title pages ` +
-    `(e.g. a pattern like example.com/watch/title-slug), return your best-guess canonical ` +
-    `URL for this title on that site. If you don't know the site's URL pattern or aren't ` +
-    `confident, return an empty string for that site rather than guessing. ` +
-    `Respond with ONLY a JSON object, no other text, in this exact shape: ` +
-    `{"links": {"<site name lowercase>": "<url or empty string>"}}. ` +
-    `Include every site listed above as a key, even if the value is an empty string.`;
-}
-
-async function fetchOmniRouteDirectLinks(title, siteNames) {
+async function fetchOmniRouteDirectLinks(title, siteNames, context = {}) {
   debugLog('📤 Request →', `title="${title}" sites=[${siteNames.join(', ')}]`);
   const startTime = Date.now();
   try {
     const res = await fetch(OMNIROUTE_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: buildOmniRoutePrompt(title, siteNames), title, sites: siteNames }),
-      signal: AbortSignal.timeout(40000), // Layer 4/5 chain (live-fetch + batched Groq parse + content-verify) can take up to ~40s worst-case
+      body: JSON.stringify({ title, originalTitle: context.originalTitle || null, sites: siteNames, year: context.year, type: context.type, season: context.season, part: context.part }),
+      signal: AbortSignal.timeout(95000), // worker worst-case: live-fetch 8s + Groq batch parse 30s + per-site verify 6s (~44s), or if that falls through to Layer 6 pure-guess, +55s more (~90s+) — must outlast the worker's own longest chain, not guess short
     });
     const elapsed = Date.now() - startTime;
     debugLog('📥 HTTP status:', `${res.status} (${elapsed}ms)`);
@@ -3590,9 +3592,9 @@ async function fetchOmniRouteDirectLinks(title, siteNames) {
 // Kicks off the background lookup and patches matching cards in place once
 // results arrive. Call this once, right after renderResult() has already
 // painted the page with fallback links.
-function upgradeCardsWithOmniRoute(title, siteNames) {
+function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
   debugLog('🚀 upgradeCardsWithOmniRoute started for:', title);
-  fetchOmniRouteDirectLinks(title, siteNames).then(({ links, linkTypes }) => {
+  fetchOmniRouteDirectLinks(title, siteNames, context).then(({ links, linkTypes }) => {
     let upgradedCount = 0;
     // links/linkTypes keys come back lowercase from the worker (site.toLowerCase()),
     // but siteNames/data-site-name are display-case ("MovieBox") — build a
@@ -3639,6 +3641,7 @@ function upgradeCardsWithOmniRoute(title, siteNames) {
 // Used by both search and trending so the card/detail rendering stays consistent.
 function parseTmdbItem(r, fallbackMediaType) {
   const title = r.title || r.name;
+  const originalTitle = r.original_title || r.original_name || '';
   const mediaType = r.media_type || fallbackMediaType; // recommendations endpoint doesn't include media_type
   const type = mediaType === 'tv' ? 'series' : 'movie';
   const category = detectCategory(r, type);
@@ -3659,7 +3662,12 @@ function parseTmdbItem(r, fallbackMediaType) {
     // undefined === 'tl' (false), so Pinoy sites never appended regardless
     // of what was searched.
     original_language: r.original_language,
-    origin_country: r.origin_country || []
+    origin_country: r.origin_country || [],
+    // Native/romanized title (e.g. Korean/Japanese romanization) — many
+    // fansub/streaming sites list entries under this instead of the
+    // English/localized `title`. Only set when it actually differs, so
+    // downstream code can cheaply check `if (original_title)`.
+    original_title: (originalTitle && originalTitle !== title) ? originalTitle : ''
   };
 }
 
@@ -3895,6 +3903,22 @@ function extractSeasonNumber(q) {
   return null;
 }
 
+// Reads a "Part"/"Volume" marker directly from the OFFICIAL TMDB title
+// (data.title), not the user's typed query — unlike seasons, TMDB already
+// lists "Part 2"/"Vol. 2" movies as their own distinct search result (own
+// id, poster, year), so the marker is just sitting in the title TMDB gave
+// us. Only matches explicit markers (part/pt/vol/volume + number) — NOT a
+// bare trailing number like extractSeasonNumber does, since a bare number
+// on a movie title is too often the actual title itself ("2012", "300",
+// "Se7en", "1917") rather than a sequel marker, and there's no safe way to
+// tell those apart the way enrichWithSeasonData()'s TMDB lookup can for
+// seasons.
+function extractPartNumber(title) {
+  if (!title || typeof title !== 'string') return null;
+  const m = title.match(/\b(?:part|pt\.?|vol\.?|volume)\s*(\d+)\b/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 // Fetches season-specific poster/air-date/overview from the Worker's
 // `mode=season` endpoint and merges it into one already-parsed result.
 // Never rejects — any failure (network error, or TMDB returning no such
@@ -3913,6 +3937,11 @@ function enrichWithSeasonData(item, seasonNumber) {
         year: parseInt((season.air_date || '').split('-')[0]) || item.year,
         poster: season.poster_path ? `https://image.tmdb.org/t/p/w300${season.poster_path}` : item.poster,
         description: season.overview || item.description,
+        // Kept alongside title/poster/year above so downstream consumers
+        // (OmniRoute context) read the SAME season this card's poster and
+        // title already reflect — no separate re-derivation that could
+        // drift out of sync with what the user is actually looking at.
+        season: seasonNumber,
       };
     })
     .catch(() => item);
@@ -3971,6 +4000,7 @@ function searchMovie() {
   const { text: yearStrippedQuery, year: yearHint } = extractYearHint(query);
   const tmdbQuery = cleanSearchQuery(yearStrippedQuery);
   const seasonHint = extractSeasonNumber(yearStrippedQuery);
+  currentSearchSeasonHint = seasonHint; // exposed for selectMovie()'s grid-pick path below
 
   const now = Date.now();
   if (isSearching || now < cooldownUntil) {
@@ -4509,7 +4539,44 @@ function renderResult(data, query) {
   // Quietly try to upgrade cards to direct links via OmniRoute in the
   // background — page is already fully rendered above, so this never
   // delays what the user sees.
-  upgradeCardsWithOmniRoute(data.title || query, otherSites.map(s => s.name));
+  // Season suffix stripped before matching: enrichWithSeasonData() bakes
+  // "— Season N" into data.title for display, but that same text also
+  // becomes the fuzzy-match target server-side (normTitle vs page
+  // <title>). Season is already validated separately via the `season`
+  // param below (extractSeasonFromPage) — requiring the literal words
+  // "Season N" to ALSO appear on the site's own page title is redundant
+  // and drags the similarity score down on sites that format it
+  // differently (e.g. "Show (2013)" or "Show S2"), false-rejecting valid
+  // direct links.
+  const omniRouteTitle = (data.title || query || '').replace(/\s*—\s*Season\s+\d+\s*$/i, '');
+  upgradeCardsWithOmniRoute(omniRouteTitle, otherSites.map(s => s.name), {
+    // data always comes from parseTmdbItem() (directly, or via
+    // enrichWithSeasonData()) — it carries `year` (already a parsed int)
+    // and `type` ('series'|'movie'), never `release_date`/`media_type`.
+    // Reading the wrong field names here silently sent null/'movie' to
+    // OmniRoute for every request, defeating the year/type disambiguation
+    // entirely — this reads the fields that actually exist on `data`.
+    year: data.year || null,
+    type: data.type === 'series' ? 'tv' : 'movie',
+    // Only set when enrichWithSeasonData() actually attached one — so it
+    // always matches whatever season this exact card's title/poster show.
+    season: data.season || null,
+    // Read straight from the OFFICIAL TMDB title (e.g. "Kill Bill: Vol. 2")
+    // for movies — TMDB already lists each part/volume as its own distinct
+    // result, so this is just picking the marker out of the title we
+    // already have, not a separate lookup like season needed.
+    // Also applies to series now — anime frequently uses "Part N" instead
+    // of "Season N" (e.g. "Jujutsu Kaisen Part 2"), and TMDB lists those
+    // as part of the title the same way it does for movie volumes, so the
+    // same extraction is safe to run for both types.
+    part: extractPartNumber(data.title),
+    // Native/romanized title from TMDB (original_title/original_name),
+    // when it differs from the display title. Many fansub/streaming
+    // sites (DramaCool, Viki, Animepahe, Miruro, KissKH) list entries
+    // under this instead of the English/localized title — passing it
+    // along gives Layer 5/6 a second name to match against.
+    originalTitle: data.original_title || null,
+  });
 
   // Tavily fallback removed (2026-08-21) — see comment near
   // TAVILY_PROXY_URL's old location for why.
