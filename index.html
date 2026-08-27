@@ -1779,7 +1779,7 @@
       </button>
     </div>
     <p class="tagline">Find where to watch any movie or drama — for free</p>
-    <p id="build-marker"></p>
+    <p></p>
   </header>
 
   <div class="search-wrap">
@@ -1860,7 +1860,7 @@
     <p>CineFind © <span id="footer-year"></span>. This site doesn't host any content—we just help you find where to watch. Always check the legal status in your region.</p>
     <p style="margin-top:6px;"><button onclick="openAboutModal()" style="background:none; border:none; color:var(--muted); text-decoration:underline; font-size:.8rem; cursor:pointer; padding:0;">ℹ️ About & Disclaimer</button></p>
     <p id="visit-stats" style="opacity:0.7; font-size:0.85em; margin-top:4px;"></p>
-    <p style="opacity:0.5; font-size:0.75em; margin-top:4px;">Build: 2026-08-26 11:00 AM</p>
+    <p id="build-marker" style="opacity:0.5; font-size:0.75em; margin-top:4px;">Build: checking…</p>
   </footer>
 </div>
 
@@ -5617,7 +5617,7 @@ window.addEventListener('load', () => {
   const buildEl = document.getElementById('build-marker');
   if (buildEl) {
     buildEl.textContent = `build: ${document.lastModified} (checking GitHub…)`;
-    fetch('https://api.github.com/repos/James-29-00/cinefind/commits?path=index.html&per_page=1')
+    fetch('https://api.github.com/repos/James-29-00/cinefind/commits?per_page=1')
       .then(res => res.ok ? res.json() : Promise.reject(res.status))
       .then(commits => {
         const date = commits?.[0]?.commit?.author?.date;
