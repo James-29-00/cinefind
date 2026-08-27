@@ -1,4 +1,11 @@
 // worker.js — OmniRoute proxy worker
+//
+// ⚠️ TODO / PAALALA (started 2026-08-28): SHADOW_MODE_AUTO_SKIP is ON.
+// Tiered auto-resolve (search for SHADOW_MODE_AUTO_SKIP below) is only
+// LOGGING right now, hindi pa aktibo. Kailangan mo munang tignan yung
+// ?mode=stats after a few days ng dryrun_tier1/2_groq_disagreed bago
+// i-flip SHADOW_MODE_AUTO_SKIP to false. Wag basta i-off/on nang walang
+// pagtingin sa stats — yan yung buong point ng dry-run na ito.
 const RATE_LIMIT_MAX = 20;
 const BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const RATE_LIMIT_WINDOW_SECONDS = 60;
@@ -284,7 +291,7 @@ const SITE_SEARCH_URLS = {
   // only ever return the empty app shell. Falls through to Layer 6
   // (Groq guess) or the static search-page link instead.
   'fmovies': (t) => `https://fmovies-hd.to/?s=${encodeURIComponent(t)}`,
-  'myasiantv': (t) => `https://myasiantv.com.lv/?type=movies&s=${encodeURIComponent(t)}`,
+  'myasiantv': (t) => `https://myasiantv.com.lv/?s=${encodeURIComponent(t)}`, // dropped type=movies — this site serves both movies+series, hardcoded filter was returning empty results for series/drama titles (e.g. "Strong Girl Bong-soon")
   'dramacool': (t) => `https://dramacool.baby/search?q=${encodeURIComponent(t)}`,
   'kisskh': (t) => `https://kisskh.co/search?q=${encodeURIComponent(t)}`,
   'asiancrush': (t) => `https://www.asiancrush.com/?s=${encodeURIComponent(t)}`,
@@ -407,6 +414,29 @@ const DIRECT_LINK_PATH_SIGNAL = /\/(watch|play|episode|episodes|ep)[-/]/i;
 const KEYWORD_BONUS = 0.12;
 const KEYWORD_BONUS_MIN_SCORE = 0.3;
 
+// Tiered pre-filter thresholds (per-site, not per-batch): a site whose top
+// candidate already scores this high is confident enough that asking Groq
+// to pick again is redundant. Uses the SAME score rankAnchorCandidates
+// already computed (KEYWORD_BONUS included), so no separate scoring pass.
+//
+// ⚠️ SHADOW MODE — DO NOT FLIP WITHOUT CHECKING STATS FIRST ⚠️
+// These thresholds currently only drive dry-run logging (recordStat,
+// stats:{site}:dryrun_*) inside resolveLiveSites — every site still goes
+// to Groq regardless of tier, nothing real skips yet. Before setting
+// SHADOW_MODE_AUTO_SKIP to false:
+//   1. Let it run live for a few days first.
+//   2. Check ?mode=stats for dryrun_tier1_groq_disagreed and
+//      dryrun_tier2_groq_disagreed, per site.
+//   3. Only flip to false once those stay near zero — that's what
+//      confirms 0.90/0.85 are safe cutoffs and Groq isn't quietly
+//      catching cases the tier would've mis-resolved.
+// Line 499's similarity re-check still runs either way once flipped, so a
+// bad auto-resolve still can't slip through fully unverified — but the
+// dryrun stats are the real signal to trust before flipping at all.
+const SHADOW_MODE_AUTO_SKIP = true;
+const TIER1_AUTO_RESOLVE_SCORE = 0.90;
+const TIER2_AUTO_RESOLVE_SCORE = 0.85;
+
 // Narrow the full anchor list down to the ones most likely relevant, using
 // the same similarity() scoring Layer 3 uses — so Groq gets a short list
 // instead of hundreds of nav/footer/ad links. A small bonus is added for
@@ -486,17 +516,17 @@ ${sections}`;
       // to the plain-number format on a bad response.
       const idx = entry && typeof entry === 'object' ? entry.idx : entry;
       const confidence = entry && typeof entry === 'object' ? entry.confidence : null;
-      if (idx === null || idx === undefined) continue;
+      if (idx === null || idx === undefined) { await recordStat(env, site, 'reject_no_groq_pick'); continue; }
       // "low" confidence means Groq itself isn't sure — don't treat this as
       // a resolved direct link. It falls through to the site's search-page
       // URL instead (still useful, just honestly labeled 'search' not
       // 'direct'), same outcome as an unresolved site.
-      if (confidence === 'low') continue;
+      if (confidence === 'low') { await recordStat(env, site, 'reject_low_confidence'); continue; }
       const picked = siteCandidates[site][Number(idx)];
-      if (!picked) continue;
+      if (!picked) { await recordStat(env, site, 'reject_invalid_idx'); continue; }
       // Belt-and-suspenders: re-check similarity ourselves, don't just
       // trust that Groq picked correctly.
-      if (similarity(normTitle, normalizePageText(picked.text)) < getFuzzyThreshold(normTitle)) continue;
+      if (similarity(normTitle, normalizePageText(picked.text)) < getFuzzyThreshold(normTitle)) { await recordStat(env, site, 'reject_anchor_similarity'); continue; }
       // Confidence carries downstream to d1Upsert (#3, confidence-weighted
       // D1 TTL) — 'low' was already filtered above, so this is 'high' or
       // 'medium' only. Default to 'medium' for the old bare-number/no-object
@@ -563,12 +593,47 @@ async function resolveLiveSites(env, sites, title, normTitle, context = {}) {
     siteCandidates[site] = rankAnchorCandidates(anchors, normTitle);
   });
 
+  // Shadow-mode tier classification, per site — candidates are already
+  // sorted desc by rankAnchorCandidates, so the top candidate's score is
+  // all that's needed to decide the tier (see thresholds above). This does
+  // NOT change what gets sent to Groq below while SHADOW_MODE_AUTO_SKIP is
+  // true — siteCandidates is untouched, every site still goes through the
+  // batch call. Only used to log what WOULD have happened.
+  const shadowTiers = {};
+  Object.entries(siteCandidates).forEach(([site, candidates]) => {
+    const topScore = candidates[0]?.score ?? 0;
+    shadowTiers[site] = topScore >= TIER1_AUTO_RESOLVE_SCORE ? 'tier1'
+      : topScore >= TIER2_AUTO_RESOLVE_SCORE ? 'tier2'
+      : 'tier3';
+  });
+  if (SHADOW_MODE_AUTO_SKIP) {
+    await Promise.all(Object.entries(shadowTiers).map(
+      ([site, tier]) => recordStat(env, site, `dryrun_${tier}_candidate`)
+    ));
+  }
+
   const picks = await aiParseSearchResultsBatch(env, title, normTitle, siteCandidates, context);
 
   const verified = await Promise.all(
     Object.entries(picks).map(async ([site, pick]) => [site, await verifyLinkContent(env, pick.href, normTitle, site, context.year || null, context.season || null, context.part || null, context.type || null, context.normOriginalTitle || null)])
   );
   const confirmedDirect = new Set(verified.filter(([, ok]) => ok).map(([site]) => site));
+
+  // Shadow-mode accuracy check: for tier1/tier2 sites, did Groq's own pick
+  // (now verified above) agree with what the tier would have auto-resolved
+  // to? tier3 has no auto-resolve claim to check, so it's skipped. Watch
+  // dryrun_tier{N}_groq_disagreed in ?mode=stats — if that stays near zero
+  // over a few days, the threshold is safe to flip to real auto-skip.
+  if (SHADOW_MODE_AUTO_SKIP) {
+    await Promise.all(Object.entries(shadowTiers).map(async ([site, tier]) => {
+      if (tier === 'tier3') return;
+      const topCandidate = siteCandidates[site][0];
+      const pick = picks[site];
+      if (!pick) { await recordStat(env, site, `dryrun_${tier}_no_groq_pick`); return; }
+      if (pick.href !== topCandidate.href) { await recordStat(env, site, `dryrun_${tier}_groq_disagreed`); return; }
+      await recordStat(env, site, confirmedDirect.has(site) ? `dryrun_${tier}_would_match` : `dryrun_${tier}_verify_failed`);
+    }));
+  }
 
   const results = {};
   healthySites.forEach((site) => {
@@ -706,26 +771,31 @@ function looksLikeArticleNotPlayer(html) {
   return ARTICLE_PAGE_INDICATORS.test(html) && !PLAYER_INDICATORS.test(html);
 }
 
+// Returns { ok, reason }. reason is null when ok is true, otherwise a short
+// label identifying which check rejected the link (e.g. 'title_mismatch',
+// 'year_mismatch') — fed into recordStat() by the verifyLinkContent wrapper
+// so ?mode=stats shows WHERE rejections are concentrated per site, instead
+// of just a pass/fail rate that can't tell us which layer to fix.
 async function verifyLinkContentInner(env, url, normTitle, site, year = null, season = null, part = null, type = null, normOriginalTitle = null) {
-  if (LISTING_URL_PATTERN.test(url)) return false;
+  if (LISTING_URL_PATTERN.test(url)) return { ok: false, reason: 'listing_url' };
   try {
     const res = await smartFetch(env, url, { timeoutMs: 6000, site });
-    if (!res.ok) return false;
-    if (isSoftRedirect(url, res.url)) return false;
+    if (!res.ok) return { ok: false, reason: 'fetch_not_ok' };
+    if (isSoftRedirect(url, res.url)) return { ok: false, reason: 'soft_redirect' };
     const html = await res.text();
 
     // Catches "same URL, but content removed" pages that a redirect check
     // can't — checked before spending effort on title/year parsing.
-    if (hasRemovalPhrase(html)) return false;
+    if (hasRemovalPhrase(html)) return { ok: false, reason: 'removed_content' };
 
     // Catches a blog/article page that just mentions the title, not the
     // actual streaming page.
-    if (looksLikeArticleNotPlayer(html)) return false;
+    if (looksLikeArticleNotPlayer(html)) return { ok: false, reason: 'article_not_player' };
 
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
     const pageTitle = (ogMatch?.[1] || titleMatch?.[1] || '').trim();
-    if (!pageTitle) return false;
+    if (!pageTitle) return { ok: false, reason: 'no_page_title' };
 
     // Title must match — many fansub/streaming sites format their <title>
     // using the native/romanized name instead of the display title, so
@@ -736,7 +806,7 @@ async function verifyLinkContentInner(env, url, normTitle, site, year = null, se
     if (normOriginalTitle) {
       titleSimilarity = Math.max(titleSimilarity, similarity(normOriginalTitle, normPageTitle));
     }
-    if (titleSimilarity < getFuzzyThreshold(normTitle)) return false;
+    if (titleSimilarity < getFuzzyThreshold(normTitle)) return { ok: false, reason: 'title_mismatch' };
 
     // Content-type cross-check (Approach A: fallback if page doesn't
     // declare a type). `type` here is the TMDB-sourced ground truth for
@@ -745,7 +815,7 @@ async function verifyLinkContentInner(env, url, normTitle, site, year = null, se
     // we already know for certain.
     if (type) {
       const pageType = extractContentTypeFromPage(html);
-      if (pageType && pageType !== type) return false;
+      if (pageType && pageType !== type) return { ok: false, reason: 'type_mismatch' };
     }
 
     // Year validation (Approach A: fallback if year not found on page)
@@ -758,7 +828,7 @@ async function verifyLinkContentInner(env, url, normTitle, site, year = null, se
       // type mismatch (2008 !== "2008").
       if (pageYear && Number(pageYear) !== Number(year)) {
         // Year was found on page but doesn't match — reject
-        return false;
+        return { ok: false, reason: 'year_mismatch' };
       }
       // Year not found on page OR matches — pass (fallback allows missing years)
     }
@@ -767,18 +837,18 @@ async function verifyLinkContentInner(env, url, normTitle, site, year = null, se
     // BOTH sides have a value and they disagree.
     if (season) {
       const pageSeason = extractSeasonFromPage(pageTitle);
-      if (pageSeason && Number(pageSeason) !== Number(season)) return false;
+      if (pageSeason && Number(pageSeason) !== Number(season)) return { ok: false, reason: 'season_mismatch' };
     }
 
     // Part/volume validation — same fallback pattern.
     if (part) {
       const pagePart = extractPartFromPage(pageTitle);
-      if (pagePart && Number(pagePart) !== Number(part)) return false;
+      if (pagePart && Number(pagePart) !== Number(part)) return { ok: false, reason: 'part_mismatch' };
     }
 
-    return true;
+    return { ok: true, reason: null };
   } catch (err) {
-    return false;
+    return { ok: false, reason: 'exception' };
   }
 }
 
@@ -844,8 +914,14 @@ async function getStatsSummary(env) {
 // Kept separate from verifyLinkContentInner so none of that function's many
 // early `return false` points needed touching individually.
 async function verifyLinkContent(env, url, normTitle, site, year = null, season = null, part = null, type = null, normOriginalTitle = null) {
-  const ok = await verifyLinkContentInner(env, url, normTitle, site, year, season, part, type, normOriginalTitle);
+  const { ok, reason } = await verifyLinkContentInner(env, url, normTitle, site, year, season, part, type, normOriginalTitle);
   await recordVerifyStat(env, site, ok);
+  // Reject reason breakdown (stats:{site}:reject_{reason}) — lets ?mode=stats
+  // show WHICH check is rejecting the most for a given site, e.g. if
+  // 'title_mismatch' dominates dramacool's rejections, the fuzzy threshold
+  // or title normalization is the thing to tune, not verifyLinkContent as a
+  // whole. Best-effort like recordVerifyStat; never blocks the real result.
+  if (!ok && reason) await recordStat(env, site, `reject_${reason}`);
   return ok;
 }
 
