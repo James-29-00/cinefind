@@ -10,6 +10,10 @@ id = "51a458a52bc647f386976bbcaf83c881"
 binding = "SEARCH_CACHE"
 id = "98e86250456d40be8e7c546966e171d1"
 
+[[kv_namespaces]]
+binding = "STATS_KV"
+id = "e6eb5a36e2974e4382f99530a6f2490a"
+
 [[d1_databases]]
 binding = "LINKS_DB"
 database_name = "cinefind-catalog"
