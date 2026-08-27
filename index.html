@@ -3397,7 +3397,7 @@ const SERIES_SITES = (title) => [
 // K-drama / Asian drama — only real drama-focused sites.
 // ===== DRAMA_SITES (PART 1: search-URL pattern, not homepage) =====
 const DRAMA_SITES = (title) => [
-  {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?type=movies&s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
+  {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026) — dropped type=movies, this list is dramas/series, not movies (was filtering out its own results)
   {name: 'DramaCool', url: `https://dramacool.baby/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live pattern (Aug 26, 2026)
   {name: 'KissKH', url: `https://kisskh.co/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'AsianCrush', url: `https://www.asiancrush.com/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
@@ -3577,7 +3577,7 @@ async function fetchOmniRouteDirectLinks(title, siteNames, context = {}) {
     // Empty string / missing key = OmniRoute found nothing for that site.
     const links = parsed.links || {};
     const linkTypes = data.linkTypes || {};
-    const foundCount = Object.values(links).filter(Boolean).length;
+    const foundCount = Object.keys(links).filter(site => links[site] && linkTypes[site] === 'direct').length;
     debugLog('✅ Parsed links:', `${foundCount}/${siteNames.length} sites had a direct link — ${JSON.stringify(links)}`);
     return { links, linkTypes };
   } catch (e) {
