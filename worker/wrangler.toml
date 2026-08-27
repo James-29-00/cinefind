@@ -10,6 +10,11 @@ id = "51a458a52bc647f386976bbcaf83c881"
 binding = "SEARCH_CACHE"
 id = "98e86250456d40be8e7c546966e171d1"
 
+[[d1_databases]]
+binding = "LINKS_DB"
+database_name = "cinefind-catalog"
+database_id = "5d8cf44a-fe6e-412d-a8f7-566c26ebf21c"
+
 [vars]
 OMNIROUTE_URL = "https://omniroute-server-sx66.onrender.com"
 OMNIROUTE_MODEL = "auto"
