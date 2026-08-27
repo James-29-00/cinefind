@@ -465,8 +465,14 @@ export default {
       });
       remainingSites = stillMissing;
       // Everything resolved from D1 — return immediately, no need to touch cache or Groq.
+      // D1 can contain search-page URLs too (upserted before this check existed, or from
+      // a live-fetch fallback), so still run each through LISTING_URL_PATTERN before
+      // trusting it as 'direct' — a stored URL isn't automatically a movie-page URL.
       if (remainingSites.length === 0) {
-        return json({ text: JSON.stringify({ links: d1Links }), fromD1: true, linkTypes: Object.fromEntries(Object.keys(d1Links).map((s) => [s, 'direct'])) });
+        const linkTypesFromD1 = Object.fromEntries(
+          Object.entries(d1Links).map(([s, url]) => [s, LISTING_URL_PATTERN.test(url) ? 'search' : 'direct'])
+        );
+        return json({ text: JSON.stringify({ links: d1Links }), fromD1: true, linkTypes: linkTypesFromD1 });
       }
     }
 
@@ -594,12 +600,16 @@ export default {
         );
       }
 
-      // Groq-guessed and D1-known links point at the actual title's page,
-      // not a search page — mark them 'direct'. Live-fetch entries keep
-      // whatever resolveLiveSite() already determined (direct vs search).
+      // Groq-guessed links point at the actual title's page, not a search
+      // page — mark them 'direct'. Live-fetch entries keep whatever
+      // resolveLiveSite() already determined (direct vs search). Anything
+      // still unmarked (e.g. D1 entries merged in above) gets checked
+      // against LISTING_URL_PATTERN rather than assumed direct.
       const finalLinkTypes = { ...linkTypes };
       Object.keys(verifiedLinks).forEach((site) => {
-        if (!finalLinkTypes[site] && verifiedLinks[site]) finalLinkTypes[site] = 'direct';
+        if (!finalLinkTypes[site] && verifiedLinks[site]) {
+          finalLinkTypes[site] = LISTING_URL_PATTERN.test(verifiedLinks[site]) ? 'search' : 'direct';
+        }
       });
 
       const payload = { text: JSON.stringify({ links: verifiedLinks }), linkTypes: finalLinkTypes };
