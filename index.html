@@ -538,8 +538,9 @@
      full-size logo's hero ceiling (3.1rem). */
   body.hero-compact .logo { font-size: clamp(1.5rem, 4vw, 1.9rem); }
   body.hero-compact .tagline { display: none; }
-  #build-marker { font-size: .68rem; opacity: .4; margin-top: 2px; }
-  body.hero-compact #build-marker { display: none; }
+  /* Hidden by default regardless of hero/compact state — only shown via
+     JS when ?debug=1 is present (see the build-marker fetch block). */
+  #build-marker { font-size: .68rem; opacity: .4; margin-top: 2px; display: none; }
 
   /* Online-now live badge — a secondary trust signal, so it lives in the
      top corner (beside the theme toggle) rather than next to the wordmark.
@@ -5608,14 +5609,17 @@ window.addEventListener('load', () => {
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  // Auto build marker. document.lastModified is shown immediately as a
-  // quick first read, but on GitHub Pages it's server/CDN-provided and can
-  // be unreliable (cached responses can carry a stale Last-Modified header
-  // even after a real deploy). So it's replaced with the actual GitHub
-  // commit date for index.html — the real source of truth for "when was
-  // this file last changed" — once that fetch resolves.
+  // Auto build marker. Only shown with ?debug=1 — the CSS hides it by
+  // default (any state), so this is the only place that reveals it.
+  // document.lastModified is shown immediately as a quick first read, but
+  // on GitHub Pages it's server/CDN-provided and can be unreliable (cached
+  // responses can carry a stale Last-Modified header even after a real
+  // deploy). So it's replaced with the actual latest GitHub commit date —
+  // the real source of truth for "when was this repo last changed" —
+  // once that fetch resolves.
   const buildEl = document.getElementById('build-marker');
-  if (buildEl) {
+  if (buildEl && DEBUG_MODE) {
+    buildEl.style.display = 'block';
     buildEl.textContent = `build: ${document.lastModified} (checking GitHub…)`;
     fetch('https://api.github.com/repos/James-29-00/cinefind/commits?per_page=1')
       .then(res => res.ok ? res.json() : Promise.reject(res.status))
