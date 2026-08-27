@@ -22,3 +22,8 @@ database_id = "5d8cf44a-fe6e-412d-a8f7-566c26ebf21c"
 [vars]
 OMNIROUTE_URL = "https://omniroute-server-sx66.onrender.com"
 OMNIROUTE_MODEL = "auto"
+
+[triggers]
+# "*/10 * * * *" â€” OmniRoute keep-alive ping (existing)
+# "0 3 * * *"    â€” daily D1 link-rot re-verification sweep (reverifyStaleLinks)
+crons = ["*/10 * * * *", "0 3 * * *"]
