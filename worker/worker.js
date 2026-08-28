@@ -734,6 +734,69 @@ async function isSiteHealthy(env, site) {
   }
 }
 
+// ===== Layer 3.5: WordPress slug-guess (confirmed WordPress sites only) =====
+// For sites confirmed via manual live testing to be WordPress with clean,
+// deterministic slugs, we can skip the (broken/cached/unreliable) search
+// endpoint entirely and hit the guessed canonical URL directly. This exists
+// specifically because on these sites, SEARCH itself is what's broken —
+// the underlying content is fine, Layer 4's liveFetchSearch just can't find
+// it via the search box. Slug-guessing routes around search entirely.
+//
+// Add a site here ONLY after confirming (via manual URL testing) both that
+// it's really WordPress AND its exact slug pattern — don't add
+// speculatively. fmovies + myasiantv confirmed 2026-08-28.
+function slugify(title) {
+  return title
+    .toString()
+    .normalize('NFKD')               // split accented chars into base+diacritic
+    .replace(/[\u0300-\u036f]/g, '')  // drop the diacritics, keep the base letter
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/['']/g, '')            // "don't" -> "dont", not "don-t"
+    .replace(/[^a-z0-9]+/g, '-')      // everything else -> hyphen
+    .replace(/^-+|-+$/g, '')          // trim leading/trailing hyphens
+    .replace(/-{2,}/g, '-');          // collapse repeats
+}
+
+const WORDPRESS_SLUG_SITES = {
+  'fmovies': {
+    // Movie pages: https://fmovies-hd.to/{slug}/ — no year in the slug
+    // (confirmed pattern, e.g. "/send-help/").
+    urlPattern: (slug) => `https://fmovies-hd.to/${slug}/`,
+  },
+  'myasiantv': {
+    // Series pages: https://myasiantv.com.lv/series/{slug}-{year}/ — year
+    // is baked into the slug itself, so this guess only fires when a year
+    // is actually available; without one it just falls through to the
+    // normal search flow below, same as any other unresolved site.
+    requiresYear: true,
+    urlPattern: (slug, year) => `https://myasiantv.com.lv/series/${slug}-${year}/`,
+  },
+};
+
+// Attempts the slug-guessed URL for a single WORDPRESS_SLUG_SITES entry.
+// Reuses verifyLinkContent (same content-verification Layers 4-6 already
+// rely on) so a wrong guess (real page, wrong title/year) is rejected the
+// same way a wrong search-result pick would be — this never trusts the
+// guess blindly. Returns { url, isDirect: true, confidence: 'high' } on a
+// verified hit, or null on any miss (config missing, no slug, unverified) —
+// a null here is never a dead end, the caller just falls through to the
+// normal Layer 4/5 search-based flow for that site.
+async function trySlugGuess(env, site, title, normTitle, context = {}) {
+  const config = WORDPRESS_SLUG_SITES[site.toLowerCase()];
+  if (!config) return null;
+  if (config.requiresYear && !context.year) return null;
+
+  const slug = slugify(title);
+  if (!slug) return null;
+
+  const guessedUrl = config.urlPattern(slug, context.year || null);
+  const ok = await verifyLinkContent(env, guessedUrl, normTitle, site, context.year || null, context.season || null, context.part || null, context.type || null, context.normOriginalTitle || null);
+  await recordStat(env, site, ok ? 'slug_guess_hit' : 'slug_guess_miss');
+  if (!ok) return null;
+  return { url: guessedUrl, isDirect: true, confidence: 'high' };
+}
+
 // Live-fetch (Layer 4) for every remaining HEALTHY site in parallel, build
 // each site's candidate list, then a single batched AI parse (Layer 5) call
 // resolves all of them at once. Falls back to the search URL itself for any
@@ -745,10 +808,25 @@ async function resolveLiveSites(env, sites, title, normTitle, context = {}) {
   const healthFlags = await Promise.all(sites.map((site) => isSiteHealthy(env, site)));
   const healthySites = sites.filter((_, i) => healthFlags[i]);
 
-  const fetched = await Promise.all(healthySites.map((site) => liveFetchSearch(env, site, title)));
+  // Try the slug-guess shortcut first, in parallel, for every healthy site
+  // that has a WORDPRESS_SLUG_SITES entry. A hit resolves that site right
+  // here with 'high' confidence and skips its search-fetch + AI-parse below
+  // entirely. A miss just leaves the site in stillNeedSearch, unaffected —
+  // slug-guessing is a pure add-on layer, never a dead end.
+  const slugGuesses = await Promise.all(
+    healthySites.map((site) => trySlugGuess(env, site, title, normTitle, context))
+  );
+  const slugResolved = {};
+  const stillNeedSearch = [];
+  healthySites.forEach((site, i) => {
+    if (slugGuesses[i]) slugResolved[site] = slugGuesses[i];
+    else stillNeedSearch.push(site);
+  });
+
+  const fetched = await Promise.all(stillNeedSearch.map((site) => liveFetchSearch(env, site, title)));
   const siteCandidates = {};
   const searchUrls = {};
-  healthySites.forEach((site, i) => {
+  stillNeedSearch.forEach((site, i) => {
     const f = fetched[i];
     if (!f) return;
     searchUrls[site] = f.searchUrl;
@@ -798,8 +876,11 @@ async function resolveLiveSites(env, sites, title, normTitle, context = {}) {
     }));
   }
 
-  const results = {};
-  healthySites.forEach((site) => {
+  // slugResolved sites were already fully resolved above and never entered
+  // the search/AI-parse path at all — merge them in as-is alongside
+  // whatever stillNeedSearch resolved to.
+  const results = { ...slugResolved };
+  stillNeedSearch.forEach((site) => {
     if (!(site in searchUrls)) { results[site] = null; return; }
     if (picks[site] && confirmedDirect.has(site)) {
       results[site] = { url: picks[site].href, isDirect: true, confidence: picks[site].confidence };
