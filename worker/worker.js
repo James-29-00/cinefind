@@ -32,6 +32,15 @@ const REVERIFY_CRON = '0 3 * * *';
 // cleanly for a few days.
 const REVERIFY_BATCH_SIZE = 30;
 
+// ===== Stale-while-revalidate (#3) =====
+// A D1 hit older than this is still served immediately (never blocks the
+// response), but also kicks off a background re-check via ctx.waitUntil.
+// Deliberately shorter than the daily reverify-sweep cadence — this is the
+// "catch it sooner if someone's actually searching for it" path, the sweep
+// is the "catch everything eventually" path. 6h chosen so a link that rots
+// mid-day doesn't sit wrong until the next 03:00 UTC sweep.
+const STALE_REVALIDATE_MS = 6 * 60 * 60 * 1000;
+
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
@@ -174,6 +183,12 @@ function getFuzzyThreshold(normTitle) {
 // above threshold, or null. D1 has no built-in fuzzy search, so this pulls
 // candidate rows (LIKE on first word, a cheap pre-filter) then scores them
 // in JS with Levenshtein similarity.
+// Returns null on no match, or a small row-shaped object on a hit:
+// { url, verifiedAt, normalizedTitle, originalTitle, site, year, season, part }.
+// The extra fields (beyond url) exist so a caller can hand this straight to
+// revalidateRow() for stale-while-revalidate (#3) without a second D1 round
+// trip — year/season/part come back as the same 'unknown'/'none' sentinel
+// strings the row is stored under, matching what revalidateRow expects.
 async function d1FuzzyLookup(env, normTitle, site, year, season, part) {
   if (!env.LINKS_DB) return null;
   const yearKey = year ? String(year) : 'unknown';
@@ -185,7 +200,7 @@ async function d1FuzzyLookup(env, normTitle, site, year, season, part) {
     // (2017), "Alice in Borderland" S2 vs S3, or "Kill Bill" Vol.1 vs Vol.2
     // never even end up as fuzzy-match candidates against each other.
     const { results } = await env.LINKS_DB.prepare(
-      `SELECT normalized_title, url FROM links WHERE site = ? AND year = ? AND season = ? AND part = ? AND normalized_title LIKE ? LIMIT 50`
+      `SELECT normalized_title, url, verified_at, original_title FROM links WHERE site = ? AND year = ? AND season = ? AND part = ? AND normalized_title LIKE ? LIMIT 50`
     ).bind(site, yearKey, seasonKey, partKey, `%${firstWord}%`).all();
 
     let best = null;
@@ -210,7 +225,16 @@ async function d1FuzzyLookup(env, normTitle, site, year, season, part) {
     const MIN_MARGIN = 0.05;
     const ambiguous = secondBestScore > 0 && bestScore < 0.95 && (bestScore - secondBestScore) < MIN_MARGIN;
     if (best && bestScore >= getFuzzyThreshold(normTitle) && !ambiguous) {
-      return best.url;
+      return {
+        url: best.url,
+        verifiedAt: best.verified_at || 0,
+        normalizedTitle: best.normalized_title,
+        originalTitle: best.original_title,
+        site,
+        year: yearKey,
+        season: seasonKey,
+        part: partKey,
+      };
     }
     return null;
   } catch (err) {
@@ -368,7 +392,13 @@ async function liveFetchSearch(env, site, title) {
 // the universal fact that links are <a href> tags. Groq then only has to
 // pick the right entry out of a short, clean list instead of parsing raw
 // markup soup.
-const MAX_ANCHOR_CANDIDATES = 60;
+// Lowered from 60 — candidates are already sorted best-first by
+// rankAnchorCandidates before this cap is applied, so the real match
+// almost always sits well inside the top 20. Cuts Layer 5's batch
+// prompt size (the biggest token cost per search) by ~3x with no loss
+// in match quality; raise back toward 60 only if verifyLinkContent
+// starts failing on titles whose correct anchor was getting cut off.
+const MAX_ANCHOR_CANDIDATES = 20;
 
 function extractAnchors(html, baseUrl) {
   const anchors = [];
@@ -555,8 +585,17 @@ const SITE_HEALTH_MIN_SAMPLES = 8;   // don't judge a site on a handful of attem
 const SITE_HEALTH_MIN_RATE = 0.15;   // below this pass rate (with enough samples), skip
 async function isSiteHealthy(env, site) {
   if (!env.STATS_KV) return true;
+  const key = site.toLowerCase();
   try {
-    const key = site.toLowerCase();
+    // External checker's authoritative flag wins immediately — no need to
+    // wait for SITE_HEALTH_MIN_SAMPLES worth of organic failures to notice
+    // what the checker already confirmed via /site-status.
+    const flagged = await env.STATS_KV.get(`site_status:${key}`);
+    if (flagged === 'down' || flagged === 'bot_flagged') return false;
+  } catch (err) {
+    // fall through to organic pass/fail check below
+  }
+  try {
     const [passRaw, failRaw] = await Promise.all([
       env.STATS_KV.get(`stats:${key}:pass`),
       env.STATS_KV.get(`stats:${key}:fail`),
@@ -1030,15 +1069,52 @@ Respond with ONLY a JSON object, no other text: {"confirmed": true} or {"confirm
   }
 }
 
+// ===== Shared single-row revalidation (used by both the daily sweep and
+// stale-while-revalidate) =====
+// Re-runs the SAME verifyLinkContent() check Layers 4-6 already use against
+// one stored row. A row that still passes gets verified_at bumped to "now".
+// A row that now fails gets DELETED. `row` needs normalized_title,
+// original_title, site, url, year, season, part — either straight off a D1
+// query (sentinel 'unknown'/'none' strings) or the equivalent shape
+// d1FuzzyLookup hands back. Returns true (refreshed) / false (removed), or
+// null if it couldn't run (no LINKS_DB / row missing a url).
+async function revalidateRow(env, row) {
+  if (!env.LINKS_DB || !row?.url) return null;
+  try {
+    const normTitle = row.normalized_title;
+    const normOriginalTitle = row.original_title ? normalizeTitle(row.original_title) : null;
+    // Stored as 'unknown'/'none' sentinels (see d1Upsert) — convert back
+    // to null so verifyLinkContent's year/season/part checks behave the
+    // same as they do on a fresh request instead of comparing against
+    // the literal string "unknown".
+    const year = row.year !== 'unknown' ? row.year : null;
+    const season = row.season !== 'none' ? row.season : null;
+    const part = row.part !== 'none' ? row.part : null;
+    const ok = await verifyLinkContent(env, row.url, normTitle, row.site, year, season, part, null, normOriginalTitle);
+    if (ok) {
+      await env.LINKS_DB.prepare(
+        `UPDATE links SET verified_at = ? WHERE normalized_title = ? AND site = ? AND year = ? AND season = ? AND part = ?`
+      ).bind(Date.now(), row.normalized_title, row.site, row.year, row.season, row.part).run();
+    } else {
+      await env.LINKS_DB.prepare(
+        `DELETE FROM links WHERE normalized_title = ? AND site = ? AND year = ? AND season = ? AND part = ?`
+      ).bind(row.normalized_title, row.site, row.year, row.season, row.part).run();
+      console.warn(`Link rot removed: ${row.site}/${row.normalized_title}`);
+    }
+    return ok;
+  } catch (err) {
+    console.warn('revalidateRow failed:', String(err));
+    return null;
+  }
+}
+
 // Pulls the oldest-checked rows from D1 (oldest verified_at first — so
 // every row eventually cycles through, not just whichever were upserted
-// most recently) and re-runs the SAME verifyLinkContent() check Layers
-// 4-6 already use. A row that still passes just gets verified_at bumped
-// to "now" (cycles it to the back of the queue). A row that now fails
-// gets DELETED — this is what actually fixes #3's precondition: rows in
-// the table are then guaranteed to have been checked within the last
-// ~(total rows / REVERIFY_BATCH_SIZE) days, instead of sitting there
-// forever from whenever they were first upserted, however stale.
+// most recently) and re-verifies each via revalidateRow — this is what
+// actually fixes #3's precondition: rows in the table are then guaranteed
+// to have been checked within the last ~(total rows / REVERIFY_BATCH_SIZE)
+// days, instead of sitting there forever from whenever they were first
+// upserted, however stale.
 // Runs sites in parallel (Promise.allSettled) rather than a sequential
 // loop — these are network fetches, not CPU work, so this stays well
 // under the Worker's CPU-time limit even though wall-clock time is
@@ -1058,29 +1134,7 @@ async function reverifyStaleLinks(env) {
     ).bind(REVERIFY_BATCH_SIZE).all();
     if (!results || !results.length) return;
 
-    const outcomes = await Promise.allSettled(results.map(async (row) => {
-      const normTitle = row.normalized_title;
-      const normOriginalTitle = row.original_title ? normalizeTitle(row.original_title) : null;
-      // Stored as 'unknown'/'none' sentinels (see d1Upsert) — convert back
-      // to null so verifyLinkContent's year/season/part checks behave the
-      // same as they do on a fresh request instead of comparing against
-      // the literal string "unknown".
-      const year = row.year !== 'unknown' ? row.year : null;
-      const season = row.season !== 'none' ? row.season : null;
-      const part = row.part !== 'none' ? row.part : null;
-      const ok = await verifyLinkContent(env, row.url, normTitle, row.site, year, season, part, null, normOriginalTitle);
-      if (ok) {
-        await env.LINKS_DB.prepare(
-          `UPDATE links SET verified_at = ? WHERE normalized_title = ? AND site = ? AND year = ? AND season = ? AND part = ?`
-        ).bind(Date.now(), row.normalized_title, row.site, row.year, row.season, row.part).run();
-      } else {
-        await env.LINKS_DB.prepare(
-          `DELETE FROM links WHERE normalized_title = ? AND site = ? AND year = ? AND season = ? AND part = ?`
-        ).bind(row.normalized_title, row.site, row.year, row.season, row.part).run();
-        console.warn(`Link rot removed: ${row.site}/${row.normalized_title}`);
-      }
-      return ok;
-    }));
+    const outcomes = await Promise.allSettled(results.map((row) => revalidateRow(env, row)));
 
     const checked = outcomes.length;
     const removed = outcomes.filter((o) => o.status === 'fulfilled' && o.value === false).length;
@@ -1090,8 +1144,82 @@ async function reverifyStaleLinks(env) {
   }
 }
 
+// ===== Emergency-mode gate for the daily reverify cron =====
+// The external link/site checker is meant to own reverify duty day-to-day
+// (it can run far more thorough sweeps than a Worker's CPU-time budget
+// allows). This cron only takes the job back over if the checker's
+// heartbeat has gone stale — checked fresh on every tick, so it hands
+// control back the moment the checker resumes pinging. Fails OPEN (treats
+// as "no heartbeat yet" -> runs the sweep) if STATS_KV is missing or the
+// key was never set, so a brand-new deploy isn't silently unprotected
+// while waiting for the checker's first run.
+const HEARTBEAT_STALE_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+async function isCheckerAlive(env) {
+  if (!env.STATS_KV) return false;
+  try {
+    const lastRun = await env.STATS_KV.get('heartbeat:last_checker_run');
+    if (!lastRun) return false;
+    return (Date.now() - parseInt(lastRun, 10)) < HEARTBEAT_STALE_MS;
+  } catch (err) {
+    return false;
+  }
+}
+
+// ===== Emergency-mode email alert (#4, via Resend) =====
+// Fires once per emergency EPISODE, not once per cron tick — a KV flag
+// (`alert:emergency_notified`) is set the first time an alert goes out and
+// only cleared again when /heartbeat receives a fresh ping (checker is back).
+// Without this guard, every REVERIFY_CRON tick while the checker stays down
+// would send another email — this way it's "you've got a problem" once, not
+// a daily flood until someone fixes the checker.
+// Needs three secrets/vars to actually send: RESEND_API_KEY, ALERT_EMAIL_TO
+// (your Gmail), ALERT_EMAIL_FROM (must be on a domain verified in Resend —
+// Resend rejects sends from unverified domains, it can't send FROM a plain
+// gmail.com address). Missing any of these just logs and no-ops — alerting
+// is best-effort and should never break the reverify sweep itself.
+async function sendEmergencyAlert(env, lastHeartbeatMs) {
+  if (!env.STATS_KV) return;
+  try {
+    const alreadyNotified = await env.STATS_KV.get('alert:emergency_notified');
+    if (alreadyNotified) return; // already alerted for this episode
+
+    if (!env.RESEND_API_KEY || !env.ALERT_EMAIL_TO || !env.ALERT_EMAIL_FROM) {
+      console.warn('Emergency alert skipped — RESEND_API_KEY/ALERT_EMAIL_TO/ALERT_EMAIL_FROM not configured.');
+      return;
+    }
+
+    const lastSeen = lastHeartbeatMs
+      ? `${Math.floor((Date.now() - lastHeartbeatMs) / (60 * 60 * 1000))}h ago`
+      : 'never';
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: env.ALERT_EMAIL_FROM,
+        to: env.ALERT_EMAIL_TO,
+        subject: 'CineFind: checker heartbeat stale — running in emergency mode',
+        text: `The external link/site checker hasn't pinged /heartbeat in over ${HEARTBEAT_STALE_MS / (60 * 60 * 1000)}h (last seen: ${lastSeen}).\n\nThe Worker's own backup sweep (reverifyStaleLinks) has taken over reverify duty in the meantime, but it's a much smaller/slower fallback than the real checker — worth checking why the checker stopped running.\n\nThis alert won't repeat until the checker sends a fresh heartbeat and then goes stale again.`,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      console.warn(`Emergency alert email failed: ${res.status} ${await res.text().catch(() => '')}`);
+      return; // don't set the flag if the send itself failed — retry next tick
+    }
+    // 7-day TTL as a safety net: if /heartbeat's clear-on-ping somehow never
+    // fires (e.g. the checker comes back but silently, or KV write races),
+    // this guarantees the flag can't suppress alerts forever.
+    await env.STATS_KV.put('alert:emergency_notified', String(Date.now()), { expirationTtl: 7 * 24 * 60 * 60 });
+  } catch (err) {
+    console.warn('sendEmergencyAlert failed:', String(err));
+  }
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders() });
     }
@@ -1099,6 +1227,96 @@ export default {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.searchParams.get('mode') === 'stats') {
       return json(await getStatsSummary(env));
+    }
+
+    // ===== Heartbeat receiver (external link/site checker "I'm alive" ping) =====
+    // The external checker calls this after every successful run. The cron
+    // below only takes over reverifyStaleLinks() duty if this hasn't been
+    // pinged in HEARTBEAT_STALE_MS — see scheduled(). Auth'd with a shared
+    // secret so randoms can't reset the emergency-mode clock.
+    if (request.method === 'POST' && url.pathname === '/heartbeat') {
+      const authHeader = request.headers.get('Authorization') || '';
+      if (!env.CHECKER_SECRET || authHeader !== `Bearer ${env.CHECKER_SECRET}`) {
+        return json({ error: 'Unauthorized' }, 401);
+      }
+      if (!env.STATS_KV) return json({ error: 'STATS_KV not bound' }, 500);
+      await env.STATS_KV.put('heartbeat:last_checker_run', String(Date.now()));
+      // Checker is alive again — clear the alert flag so the NEXT time it
+      // goes stale, sendEmergencyAlert fires again instead of staying
+      // suppressed from a previous episode.
+      await env.STATS_KV.delete('alert:emergency_notified');
+      return json({ ok: true });
+    }
+
+    // ===== External checker: bulk link invalidation =====
+    // Body: { urls: [{ site, url }, ...] }. Deletes matching D1 rows by
+    // exact (site, url) match — the checker crawled these URLs itself and
+    // knows their status, so no fuzzy matching needed here. Sanity-capped
+    // at 20% of total D1 rows per call: a buggy checker run that thinks
+    // everything is dead should not be able to wipe the whole cache in one
+    // request. Same shared-secret auth as /heartbeat.
+    if (request.method === 'POST' && url.pathname === '/links-invalidate') {
+      const authHeader = request.headers.get('Authorization') || '';
+      if (!env.CHECKER_SECRET || authHeader !== `Bearer ${env.CHECKER_SECRET}`) {
+        return json({ error: 'Unauthorized' }, 401);
+      }
+      if (!env.LINKS_DB) return json({ error: 'LINKS_DB not bound' }, 500);
+      let body;
+      try {
+        body = await request.json();
+      } catch (err) {
+        return json({ error: 'Invalid JSON body' }, 400);
+      }
+      const entries = Array.isArray(body?.urls) ? body.urls.filter((e) => e && e.site && e.url) : [];
+      if (!entries.length) return json({ error: 'No valid entries' }, 400);
+
+      const { results: countRows } = await env.LINKS_DB.prepare(`SELECT COUNT(*) AS c FROM links`).all();
+      const totalRows = countRows?.[0]?.c || 0;
+      const SANITY_CAP_RATIO = 0.2;
+      if (totalRows > 0 && entries.length > totalRows * SANITY_CAP_RATIO) {
+        console.warn(`links-invalidate REJECTED: ${entries.length} entries exceeds ${SANITY_CAP_RATIO * 100}% of ${totalRows} total rows — possible checker bug.`);
+        return json({ error: 'Sanity cap exceeded — refusing to invalidate this many entries in one call', totalRows, requested: entries.length }, 400);
+      }
+
+      const outcomes = await Promise.allSettled(
+        entries.map((e) =>
+          env.LINKS_DB.prepare(`DELETE FROM links WHERE site = ? AND url = ?`).bind(e.site.toLowerCase(), e.url).run()
+        )
+      );
+      const deleted = outcomes.filter((o) => o.status === 'fulfilled').length;
+      return json({ ok: true, deleted, requested: entries.length });
+    }
+
+    // ===== External checker: site-level status flag =====
+    // Body: { site, status: 'down' | 'bot_flagged' | 'ok' }. Sets/clears a
+    // KV flag that isSiteHealthy() checks BEFORE its own pass/fail-ratio
+    // logic — an authoritative external signal short-circuits the slower
+    // organic detection (which needs SITE_HEALTH_MIN_SAMPLES failures to
+    // notice on its own).
+    if (request.method === 'POST' && url.pathname === '/site-status') {
+      const authHeader = request.headers.get('Authorization') || '';
+      if (!env.CHECKER_SECRET || authHeader !== `Bearer ${env.CHECKER_SECRET}`) {
+        return json({ error: 'Unauthorized' }, 401);
+      }
+      if (!env.STATS_KV) return json({ error: 'STATS_KV not bound' }, 500);
+      let body;
+      try {
+        body = await request.json();
+      } catch (err) {
+        return json({ error: 'Invalid JSON body' }, 400);
+      }
+      const site = typeof body?.site === 'string' ? body.site.toLowerCase() : null;
+      const status = body?.status;
+      if (!site || !['down', 'bot_flagged', 'ok'].includes(status)) {
+        return json({ error: "Invalid body — need { site, status: 'down'|'bot_flagged'|'ok' }" }, 400);
+      }
+      const key = `site_status:${site}`;
+      if (status === 'ok') {
+        await env.STATS_KV.delete(key);
+      } else {
+        await env.STATS_KV.put(key, status);
+      }
+      return json({ ok: true, site, status });
     }
 
     if (request.method !== 'POST') {
@@ -1153,8 +1371,26 @@ export default {
       );
       const stillMissing = [];
       remainingSites.forEach((site, i) => {
-        if (lookups[i]) {
-          d1Links[site.toLowerCase()] = lookups[i];
+        const hit = lookups[i];
+        if (hit) {
+          d1Links[site.toLowerCase()] = hit.url;
+          // Stale-while-revalidate (#3): serve the cached url immediately
+          // (never blocks this response), but if it hasn't been re-checked
+          // in STALE_REVALIDATE_MS, kick off a background re-verify via the
+          // same shared helper the daily sweep uses. ctx.waitUntil keeps it
+          // running after the response is sent without holding the Worker
+          // open on the request path.
+          if (Date.now() - hit.verifiedAt > STALE_REVALIDATE_MS) {
+            ctx.waitUntil(revalidateRow(env, {
+              normalized_title: hit.normalizedTitle,
+              original_title: hit.originalTitle,
+              site: hit.site,
+              url: hit.url,
+              year: hit.year,
+              season: hit.season,
+              part: hit.part,
+            }));
+          }
         } else {
           stillMissing.push(site);
         }
@@ -1384,6 +1620,16 @@ export default {
     // wrangler.toml's [triggers] crons array can hold multiple schedules;
     // event.cron tells us which one fired this invocation.
     if (event.cron === REVERIFY_CRON) {
+      const checkerAlive = await isCheckerAlive(env);
+      if (checkerAlive) {
+        console.log('Reverify sweep skipped — external checker is alive.');
+        return;
+      }
+      console.warn('EMERGENCY MODE: external checker heartbeat stale — running backup reverify sweep.');
+      const lastHeartbeatMs = env.STATS_KV
+        ? parseInt((await env.STATS_KV.get('heartbeat:last_checker_run')) || '0', 10) || null
+        : null;
+      await sendEmergencyAlert(env, lastHeartbeatMs);
       await reverifyStaleLinks(env);
       return;
     }
