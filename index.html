@@ -2605,6 +2605,7 @@ function renderVisibleResults() {
         <div class="result-meta">
           ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
           ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
+          ${m.genre === 'Documentary' ? `<span class="badge badge-year" style="opacity:.8;">📋 Documentary</span>` : ''}
         </div>
       </div>
     </div>`).join('');
@@ -4128,6 +4129,20 @@ function searchMovie() {
               const bYearMatch = bYear === String(yearHint) ? 0 : 1;
               if (aYearMatch !== bYearMatch) return aYearMatch - bYearMatch;
             }
+            // Documentary tiebreaker: a "Making of"/behind-the-scenes
+            // documentary can share most/all of the main title's words
+            // (e.g. "The Soul of War: Making 'Hacksaw Ridge'" vs the actual
+            // film "Hacksaw Ridge"), so it still shows up in the same
+            // results grid. Push documentaries (genre id 99) below
+            // non-documentaries here — people searching a title almost
+            // always mean the actual movie/show, not the making-of. Only
+            // matters when neither result was already an exact-title match
+            // above (an exact-match documentary — someone deliberately
+            // searching a documentary by its real name — still wins fairly
+            // via the check above).
+            const aDoc = (a.genre_ids || []).includes(99) ? 1 : 0;
+            const bDoc = (b.genre_ids || []).includes(99) ? 1 : 0;
+            if (aDoc !== bDoc) return aDoc - bDoc;
             // Asian-origin tiebreaker: only reached once exact-title and
             // year-hint (if any) left two results still tied — nudges
             // K-drama/anime/Asian titles ahead of a same-tier Western
