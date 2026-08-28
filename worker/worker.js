@@ -41,6 +41,142 @@ const REVERIFY_BATCH_SIZE = 30;
 // mid-day doesn't sit wrong until the next 03:00 UTC sweep.
 const STALE_REVALIDATE_MS = 6 * 60 * 60 * 1000;
 
+// ===== AI provider fallback chain (Groq -> llm7 -> Gemini -> Cerebras -> Mistral) =====
+// Add a provider by appending an entry here — nothing else in the fallback
+// logic needs to change. Each entry must produce an OpenAI-compatible
+// /chat/completions request (url + headers + model), since callAIWithFallback
+// sends the same {model, messages, temperature} body shape to whichever
+// provider it tries.
+const AI_PROVIDERS = [
+  {
+    name: 'groq',
+    enabled: (env) => !!env.OMNIROUTE_URL,
+    url: (env) => `${env.OMNIROUTE_URL}/v1/chat/completions`,
+    headers: (env) => ({
+      'Content-Type': 'application/json',
+      ...(env.OMNIROUTE_API_KEY ? { Authorization: `Bearer ${env.OMNIROUTE_API_KEY}` } : {}),
+    }),
+    model: (env) => env.OMNIROUTE_MODEL || 'auto',
+  },
+  {
+    name: 'llm7',
+    enabled: (env) => !!env.LLM7_API_KEY,
+    url: () => 'https://api.llm7.io/v1/chat/completions',
+    headers: (env) => ({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.LLM7_API_KEY}`,
+    }),
+    // Free-tier OpenAI-proprietary model on llm7 — rare on free tiers,
+    // more reliable JSON-instruction-following than most open-weight
+    // free options.
+    model: () => 'gpt-4o-mini-2024-07-18',
+  },
+  {
+    name: 'gemini',
+    enabled: (env) => !!env.GEMINI_API_KEY,
+    // Gemini's OpenAI-compatibility layer, NOT the native generateContent
+    // endpoint that geminiCrossCheck() (below) uses — different request/
+    // response shape, same API key.
+    url: () => 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    headers: (env) => ({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.GEMINI_API_KEY}`,
+    }),
+    model: () => 'gemini-2.0-flash',
+  },
+  {
+    name: 'cerebras',
+    enabled: (env) => !!env.CEREBRAS_API_KEY,
+    url: () => 'https://api.cerebras.ai/v1/chat/completions',
+    headers: (env) => ({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.CEREBRAS_API_KEY}`,
+    }),
+    model: () => 'llama-3.3-70b',
+  },
+  {
+    name: 'mistral',
+    enabled: (env) => !!env.MISTRAL_API_KEY,
+    url: () => 'https://api.mistral.ai/v1/chat/completions',
+    headers: (env) => ({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.MISTRAL_API_KEY}`,
+    }),
+    model: () => 'mistral-small-latest',
+  },
+];
+
+
+// How long a provider is skipped after it 429s, before we try it again.
+// Short on purpose — this is a "stop hammering a rate-limited provider for
+// a bit" cooldown, not a long-term outage flag.
+const PROVIDER_COOLDOWN_SECONDS = 120;
+
+async function isProviderCoolingDown(env, providerName) {
+  if (!env.STATS_KV) return false;
+  try {
+    return !!(await env.STATS_KV.get(`cooldown:${providerName}`));
+  } catch (err) {
+    return false;
+  }
+}
+
+async function setProviderCooldown(env, providerName) {
+  if (!env.STATS_KV) return;
+  try {
+    await env.STATS_KV.put(`cooldown:${providerName}`, '1', {
+      expirationTtl: PROVIDER_COOLDOWN_SECONDS,
+    });
+  } catch (err) {
+  }
+}
+
+// Tries each enabled AI_PROVIDERS entry in order, skipping any currently in
+// cooldown, and returns the first successful response. A 429 sets that
+// provider's cooldown (so the NEXT request skips straight past it instead
+// of re-trying and failing again) then moves on immediately within this
+// same request — no waiting. Any other non-ok status or thrown error
+// (timeout, network) also just moves on to the next provider, no cooldown,
+// since that's more likely a one-off than a sustained rate limit.
+// Returns { ok: true, data, providerName } or { ok: false }.
+async function callAIWithFallback(env, messages, temperature, timeoutMs) {
+  for (const provider of AI_PROVIDERS) {
+    if (!provider.enabled(env)) continue;
+    if (await isProviderCoolingDown(env, provider.name)) continue;
+
+    try {
+      const res = await fetch(provider.url(env), {
+        method: 'POST',
+        headers: provider.headers(env),
+        body: JSON.stringify({
+          model: provider.model(env),
+          messages,
+          temperature,
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (res.status === 429) {
+        await setProviderCooldown(env, provider.name);
+        await recordStat(env, provider.name, '429');
+        continue;
+      }
+      if (!res.ok) {
+        await recordStat(env, provider.name, 'error');
+        continue;
+      }
+
+      const data = await res.json();
+      await recordStat(env, provider.name, 'hit');
+      return { ok: true, data, providerName: provider.name };
+    } catch (err) {
+      await recordStat(env, provider.name, 'error');
+      continue;
+    }
+  }
+  return { ok: false };
+}
+
 function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
@@ -492,7 +628,7 @@ function rankAnchorCandidates(anchors, normTitle) {
 // Returns { site: pickedHref | null }.
 async function aiParseSearchResultsBatch(env, title, normTitle, siteCandidates, context = {}) {
   const siteNames = Object.keys(siteCandidates).filter((s) => siteCandidates[s].length);
-  if (!env.OMNIROUTE_URL || !siteNames.length) return {};
+  if (!siteNames.length || !AI_PROVIDERS.some((p) => p.enabled(env))) return {};
 
   const sections = siteNames.map((site) => {
     const list = siteCandidates[site].map((a, i) => `  ${i}. "${a.text}" -> ${a.href}`).join('\n');
@@ -520,21 +656,9 @@ async function aiParseSearchResultsBatch(env, title, normTitle, siteCandidates, 
 ${sections}`;
 
   try {
-    const res = await fetch(`${env.OMNIROUTE_URL}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(env.OMNIROUTE_API_KEY ? { Authorization: `Bearer ${env.OMNIROUTE_API_KEY}` } : {}),
-      },
-      body: JSON.stringify({
-        model: env.OMNIROUTE_MODEL || 'auto',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!res.ok) return {};
-    const data = await res.json();
+    const result = await callAIWithFallback(env, [{ role: 'user', content: prompt }], 0.2, 30000);
+    if (!result.ok) return {};
+    const data = result.data;
     const text = (data?.choices?.[0]?.message?.content || '').trim();
     const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
     const parsed = JSON.parse(cleaned);
@@ -1454,39 +1578,21 @@ export default {
       }
     }
 
-    if (!env.OMNIROUTE_URL) {
-      return json({ error: 'OmniRoute not configured yet' }, 500);
+    if (!AI_PROVIDERS.some((p) => p.enabled(env))) {
+      return json({ error: 'No AI provider configured yet' }, 500);
     }
 
-    let omniRes;
-    try {
-      omniRes = await fetch(`${env.OMNIROUTE_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(env.OMNIROUTE_API_KEY ? { Authorization: `Bearer ${env.OMNIROUTE_API_KEY}` } : {}),
-        },
-        body: JSON.stringify({
-          model: env.OMNIROUTE_MODEL || 'auto',
-          messages: [{ role: 'user', content: prompt }],
-          // Lowered from 0.7 — this is the pure-guess layer (no real site
-          // data behind it, just training-data memory), so it should be
-          // the MOST conservative call, not the most "creative" one. 0.2
-          // matches Layer 5's setting.
-          temperature: 0.2,
-        }),
-        signal: AbortSignal.timeout(55000),
-      });
-    } catch (err) {
-      return json({ error: 'OmniRoute request failed', detail: String(err) }, 502);
+    // Lowered from 0.7 — this is the pure-guess layer (no real site data
+    // behind it, just training-data memory), so it should be the MOST
+    // conservative call, not the most "creative" one. 0.2 matches Layer 5's
+    // setting. Same temperature/timeout regardless of which provider in the
+    // chain ends up serving it.
+    const result = await callAIWithFallback(env, [{ role: 'user', content: prompt }], 0.2, 55000);
+    if (!result.ok) {
+      return json({ error: 'All AI providers failed (Groq and Gemini both unavailable)' }, 502);
     }
 
-    if (!omniRes.ok) {
-      const details = await omniRes.text();
-      return json({ error: 'OmniRoute request failed', details }, 502);
-    }
-
-    const data = await omniRes.json();
+    const data = result.data;
     const text = data?.choices?.[0]?.message?.content || '';
     const trimmed = text.trim();
 
