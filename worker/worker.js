@@ -965,6 +965,14 @@ const WORDPRESS_SLUG_SITES = {
     requiresYear: true,
     urlPattern: (slug, year) => `https://myasiantv.com.lv/series/${slug}-${year}/`,
   },
+  // Not actually WordPress (it's the same Angular/ng-state app confirmed
+  // 2026-08-28), but reuses this same deterministic slug-guess shortcut
+  // mechanism since its detail URL is also a plain, no-random-id slug.
+  // Confirmed live (Aug 30, 2026): https://dramacool.baby/drama/{slug}
+  // (e.g. "Goblin" -> /drama/goblin), no year in the slug.
+  'dramacool': {
+    urlPattern: (slug) => `https://dramacool.baby/drama/${slug}`,
+  },
 };
 
 // Attempts the slug-guessed URL for a single WORDPRESS_SLUG_SITES entry.
