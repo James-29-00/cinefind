@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD MARKER: v2026-08-21-04 (Tavily fallback fully removed) — check this comment (view page source, Ctrl+U) to confirm the uploaded file actually updated -->
+<!-- BUILD MARKER: v2026-08-29-02 (spinning ⏳ icon added to pending badge) — check this comment (view page source, Ctrl+U) to confirm the uploaded file actually updated -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -885,6 +885,15 @@
   .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 60px 0; color: var(--muted); }
   .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Spinning ⏳ on the per-site "Checking for direct link…" badge — only
+     the icon rotates (wrapped in its own span), not the whole badge text,
+     since rotating a text string looks broken/unreadable mid-spin. Slower
+     and eased differently from .spinner (that one's a loading ring, this
+     is a small inline glyph next to readable text) so it reads as "still
+     working" rather than a frantic loading spinner. */
+  .omni-pending-icon { display: inline-block; animation: omniHourglassSpin 1.6s ease-in-out infinite; }
+  @keyframes omniHourglassSpin { to { transform: rotate(180deg); } }
 
   /* ===== Skeleton loader (initial search result) ===== */
   /* Shows the shape of the movie header + site grid immediately, instead of
@@ -3423,13 +3432,23 @@ const ANIME_SITES = (title) => [
 // Works out which of the 4 buckets a TMDB result belongs to, using genre +
 // original language/origin country rather than just the movie/series split —
 // so "Iron Man" gets movie sites, an anime movie or series gets anime sites,
-// and a K-drama gets drama sites, regardless of type.
+// and an Asian drama (Korean, Japanese, Chinese, Thai, Taiwanese, etc.) gets
+// drama sites, regardless of type. Reuses isAsianOrigin() below rather than
+// a Korean-only check — DRAMA_SITES itself is a pan-Asian site list (Viki,
+// Viu, WeTV, MyAsianTV, AsianCrush, Amasian TV), not Korea-exclusive, so a
+// Japanese or Chinese drama series was previously falling through to the
+// generic SERIES_SITES aggregators instead of these Asian-drama-focused ones.
+// Philippines/Tagalog is explicitly excluded here even though isAsianOrigin()
+// counts it as Asian for sort-nudging purposes — Pinoy content already gets
+// its own dedicated site list (iWantTFC, Star Cinema, etc.) via the
+// isPinoyContent override further down in renderResult(), so it shouldn't
+// also get funneled into the Korean/Japanese/Chinese/Thai drama-site bucket.
 function detectCategory(r, type) {
   const isAnime = (r.genre_ids || []).includes(16) && r.original_language === 'ja';
   if (isAnime) return 'anime';
   if (type === 'series') {
-    const isKDrama = r.original_language === 'ko' || (r.origin_country || []).includes('KR');
-    return isKDrama ? 'drama' : 'series';
+    const isPinoy = r.original_language === 'tl' || (r.origin_country || []).includes('PH');
+    return (isAsianOrigin(r) && !isPinoy) ? 'drama' : 'series';
   }
   return 'movie';
 }
@@ -3439,12 +3458,14 @@ function detectCategory(r, type) {
 // built for, instead of TMDB's raw popularity order which skews Western.
 // Only checked after exact-title-match and year-hint already failed to
 // separate two results — see the sort comparators below.
+// Also reused by detectCategory() above to route Asian drama series.
 function isAsianOrigin(r) {
-  const ASIAN_COUNTRIES = ['KR', 'JP', 'CN', 'TW', 'HK', 'PH', 'TH'];
-  const ASIAN_LANGS = ['ko', 'ja', 'zh', 'tl', 'th'];
+  const ASIAN_COUNTRIES = ['KR', 'JP', 'CN', 'TW', 'HK', 'PH', 'TH', 'VN'];
+  const ASIAN_LANGS = ['ko', 'ja', 'zh', 'tl', 'th', 'vi'];
   return (r.origin_country || []).some(c => ASIAN_COUNTRIES.includes(c)) ||
     ASIAN_LANGS.includes(r.original_language);
 }
+
 
 const CATEGORY_SITES = {
   movie: MOVIE_SITES,
@@ -3586,12 +3607,60 @@ async function fetchOmniRouteDirectLinks(title, siteNames, context = {}) {
   }
 }
 
+// ===== Progress ticker for the "Checking for direct link…" badges =====
+// Purely cosmetic UX fix — the worker call this feeds into can legitimately
+// take anywhere from ~10s to ~95s (see AbortSignal.timeout comment above:
+// Layer 4 live-fetch + Layer 5 batch parse, or worst case falling through
+// to Layer 6's slower guess/cross-check/verify chain). Before this, every
+// pending badge just sat on the same static "⏳ Checking for direct link…"
+// the whole time with zero feedback on whether it's stuck or still working.
+// This has no idea which Layer the worker is actually on (that's server-
+// side and not reported back) — it just swaps the text through a few
+// honest, non-committal stages as elapsed time passes, so a long wait
+// reads as "still working" instead of "frozen."
+// Text only — the ⏳ icon lives in its own always-spinning .omni-pending-icon
+// span (see CSS) and is never touched here, so only .omni-pending-text gets
+// rewritten on each tick.
+const OMNI_PROGRESS_STAGES = [
+  { at: 0,  text: 'Checking for direct link…' },
+  { at: 8,  text: 'Still checking…' },
+  { at: 20, text: 'Looking a bit harder…' },
+  { at: 40, text: 'Almost there…' },
+  { at: 70, text: 'Taking longer than usual…' },
+];
+
+function startOmniProgressTicker() {
+  const startedAt = Date.now();
+  const intervalId = setInterval(() => {
+    const elapsedSec = (Date.now() - startedAt) / 1000;
+    // Latest stage whose threshold has been passed.
+    let stage = OMNI_PROGRESS_STAGES[0];
+    for (const s of OMNI_PROGRESS_STAGES) {
+      if (elapsedSec >= s.at) stage = s;
+    }
+    // Re-query every tick rather than caching the node list once — cards
+    // for sites OmniRoute already resolved get their badge swapped out
+    // (className changes from 'omni-pending' to 'site-free'), so the
+    // live .omni-pending set shrinks over time as results trickle in via
+    // any earlier-resolving requests; only genuinely-still-pending badges
+    // should keep advancing. Only the text child is rewritten — leaving
+    // the .omni-pending-icon span alone keeps its CSS spin animation
+    // running uninterrupted instead of restarting it every 3s.
+    document.querySelectorAll('.omni-pending .omni-pending-text').forEach(textEl => {
+      if (textEl.textContent !== stage.text) textEl.textContent = stage.text;
+    });
+  }, 3000); // 3s granularity — fine enough to feel alive, cheap enough to ignore
+  return () => clearInterval(intervalId);
+}
+
 // Kicks off the background lookup and patches matching cards in place once
 // results arrive. Call this once, right after renderResult() has already
 // painted the page with fallback links.
 function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
   debugLog('🚀 upgradeCardsWithOmniRoute started for:', title);
+  const stopOmniProgress = startOmniProgressTicker();
   fetchOmniRouteDirectLinks(title, siteNames, context).then(({ links, linkTypes }) => {
+    stopOmniProgress();
     let urlCount = 0;   // sites where OmniRoute returned ANY url (direct or search-page)
     let directCount = 0; // subset of the above actually classified 'direct'
     // links/linkTypes keys come back lowercase from the worker (site.toLowerCase()),
@@ -4481,7 +4550,7 @@ function renderResult(data, query) {
     const linkInfo = getSiteLink(s.name, data.title, s.url);
     const linkBadge = linkInfo.isDirect
       ? `<span class="site-free" style="margin-top:2px; display:inline-block;">✅ Direct link</span>`
-      : `<span class="site-note omni-pending" style="margin-top:2px; display:inline-block; opacity:.75;">⏳ Checking for direct link…</span>`;
+      : `<span class="site-note omni-pending" style="margin-top:2px; display:inline-block; opacity:.75;"><span class="omni-pending-icon">⏳</span> <span class="omni-pending-text">Checking for direct link…</span></span>`;
     return `
     <a href="${linkInfo.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" onclick="trackSiteClick('${escapeAttr(dirMatch ? dirMatch.name : s.name).replace(/'/g, "\\'")}')" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
       <div class="site-logo-box">${logoInner}</div>
