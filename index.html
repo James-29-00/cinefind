@@ -3592,7 +3592,8 @@ async function fetchOmniRouteDirectLinks(title, siteNames, context = {}) {
 function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
   debugLog('🚀 upgradeCardsWithOmniRoute started for:', title);
   fetchOmniRouteDirectLinks(title, siteNames, context).then(({ links, linkTypes }) => {
-    let upgradedCount = 0;
+    let urlCount = 0;   // sites where OmniRoute returned ANY url (direct or search-page)
+    let directCount = 0; // subset of the above actually classified 'direct'
     // links/linkTypes keys come back lowercase from the worker (site.toLowerCase()),
     // but siteNames/data-site-name are display-case ("MovieBox") — build a
     // lowercase-keyed lookup once so we're not comparing "MovieBox" against "moviebox".
@@ -3615,13 +3616,14 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
         badge.classList.remove('omni-pending');
         return;
       }
-      upgradedCount++;
+      urlCount++;
       card.setAttribute('href', url);
       // worker.js verifies each URL is reachable before returning it, but
       // "reachable" isn't the same as "points at the title" — a search
       // page is reachable too. linkTypes[siteKey] tells us which one this
       // actually is, so the badge doesn't overclaim.
       const isDirect = linkTypesLC[siteKey.toLowerCase()] === 'direct';
+      if (isDirect) directCount++;
       badge.textContent = isDirect ? '✅ Direct link' : '🔍 Search inside site';
       badge.className = 'site-free';
       badge.style.marginTop = '2px';
@@ -3636,7 +3638,7 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
         reportBtn.setAttribute('onclick', `event.preventDefault(); event.stopPropagation(); openReportModal('${escapedSiteKey}', '${escapedUrl}')`);
       }
     });
-    debugLog('🏁 Done —', `${upgradedCount} card(s) checked against OmniRoute.`);
+    debugLog('🏁 Done —', `${urlCount}/${siteNames.length} site(s) got a URL from OmniRoute, ${directCount} of those confirmed direct.`);
   });
 }
 
