@@ -3382,26 +3382,18 @@ function genreIdsToLabel(genreIds) {
 // don't have a confirmed search-URL format for them — check manually and
 // update the url template if the site uses a different query param.
 const MOVIE_SITES = (title) => [
-  {name: '1Shows', url: `https://1shows.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'FlickyStream', url: `https://flickystream.dad/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'MovieBox', url: `https://movie-box.co/web/searchResult?keyword=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
-  {name: '1Flex', url: `https://1flex.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: '1Tube', url: `https://1tube.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Cineby', url: `https://cineby.im/`, note: 'Search inside site', linkType: 'search'}, // domain moved to cineby.im; search is client-side rendered (no query-param pattern exists), so this just points at the homepage
-  {name: 'FMovies', url: `https://fmovies-hd.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'FMovies', url: `https://fmoviess.org/search/?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 30, 2026) — domain changed from fmovies-hd.to
 ];
 
 // General (non-anime, non-K-drama) TV series — same free aggregators as movies,
 // since these sites typically host both.
 // ===== SERIES_SITES (PART 1: search-URL pattern, not homepage) =====
 const SERIES_SITES = (title) => [
-  {name: '1Shows', url: `https://1shows.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'FlickyStream', url: `https://flickystream.dad/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'MovieBox', url: `https://movie-box.co/web/searchResult?keyword=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
-  {name: '1Flex', url: `https://1flex.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: '1Tube', url: `https://1tube.org/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Cineby', url: `https://cineby.im/`, note: 'Search inside site', linkType: 'search'}, // domain moved to cineby.im; search is client-side rendered (no query-param pattern exists), so this just points at the homepage
-  {name: 'FMovies', url: `https://fmovies-hd.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
+  {name: 'FMovies', url: `https://fmoviess.org/search/?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 30, 2026) — domain changed from fmovies-hd.to
 ];
 
 // K-drama / Asian drama — only real drama-focused sites.
@@ -3410,22 +3402,14 @@ const DRAMA_SITES = (title) => [
   {name: 'MyAsianTV', url: `https://myasiantv.com.lv/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026) — dropped type=movies, this list is dramas/series, not movies (was filtering out its own results)
   {name: 'DramaCool', url: `https://dramacool.baby/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live pattern (Aug 26, 2026)
   {name: 'KissKH', url: `https://kisskh.co/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'AsianCrush', url: `https://www.asiancrush.com/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'Viki', url: `https://www.viki.com/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
-  {name: 'Viu', url: `https://www.viu.com/ott/global/en/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Kocowa', url: `https://www.kocowa.com/search?query=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'OnDemandKorea', url: `https://www.ondemandkorea.com/search?query=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'WeTV', url: `https://wetv.vip/en/search?q=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
-  {name: 'Amasian TV', url: `https://amasiantv.com/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
 
 // Anime (movie or series) — dedicated anime sites only.
 // ===== ANIME_SITES (PART 1: search-URL pattern, not homepage) =====
 const ANIME_SITES = (title) => [
   {name: 'ReAnime', url: `https://reanime.to/search?q=${encodeURIComponent(title)}&limit=36&offset=0`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
-  {name: 'Animepahe', url: `https://animepahe.pw/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY — reported to have bot protection, deprioritized for now
   {name: 'Miruro', url: `https://www.miruro.to/search?query=${encodeURIComponent(title)}&type=ANIME&sort=POPULARITY_DESC`, note: 'Search results', linkType: 'search'}, // confirmed live (Aug 26, 2026)
-  {name: 'Anikoto', url: `https://anikototv.to/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
   {name: 'Enma', url: `https://enma.lol/?s=${encodeURIComponent(title)}`, note: 'Search results', linkType: 'search'}, // VERIFY
 ];
 
@@ -3435,12 +3419,12 @@ const ANIME_SITES = (title) => [
 // and an Asian drama (Korean, Japanese, Chinese, Thai, Taiwanese, etc.) gets
 // drama sites, regardless of type. Reuses isAsianOrigin() below rather than
 // a Korean-only check — DRAMA_SITES itself is a pan-Asian site list (Viki,
-// Viu, WeTV, MyAsianTV, AsianCrush, Amasian TV), not Korea-exclusive, so a
-// Japanese or Chinese drama series was previously falling through to the
-// generic SERIES_SITES aggregators instead of these Asian-drama-focused ones.
+// MyAsianTV, DramaCool, KissKH), not Korea-exclusive, so a Japanese or
+// Chinese drama series was previously falling through to the generic
+// SERIES_SITES aggregators instead of these Asian-drama-focused ones.
 // Philippines/Tagalog is explicitly excluded here even though isAsianOrigin()
 // counts it as Asian for sort-nudging purposes — Pinoy content already gets
-// its own dedicated site list (iWantTFC, Star Cinema, etc.) via the
+// its own dedicated site list via the
 // isPinoyContent override further down in renderResult(), so it shouldn't
 // also get funneled into the Korean/Japanese/Chinese/Thai drama-site bucket.
 function detectCategory(r, type) {
@@ -3488,31 +3472,23 @@ const STATIC_OVERRIDES = {
     "viki": "",
   },
   "your name": {
-    "animepahe": "",
     "miruro": "",
   },
   "attack on titan": {
-    "animepahe": "",
     "miruro": "",
   },
   "demon slayer": {
-    "animepahe": "",
     "miruro": "",
   },
   "crash landing on you": {
     "dramacool": "",
     "viki": "",
   },
-  "parasite": {
-    "1shows": "",
-    "cineby": "",
-  },
   "my love from the star": {
     "dramacool": "",
     "viki": "",
   },
   "0.5 no otoko": {
-    "animepahe": "",
     "miruro": "",
   },
 };
@@ -5317,42 +5293,18 @@ const SITES_DIRECTORY = [
     logoHtml: `<span class="logo-word"><span style="color:#5b8def;">Drama</span><span class="lw-white">Cool</span></span>` },
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'], accent: '#ff4d8f',
     logoHtml: `<span class="logo-word"><span style="color:var(--brand-pink);">Kiss</span><span class="lw-white">KH</span></span>` },
-  { name: 'AsianCrush',    url: 'https://www.asiancrush.com/',  domain: 'asiancrush.com',       categories: ['drama'], accent: '#8b5cf6',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Asian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--accent);">Crush</span></div>` },
   { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'], accent: '#00c2b8',
     logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:var(--brand-cyan);">ki</span></span>` },
-  { name: 'Viu',           url: 'https://www.viu.com/',         domain: 'viu.com',              categories: ['drama'], accent: '#00b8a9',
-    logoHtml: `<span class="logo-word"><span style="color:var(--brand-cyan);">Vi</span><span class="lw-white">u</span></span>` },
-  { name: 'Kocowa',        url: 'https://www.kocowa.com/',      domain: 'kocowa.com',           categories: ['drama'], accent: '#ff7a59',
-    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--brand-coral);">Ko</span><span class="lw-white">cowa</span></span>` },
-  { name: 'OnDemandKorea', url: 'https://www.ondemandkorea.com/', domain: 'ondemandkorea.com',  categories: ['drama'], accent: '#4a5fc1',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.7rem;letter-spacing:.06em;color:rgba(255,255,255,.5);text-transform:uppercase;">OnDemand</span><span style="font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:1.5rem;letter-spacing:.04em;color:var(--accent);">KOREA</span></div>` },
-  { name: 'WeTV',          url: 'https://wetv.vip/',            domain: 'wetv.vip',             categories: ['drama'], accent: '#06d6a0',
-    logoHtml: `<span class="logo-word"><span class="lw-white">We</span><span style="color:var(--brand-teal);">TV</span></span>` },
-  { name: 'Amasian TV',    url: 'https://amasiantv.com/',       domain: 'amasiantv.com',        categories: ['drama'], accent: '#f5a623',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Amasian</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--accent);letter-spacing:.03em;">TV</span></div>` },
-  { name: '1Shows',        url: 'https://1shows.org/',          domain: '1shows.org',           categories: ['movie'], accent: '#4da6ff',
-    logoHtml: `<span class="logo-word"><span style="color:var(--brand-blue);">1</span><span class="lw-white">Shows</span></span>` },
   { name: 'FlickyStream',  url: 'https://flickystream.dad/',    domain: 'flickystream.dad',     categories: ['movie'], accent: '#c084fc',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.3rem;line-height:1.05;background:linear-gradient(90deg,#5b8def,#c084fc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">flicky</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-style:italic;font-size:1.1rem;line-height:1.05;background:linear-gradient(90deg,#c084fc,#ff6b9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">stream</span></div>` },
   { name: 'MovieBox',      url: 'https://movie-box.co/',        domain: 'movie-box.co',         categories: ['movie'], accent: '#f4c430',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
-  { name: '1Flex',         url: 'https://1flex.org/',           domain: '1flex.org',            categories: ['movie'], accent: '#ef4444',
-    logoHtml: `<span class="logo-word" style="font-style:italic;transform:skewX(-6deg);display:inline-block;color:var(--brand-red);">1FLEX</span>` },
-  { name: '1Tube',         url: 'https://1tube.org/',           domain: '1tube.org',            categories: ['movie'], accent: '#a855f7',
-    logoHtml: `<span class="logo-word"><span style="color:var(--brand-purple);">1</span><span class="lw-white">Tube</span></span>` },
-  { name: 'Cineby',        url: 'https://cineby.im/',           domain: 'cineby.im',            categories: ['movie'], accent: '#06d6a0',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:var(--brand-teal);">by</span></span>` },
-  { name: 'FMovies',       url: 'https://fmovies-hd.to/',       domain: 'fmovies-hd.to',        categories: ['movie'], accent: '#3b82f6',
+  { name: 'FMovies',       url: 'https://fmoviess.org/',       domain: 'fmoviess.org',        categories: ['movie'], accent: '#3b82f6',
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--accent);">F</span><span class="lw-white">Movies</span></span>` },
   { name: 'ReAnime',       url: 'https://reanime.to/',          domain: 'reanime.to',           categories: ['anime'], accent: '#10b981',
     logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--brand-teal);">Re</span><span class="lw-white">Anime</span></span>` },
-  { name: 'Animepahe',     url: 'https://animepahe.pw/',        domain: 'animepahe.pw',         categories: ['anime'], accent: '#e6b800',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Anime</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">pahe</span></div>` },
   { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'], accent: '#9333ea',
     logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:var(--brand-purple);">ro</span></span>` },
-  { name: 'Anikoto',       url: 'https://anikototv.to/',        domain: 'anikototv.to',         categories: ['anime'], accent: '#22d3ee',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Ani</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--accent);">koto</span></div>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'], accent: '#ff8a3d',
     logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:var(--brand-orange);">ma</span></span>` },
   // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
@@ -5360,16 +5312,6 @@ const SITES_DIRECTORY = [
   // and get taken down constantly. These are the actual rights-holders
   // streaming their own library for free (ad-supported), so links stay
   // working long-term instead of rotting in a few months.
-  { name: 'iWantTFC',      url: 'https://www.iwanttfc.com/',    domain: 'iwanttfc.com',         categories: ['pinoy'], accent: '#d0021b',
-    logoHtml: `<span class="logo-word"><span class="lw-white">iWant</span><span style="color:var(--accent);">TFC</span></span>` },
-  { name: 'Star Cinema',   url: 'https://www.youtube.com/@ABSstarcinema', domain: 'youtube.com', categories: ['pinoy'], accent: '#ffd166',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;color:var(--gold);">STAR</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.75rem;letter-spacing:.08em;color:var(--card-logo-ink,#fff);text-transform:uppercase;">Cinema</span></div>` },
-  { name: 'Viva Films',    url: 'https://www.youtube.com/@VIVAFilms/videos', domain: 'youtube.com', categories: ['pinoy'], accent: '#dc2626',
-    logoHtml: `<span class="logo-word"><span style="color:var(--brand-red);">VIVA</span><span class="lw-white" style="font-size:1rem;"> Films</span></span>` },
-  { name: 'Regal Entertainment', url: 'https://www.youtube.com/@RegalEntertainmentInc/', domain: 'youtube.com', categories: ['pinoy'], accent: '#b91c1c',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.3rem;line-height:1.05;color:var(--card-logo-ink,#fff);">Regal</span></div>` },
-  { name: 'Cinema One',    url: 'https://www.youtube.com/@CinemaOnePH/', domain: 'youtube.com',   categories: ['pinoy'], accent: '#e0a300',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Cinema</span><span style="color:var(--accent);"> One</span></span>` },
   { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'], accent: '#059669',
     logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--card-logo-ink,#fff);">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--brand-teal);">Studios</span></div>` },
   { name: 'CineWhale',     url: 'https://cinewhale.cc/',        domain: 'cinewhale.cc',         categories: ['movie'], accent: '#1e9edb',
@@ -5478,7 +5420,7 @@ function renderSitesDirectory() {
   // Hand-picked "best experience per category" sites (speed, ad-load,
   // library freshness) — a quiet gold ring, not a resize, so a couple of
   // sites get a nod without reintroducing the oversized "featured" card.
-  const EDITOR_PICKS = new Set(['KissKH', 'Cineby', 'Miruro', 'Dulo']);
+  const EDITOR_PICKS = new Set(['KissKH', 'Miruro', 'Dulo']);
 
   const buildCard = (s, i) => {
     const isFav = favs.includes(s.name);
