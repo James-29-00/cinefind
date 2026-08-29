@@ -3520,10 +3520,6 @@ function getSiteLink(siteName, title, fallbackUrl) {
 // site. This runs in the BACKGROUND after the page already shows static/
 // fallback links, so users never wait for it — cards just quietly upgrade to
 // "✅ Direct link" if/when OmniRoute finds one.
-//
-// TODO: set this to the actual deployed URL of the worker you just cleaned up
-// (the one now calling OmniRoute instead of Gemini) — e.g.
-// 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev'
 const OMNIROUTE_WORKER_URL = 'https://fancy-wildflower-1260.manio-james-g-5588.workers.dev';
 
 // Prompt was rewritten after Groq started refusing it outright ("I'm sorry,
@@ -3546,7 +3542,7 @@ async function fetchOmniRouteDirectLinks(title, siteNames, context = {}) {
     const res = await fetch(OMNIROUTE_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, originalTitle: context.originalTitle || null, sites: siteNames, year: context.year, type: context.type, season: context.season, part: context.part }),
+      body: JSON.stringify({ title, originalTitle: context.originalTitle || null, sites: siteNames, year: context.year, type: context.type, season: context.season, part: context.part, tmdbId: context.tmdbId || null, episode: context.episode || null }),
       signal: AbortSignal.timeout(95000), // worker worst-case: live-fetch 8s + Groq batch parse 30s + per-site verify 6s (~44s), or if that falls through to Layer 6 pure-guess, +55s more (~90s+) — must outlast the worker's own longest chain, not guess short
     });
     const elapsed = Date.now() - startTime;
@@ -3610,8 +3606,8 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
              el => normalizeSiteName(el.dataset.siteName || '') === normalizeSiteName(siteKey)
            );
       if (!card) return;
-      const badge = card.querySelector('.omni-pending, .site-free');
-      if (!badge) return; // already a static-override direct link, nothing to resolve
+      const badge = card.querySelector('.omni-pending');
+      if (!badge) return; // already a static-override direct link (.site-free), nothing to resolve
       const url = linksLC[siteKey.toLowerCase()];
       if (!url) {
         // OmniRoute found nothing — stop showing "checking…", fall back to plain note.
@@ -3631,8 +3627,14 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
       badge.style.marginTop = '2px';
       badge.style.display = 'inline-block';
       // Keep the copy/report buttons in sync with the upgraded link
-      const copyBtn = card.querySelector('.copy-link-btn:last-of-type');
-      if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${url.replace(/'/g, "\\'")}', this)`);
+      const escapedUrl = url.replace(/'/g, "\\'");
+      const copyBtn = card.querySelector('button.copy-link-btn:not(.report-icon)');
+      if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${escapedUrl}', this)`);
+      const reportBtn = card.querySelector('button.copy-link-btn.report-icon');
+      if (reportBtn) {
+        const escapedSiteKey = siteKey.replace(/'/g, "\\'");
+        reportBtn.setAttribute('onclick', `event.preventDefault(); event.stopPropagation(); openReportModal('${escapedSiteKey}', '${escapedUrl}')`);
+      }
     });
     debugLog('🏁 Done —', `${upgradedCount} card(s) checked against OmniRoute.`);
   });
@@ -4591,6 +4593,15 @@ function renderResult(data, query) {
     // under this instead of the English/localized title — passing it
     // along gives Layer 5/6 a second name to match against.
     originalTitle: data.original_title || null,
+    // TMDB id — passed as an identity anchor for the AI prompts (worker.js
+    // already accepts this per the Layer 6c handoff). `data.id` always
+    // comes from parseTmdbItem(), so this is the exact card the user picked.
+    tmdbId: data.id || null,
+    // No per-episode selector exists in the HTML yet — worker.js already
+    // accepts `episode` (see handoff notes), but there's nothing here to
+    // read it from until that UI is built. Left null/unset until then;
+    // do not guess an episode number.
+    episode: null,
   });
 
   // Tavily fallback removed (2026-08-21) — see comment near
