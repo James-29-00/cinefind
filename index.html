@@ -3268,6 +3268,18 @@ function debugLog(label, detail) {
 const COOLDOWN_MS = 4000;
 let isSearching = false;
 let cooldownUntil = 0;
+// Race-condition guard (2026-08-30): every user-initiated search/select
+// bumps this counter and captures its own value locally. Before any async
+// search path actually applies its result (renderResult) or fires the
+// OmniRoute request with a title, it checks its captured value against the
+// live counter — if a newer search has started in the meantime, the stale
+// one's own callback is a no-op instead of clobbering the screen or
+// sending a mismatched title to the worker. Fixes: a slow/older in-flight
+// search (e.g. "Spirit Fingers") landing AFTER a newer one ("Strong Girl
+// Bong-soon") was already rendered, and its stale closure still calling
+// upgradeCardsWithOmniRoute() with the OLD title while the UI shows the
+// new one — worker.js then searches every site for the wrong title.
+let searchGeneration = 0;
 let isQuotaWait = false;
 let extraCooldownMs = 0;
 
@@ -3637,6 +3649,16 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
   const stopOmniProgress = startOmniProgressTicker();
   fetchOmniRouteDirectLinks(title, siteNames, context).then(({ links, linkTypes }) => {
     stopOmniProgress();
+    // Race-condition guard: if a newer search has started since this
+    // request was fired (context.generation no longer matches the live
+    // counter), this response is for a title the user has already
+    // navigated away from — discard it instead of writing its links into
+    // whatever's currently on screen. See renderResult()'s myGeneration
+    // comment for the full explanation.
+    if (context.generation !== undefined && context.generation !== searchGeneration) {
+      debugLog('🗑️ Discarding stale OmniRoute response for:', `"${title}" (generation ${context.generation}, current is ${searchGeneration})`);
+      return;
+    }
     let urlCount = 0;   // sites where OmniRoute returned ANY url (direct or search-page)
     let directCount = 0; // subset of the above actually classified 'direct'
     // links/linkTypes keys come back lowercase from the worker (site.toLowerCase()),
@@ -4424,6 +4446,11 @@ function hasTagalogTitleMarker(title) {
 }
 
 function renderResult(data, query) {
+  // Race-condition guard: this render pass "claims" the current generation.
+  // Any earlier, still-in-flight search's OmniRoute callback (captured a
+  // now-stale generation number) will check against searchGeneration below
+  // and bail out instead of overwriting this title's site-links UI.
+  const myGeneration = ++searchGeneration;
   hideFiltersBar(); // filters apply to result lists, not a single detail view
   saveRecentlyViewed(data);
   trackSearchAnalytics(data.title, data.genre);
@@ -4658,6 +4685,10 @@ function renderResult(data, query) {
     // title — worker.js's slug-guess shortcut (DramaCool, etc.) tries this
     // as a fallback candidate when the primary title's slug doesn't verify.
     searchQuery: query || null,
+    // Race-condition guard: this render pass's generation number (see
+    // renderResult's top). Checked by upgradeCardsWithOmniRoute before it
+    // writes anything to the DOM — a stale/superseded call becomes a no-op.
+    generation: myGeneration,
   });
 
   // Tavily fallback removed (2026-08-21) — see comment near
