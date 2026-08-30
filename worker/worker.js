@@ -37,7 +37,7 @@ const CACHE_TTL_EMPTY_SECONDS = 60 * 60;      // 1hr — used when nothing verif
 // via their own TTL. This is the ONLY thing that needs to change to make
 // a verification-logic deploy take effect immediately instead of waiting
 // up to 24h for stale cached results to expire on their own.
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 
 // ===== Layer 2: periodic re-verification (link-rot detection) =====
 // Cron string for the daily sweep — must match EXACTLY one of the entries
@@ -78,19 +78,12 @@ const AI_PROVIDERS = [
     }),
     model: (env) => env.OMNIROUTE_MODEL || 'auto',
   },
-  {
-    name: 'llm7',
-    enabled: (env) => !!env.LLM7_API_KEY,
-    url: () => 'https://api.llm7.io/v1/chat/completions',
-    headers: (env) => ({
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${env.LLM7_API_KEY}`,
-    }),
-    // Free-tier OpenAI-proprietary model on llm7 — rare on free tiers,
-    // more reliable JSON-instruction-following than most open-weight
-    // free options.
-    model: () => 'gpt-4o-mini-2024-07-18',
-  },
+  // llm7 and cerebras removed from this chain (2026-08-30) — stats showed
+  // 100% error rate for both (23/23 each), just adding dead-end latency
+  // hops with zero successful completions. Re-add if their APIs come back
+  // healthy later; the enabled() gate means an unset key already skips a
+  // provider cleanly, but these were configured AND still failing every
+  // single call, which enabled() alone can't detect.
   // Gemini removed from this ranking/fallback chain (2026-08-30) — it's
   // now used ONLY by geminiWebSearch() (Layer 5.5, real `google_search`
   // grounding) instead of also competing here as a plain text-ranking
@@ -100,16 +93,6 @@ const AI_PROVIDERS = [
   // sequentially with its own timeout, so every extra entry here is
   // another potential ~30s hop before the chain gives up or reaches a
   // provider that actually responds.
-  {
-    name: 'cerebras',
-    enabled: (env) => !!env.CEREBRAS_API_KEY,
-    url: () => 'https://api.cerebras.ai/v1/chat/completions',
-    headers: (env) => ({
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${env.CEREBRAS_API_KEY}`,
-    }),
-    model: () => 'llama-3.3-70b',
-  },
   {
     name: 'mistral',
     enabled: (env) => !!env.MISTRAL_API_KEY,
@@ -287,7 +270,17 @@ function normalizeTitle(title) {
 // that comes straight from the official TMDB title and stripping words
 // like "free" there would risk mangling real titles ("Free Guy", "Free
 // Solo").
-const SITE_NOISE_WORDS = /\b(watch|free|hd|online|full movie|movie|series|streaming|subbed|dubbed|download|eng(?:lish)? sub(?:bed|s)?)\b/gi;
+const SITE_NOISE_WORDS = /\b(watch|free|hd|online|full movie|full|movie|series|streaming|subbed|dubbed|download|eng(?:lish)?[\s-]?sub(?:bed|s)?|season|kdrama|k-drama|cdrama|c-drama|complete|batch|indo|vietsub)\b/gi;
+
+// Episode markers ("Episode 12", "Ep 12", "Ep.12", "E12") tank Levenshtein
+// similarity for short titles even after SITE_NOISE_WORDS strips the word
+// "episode"/"ep" — the leftover bare number still inflates maxLen against
+// normTitle. Stripped as one combined unit (word + number) BEFORE the
+// generic word-noise pass, so a trailing episode number never survives on
+// its own. Deliberately requires the word prefix (ep/episode/e) so this
+// never touches a real title's own numbers (e.g. "2 Fast 2 Furious",
+// "Ocean's 8") — those have no ep/episode/e word attached.
+const EPISODE_MARKER_PATTERN = /\b(?:episode|ep\.?|e)\s*\d{1,4}\b/gi;
 
 // Site brand names that show up appended to <title>/og:title on their own
 // pages (e.g. "Goblin (2016) English Sub - Dramacool"). Kept separate from
@@ -322,7 +315,13 @@ function normalizePageText(text, normTitle = null) {
       if (rawIdx !== -1) { titleSpanStart = rawIdx; titleSpanEnd = rawIdx + normTitle.length; }
     }
   }
-  const noiseStripped = text.replace(SITE_NOISE_WORDS, (...args) => {
+  const episodeStripped = text.replace(EPISODE_MARKER_PATTERN, (...args) => {
+    const match = args[0];
+    const offset = args[args.length - 2];
+    const withinTitleSpan = titleSpanStart !== -1 && offset >= titleSpanStart && offset < titleSpanEnd;
+    return withinTitleSpan ? match : ' ';
+  });
+  const noiseStripped = episodeStripped.replace(SITE_NOISE_WORDS, (...args) => {
     // SITE_NOISE_WORDS has a capturing group, so replace()'s callback args
     // are (match, group1, offset, string) — offset is the second-to-last arg.
     const match = args[0];
@@ -1015,6 +1014,13 @@ const WORDPRESS_SLUG_SITES = {
   // (e.g. "Goblin" -> /drama/goblin), no year in the slug.
   'dramacool': {
     urlPattern: (slug) => `https://dramacool.baby/drama/${slug}`,
+    // Some titles that collide with an older/other production get
+    // disambiguated with a trailing year on DramaCool (unconfirmed exact
+    // rate, but seen often enough to be worth a cheap second try) — e.g.
+    // possibly /drama/vincenzo-2021 rather than /drama/vincenzo. Only
+    // attempted as a fallback, after the plain slug misses, and only when
+    // a year is actually available.
+    yearSuffixFallback: true,
   },
 };
 
@@ -1056,10 +1062,30 @@ async function trySlugGuess(env, site, title, normTitle, context = {}) {
     const slug = slugify(candidateTitle);
     if (!slug) continue;
 
-    const guessedUrl = config.urlPattern(slug, context.year || null);
-    const ok = await verifyLinkContent(env, guessedUrl, normTitle, site, context.year || null, context.season || null, context.part || null, context.type || null, context.normOriginalTitle || null, context.episode || null);
-    await recordStat(env, site, ok ? 'slug_guess_hit' : 'slug_guess_miss');
-    if (ok) return { url: guessedUrl, isDirect: true, confidence: 'high' };
+    // Plain slug first, then (if configured and a year is available) a
+    // "{slug}-{year}" retry — DramaCool disambiguates some title collisions
+    // this way, so a miss on the plain slug isn't necessarily a wrong guess,
+    // just the wrong variant.
+    const slugVariants = [slug];
+    if (config.yearSuffixFallback && context.year) slugVariants.push(`${slug}-${context.year}`);
+
+    for (const slugVariant of slugVariants) {
+      const guessedUrl = config.urlPattern(slugVariant, context.year || null);
+      const { ok, reason } = await verifyLinkContentInner(env, guessedUrl, normTitle, site, context.year || null, context.season || null, context.part || null, context.type || null, context.normOriginalTitle || null, context.episode || null);
+      await recordVerifyStat(env, site, ok);
+      if (ok) {
+        await recordStat(env, site, 'slug_guess_hit');
+        return { url: guessedUrl, isDirect: true, confidence: 'high' };
+      }
+      await recordStat(env, site, 'slug_guess_miss');
+      // Separate bucket from verifyLinkContent's own reject_{reason} stats
+      // (those get shared with Layer 4/5 live-fetch hits too) — this one is
+      // slug-guess-specific, so ?mode=stats can show e.g. "dramacool slug
+      // guesses are missing mostly on title_mismatch" vs "mostly fetch_not_ok"
+      // (the former hints at a wrong slug pattern, the latter at wrong URLs
+      // 404ing outright).
+      if (reason) await recordStat(env, site, `slug_guess_reject_${reason}`);
+    }
   }
   return null;
 }
@@ -1314,97 +1340,182 @@ function looksLikeArticleNotPlayer(html) {
   return ARTICLE_PAGE_INDICATORS.test(html) && !PLAYER_INDICATORS.test(html);
 }
 
-// Returns { ok, reason }. reason is null when ok is true, otherwise a short
-// label identifying which check rejected the link (e.g. 'title_mismatch',
-// 'year_mismatch') — fed into recordStat() by the verifyLinkContent wrapper
-// so ?mode=stats shows WHERE rejections are concentrated per site, instead
-// of just a pass/fail rate that can't tell us which layer to fix.
-async function verifyLinkContentInner(env, url, normTitle, site, year = null, season = null, part = null, type = null, normOriginalTitle = null, episode = null) {
-  if (LISTING_URL_PATTERN.test(url)) return { ok: false, reason: 'listing_url' };
+// ===== Evidence-scored verification (2026-08-30 rearchitecture) =====
+// Was: a chain of hard gates — ANY single mismatch (title, year, season...)
+// rejected the candidate outright, same as a genuinely dead page. Goal was
+// pure precision; cost was recall — a page strong on every signal but one
+// (e.g. a generic <title> tag, no year in the markup) got thrown away
+// identically to actual garbage.
+//
+// Now: only a small, genuinely fatal set of conditions is still an
+// immediate reject (see the early-returns below — a dead/removed page, a
+// search-results URL, a redirect-away, a non-2xx fetch). Everything else
+// is priced as evidence (+/- points off a 100 base) and judged by the
+// total. Missing evidence (a field just isn't present on the page) scores
+// 0, not a penalty — only a genuine CONFLICT (page says something and it
+// disagrees) is penalized. Three independent identity signals — display
+// title, original/native title, URL slug — are scored separately so one
+// weak signal doesn't sink a candidate the other two support.
+//
+// Tiers: >=85 high, >=70 medium, >=55 possible, below that reject. All
+// three non-reject tiers are returned as ok:true (this worker has no
+// multi-candidate pool per site to fall back to yet — see worker.js TODO
+// on that — so "possible" being usable beats returning nothing); tier is
+// there for callers that want to treat it as lower-confidence (shorter
+// cache TTL, 'medium' instead of 'high' in D1) without changing the
+// accept/reject boundary itself.
+const SCORE_BASE = 100;
+const SCORE_ACCEPT_HIGH = 85;
+const SCORE_ACCEPT_MEDIUM = 70;
+const SCORE_ACCEPT_POSSIBLE = 55;
+
+// A bare '/' (or no path at all) is never a title-specific page regardless
+// of what the rest of verification would score — this is the "homepage"
+// hard-reject from the scoring spec, kept separate from LISTING_URL_PATTERN
+// since a search-results URL and a bare homepage are different shapes.
+function isHomepagePath(url) {
   try {
-    const res = await smartFetch(env, url, { timeoutMs: 6000, site });
-    if (!res.ok) return { ok: false, reason: 'fetch_not_ok' };
-    if (isSoftRedirect(url, res.url)) return { ok: false, reason: 'soft_redirect' };
-    const html = await res.text();
-
-    // Catches "same URL, but content removed" pages that a redirect check
-    // can't — checked before spending effort on title/year parsing.
-    if (hasRemovalPhrase(html)) return { ok: false, reason: 'removed_content' };
-
-    // Catches a blog/article page that just mentions the title, not the
-    // actual streaming page.
-    if (looksLikeArticleNotPlayer(html)) return { ok: false, reason: 'article_not_player' };
-
-    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
-    const pageTitle = (ogMatch?.[1] || titleMatch?.[1] || '').trim();
-    if (!pageTitle) return { ok: false, reason: 'no_page_title' };
-
-    // Title must match — many fansub/streaming sites format their <title>
-    // using the native/romanized name instead of the display title, so
-    // score against both (when we have one) and keep whichever is higher
-    // rather than false-rejecting a legit page that just used the other name.
-    // normalizePageText is called once per candidate title (rather than
-    // reusing a single stripped pageTitle) because its noise-word guard is
-    // relative to whichever title it's being scored against — a word like
-    // "free" should only survive stripping when it's actually part of the
-    // title on that side of the comparison.
-    let titleSimilarity = similarity(normTitle, normalizePageText(pageTitle, normTitle));
-    if (normOriginalTitle) {
-      titleSimilarity = Math.max(titleSimilarity, similarity(normOriginalTitle, normalizePageText(pageTitle, normOriginalTitle)));
-    }
-    if (titleSimilarity < getFuzzyThreshold(normTitle)) return { ok: false, reason: 'title_mismatch' };
-
-    // Content-type cross-check (Approach A: fallback if page doesn't
-    // declare a type). `type` here is the TMDB-sourced ground truth for
-    // what the user actually clicked ('movie' or 'tv') — not a guess —
-    // so this is just confirming the landing page agrees with something
-    // we already know for certain.
-    if (type) {
-      const pageType = extractContentTypeFromPage(html);
-      if (pageType && pageType !== type) return { ok: false, reason: 'type_mismatch' };
-    }
-
-    // Year validation (Approach A: fallback if year not found on page)
-    if (year) {
-      const pageYear = extractYearFromPage(html, pageTitle);
-      // Normalize both sides to Number — `year` comes straight from the
-      // request body and may arrive as a string (e.g. "2008") depending on
-      // the client, same reason d1FuzzyLookup/d1Upsert coerce with String().
-      // A strict !== here would false-reject a matching year purely due to
-      // type mismatch (2008 !== "2008").
-      if (pageYear && Number(pageYear) !== Number(year)) {
-        // Year was found on page but doesn't match — reject
-        return { ok: false, reason: 'year_mismatch' };
-      }
-      // Year not found on page OR matches — pass (fallback allows missing years)
-    }
-
-    // Season validation — same fallback pattern as year: only reject if
-    // BOTH sides have a value and they disagree.
-    if (season) {
-      const pageSeason = extractSeasonFromPage(pageTitle);
-      if (pageSeason && Number(pageSeason) !== Number(season)) return { ok: false, reason: 'season_mismatch' };
-    }
-
-    // Episode validation — same fallback pattern. Only matters for TV
-    // episode-level pages; a season-level page with no episode number in
-    // its <title> simply isn't checked (fallback allows missing episode).
-    if (episode) {
-      const pageEpisode = extractEpisodeFromPage(pageTitle);
-      if (pageEpisode && Number(pageEpisode) !== Number(episode)) return { ok: false, reason: 'episode_mismatch' };
-    }
-
-    // Part/volume validation — same fallback pattern.
-    if (part) {
-      const pagePart = extractPartFromPage(pageTitle);
-      if (pagePart && Number(pagePart) !== Number(part)) return { ok: false, reason: 'part_mismatch' };
-    }
-
-    return { ok: true, reason: null };
+    const { pathname, search } = new URL(url);
+    return (pathname === '' || pathname === '/') && !search;
   } catch (err) {
-    return { ok: false, reason: 'exception' };
+    return false;
   }
+}
+
+// Third identity signal alongside display/original title (spec #5/#6): the
+// URL slug itself. A page can have a useless <title> ("Watch Movies Online
+// Free - SiteName") and still clearly be the right page if its path is
+// /the-great-flood-2025. No normalizePageText noise-stripping here — slugs
+// are already hyphen/underscore-separated words, not sentence-shaped text.
+function scoreUrlSlugSignal(url, normTitle, normOriginalTitle) {
+  try {
+    const pathname = decodeURIComponent(new URL(url).pathname);
+    const slugText = normalizeTitle(pathname.replace(/[-_/]+/g, ' '));
+    if (!slugText) return 0;
+    let best = similarity(normTitle, slugText);
+    if (normOriginalTitle) best = Math.max(best, similarity(normOriginalTitle, slugText));
+    if (best >= 0.8) return 10;
+    if (best >= getFuzzyThreshold(normTitle)) return 5;
+    return 0;
+  } catch (err) {
+    return 0;
+  }
+}
+
+// Returns { ok, score, tier, reason, evidence }. `reason` is only set for
+// hard-rejects and the final low-score reject (fed into recordStat() by the
+// verifyLinkContent wrapper so ?mode=stats shows where rejections cluster);
+// `evidence` is a human-readable breakdown of every point added/subtracted,
+// for debugging a specific candidate's score.
+async function verifyLinkContentInner(env, url, normTitle, site, year = null, season = null, part = null, type = null, normOriginalTitle = null, episode = null) {
+  // ---- Hard-reject tier: fundamentally different from a missing/weak
+  // signal — no amount of other evidence should resurrect these. ----
+  if (LISTING_URL_PATTERN.test(url)) return { ok: false, score: 0, tier: 'reject', reason: 'listing_url', evidence: [] };
+  if (isHomepagePath(url)) return { ok: false, score: 0, tier: 'reject', reason: 'homepage_url', evidence: [] };
+
+  let res;
+  try {
+    res = await smartFetch(env, url, { timeoutMs: 6000, site });
+  } catch (err) {
+    return { ok: false, score: 0, tier: 'reject', reason: 'exception', evidence: [] };
+  }
+  if (!res.ok) return { ok: false, score: 0, tier: 'reject', reason: 'fetch_not_ok', evidence: [] };
+  if (isSoftRedirect(url, res.url)) return { ok: false, score: 0, tier: 'reject', reason: 'soft_redirect', evidence: [] };
+
+  let html;
+  try {
+    html = await res.text();
+  } catch (err) {
+    return { ok: false, score: 0, tier: 'reject', reason: 'exception', evidence: [] };
+  }
+
+  // "Same URL, but content removed" — a redirect check can't catch this,
+  // and it's a fundamentally different (fatal) condition from a weak title
+  // match, so it stays a hard reject rather than a penalty.
+  if (hasRemovalPhrase(html)) return { ok: false, score: 0, tier: 'reject', reason: 'removed_content', evidence: [] };
+
+  // ---- Everything below here is scored, not gated. ----
+  let score = SCORE_BASE;
+  const evidence = [];
+  const add = (delta, label) => { score += delta; evidence.push(`${delta >= 0 ? '+' : ''}${delta} ${label}`); };
+
+  // Article/blog-not-player used to be an immediate reject. This worker
+  // already knew a missing player marker alone can't be trusted (some
+  // sites lazy-load the player via JS, invisible to a static fetch) — this
+  // extends that same reasoning to the article heuristic: penalize, don't
+  // condemn, since a strong title+slug match can still outweigh it.
+  if (looksLikeArticleNotPlayer(html)) add(-30, 'article_signals');
+
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+  const pageTitle = (ogMatch?.[1] || titleMatch?.[1] || '').trim();
+
+  // Title identity: display title vs original/native title are scored
+  // independently (a fansub site's <title> often uses the romanized name),
+  // and neither is required if the URL slug (below) carries the match.
+  const threshold = getFuzzyThreshold(normTitle);
+  let titleSim = 0, originalSim = 0;
+  if (pageTitle) {
+    titleSim = similarity(normTitle, normalizePageText(pageTitle, normTitle));
+    if (normOriginalTitle) originalSim = similarity(normOriginalTitle, normalizePageText(pageTitle, normOriginalTitle));
+  }
+  const bestTitleSim = Math.max(titleSim, originalSim);
+
+  if (!pageTitle) {
+    add(-15, 'no_page_title'); // missing (JS-rendered <title> is common) — not fatal
+  } else if (bestTitleSim >= threshold) {
+    add(originalSim > titleSim ? 30 : 35, originalSim > titleSim ? 'original_title_match' : 'title_match');
+  } else if (bestTitleSim >= threshold * 0.7) {
+    add(15, 'partial_title_match'); // weak on its own — slug/other signals can still carry it
+  } else {
+    add(-20, 'title_mismatch'); // was an instant reject; now a heavy but survivable penalty
+  }
+
+  add(scoreUrlSlugSignal(url, normTitle, normOriginalTitle), 'url_slug');
+
+  // Content-type cross-check. `type` is TMDB-sourced ground truth ('movie'
+  // or 'tv'), not a guess, so a page that declares the opposite is real
+  // negative evidence — but a page that just doesn't declare a type at all
+  // (pageType null) contributes nothing either way.
+  if (type) {
+    const pageType = extractContentTypeFromPage(html);
+    if (pageType && pageType === type) add(10, 'type_match');
+    else if (pageType && pageType !== type) add(-20, 'type_conflict');
+  }
+
+  // Year/season/episode/part: identical fallback shape for all four — a
+  // CONFLICT (page states a value and it disagrees) is penalized; a value
+  // simply not being found on the page is 0, never a penalty. `year`/etc.
+  // arrive from the request body and may be strings, hence Number() on
+  // both sides before comparing (same reason d1Upsert/d1FuzzyLookup coerce
+  // with String() elsewhere in this file).
+  if (year) {
+    const pageYear = extractYearFromPage(html, pageTitle);
+    if (pageYear && Number(pageYear) === Number(year)) add(15, 'year_match');
+    else if (pageYear && Number(pageYear) !== Number(year)) add(-25, 'year_conflict');
+  }
+  if (season) {
+    const pageSeason = extractSeasonFromPage(pageTitle);
+    if (pageSeason && Number(pageSeason) === Number(season)) add(10, 'season_match');
+    else if (pageSeason && Number(pageSeason) !== Number(season)) add(-30, 'season_conflict');
+  }
+  if (episode) {
+    const pageEpisode = extractEpisodeFromPage(pageTitle);
+    if (pageEpisode && Number(pageEpisode) === Number(episode)) add(10, 'episode_match');
+    else if (pageEpisode && Number(pageEpisode) !== Number(episode)) add(-30, 'episode_conflict');
+  }
+  if (part) {
+    const pagePart = extractPartFromPage(pageTitle);
+    if (pagePart && Number(pagePart) === Number(part)) add(10, 'part_match');
+    else if (pagePart && Number(pagePart) !== Number(part)) add(-30, 'part_conflict');
+  }
+
+  const tier = score >= SCORE_ACCEPT_HIGH ? 'high'
+    : score >= SCORE_ACCEPT_MEDIUM ? 'medium'
+    : score >= SCORE_ACCEPT_POSSIBLE ? 'possible'
+    : 'reject';
+
+  return { ok: tier !== 'reject', score, tier, reason: tier === 'reject' ? 'low_score' : null, evidence };
 }
 
 // ===== Stats tracking =====
@@ -1494,19 +1605,34 @@ async function getStatsSummary(env) {
   return summary;
 }
 
-// Thin wrapper: records the pass/fail outcome, then returns it unchanged.
-// Kept separate from verifyLinkContentInner so none of that function's many
-// early `return false` points needed touching individually.
+// Thin wrapper: records stats, then collapses the scored result to a plain
+// boolean. Kept boolean-returning on purpose — this function has 4 existing
+// call sites throughout the file that only ever checked `ok`, and none of
+// them need to change now that "ok" means "score >= 55 (possible-or-better)"
+// instead of "passed every gate". New code that wants the tier/score detail
+// (to set cache TTL or D1 confidence, say) should call
+// verifyLinkContentScored instead — see below.
 async function verifyLinkContent(env, url, normTitle, site, year = null, season = null, part = null, type = null, normOriginalTitle = null, episode = null) {
-  const { ok, reason } = await verifyLinkContentInner(env, url, normTitle, site, year, season, part, type, normOriginalTitle, episode);
-  await recordVerifyStat(env, site, ok);
+  const result = await verifyLinkContentScored(env, url, normTitle, site, year, season, part, type, normOriginalTitle, episode);
+  return result.ok;
+}
+
+// Same check as verifyLinkContent, but returns the full { ok, score, tier,
+// reason, evidence } object instead of collapsing it to a boolean. Records
+// stats once here so callers of either function get identical ?mode=stats
+// coverage no matter which one they call.
+async function verifyLinkContentScored(env, url, normTitle, site, year = null, season = null, part = null, type = null, normOriginalTitle = null, episode = null) {
+  const result = await verifyLinkContentInner(env, url, normTitle, site, year, season, part, type, normOriginalTitle, episode);
+  await recordVerifyStat(env, site, result.ok);
+  // Tier breakdown (stats:{site}:tier_{high|medium|possible|reject}) — lets
+  // ?mode=stats show HOW confidently things are passing now that "pass"
+  // spans three different score bands, not just a flat pass/fail rate.
+  await recordStat(env, site, `tier_${result.tier}`);
   // Reject reason breakdown (stats:{site}:reject_{reason}) — lets ?mode=stats
-  // show WHICH check is rejecting the most for a given site, e.g. if
-  // 'title_mismatch' dominates dramacool's rejections, the fuzzy threshold
-  // or title normalization is the thing to tune, not verifyLinkContent as a
-  // whole. Best-effort like recordVerifyStat; never blocks the real result.
-  if (!ok && reason) await recordStat(env, site, `reject_${reason}`);
-  return ok;
+  // show WHICH condition is rejecting the most for a given site. Best-effort
+  // like recordVerifyStat; never blocks the real result.
+  if (!result.ok && result.reason) await recordStat(env, site, `reject_${result.reason}`);
+  return result;
 }
 
 // ===== Layer 6b: Gemini cross-check (independent-model confirmation) =====
