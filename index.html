@@ -3539,7 +3539,7 @@ async function fetchOmniRouteDirectLinks(title, siteNames, context = {}) {
     const res = await fetch(OMNIROUTE_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, originalTitle: context.originalTitle || null, sites: siteNames, year: context.year, type: context.type, season: context.season, part: context.part, tmdbId: context.tmdbId || null, episode: context.episode || null }),
+      body: JSON.stringify({ title, originalTitle: context.originalTitle || null, sites: siteNames, year: context.year, type: context.type, season: context.season, part: context.part, tmdbId: context.tmdbId || null, episode: context.episode || null, searchQuery: context.searchQuery || null }),
       signal: AbortSignal.timeout(95000), // worker worst-case: live-fetch 8s + Groq batch parse 30s + per-site verify 6s (~44s), or if that falls through to Layer 6 pure-guess, +55s more (~90s+) — must outlast the worker's own longest chain, not guess short
     });
     const elapsed = Date.now() - startTime;
@@ -4649,6 +4649,15 @@ function renderResult(data, query) {
     // read it from until that UI is built. Left null/unset until then;
     // do not guess an episode number.
     episode: null,
+    // The raw text the user actually typed into the search box (e.g.
+    // "Goblin"), separate from `originalTitle` (TMDB's native/romanized
+    // title, e.g. Korean script) and from `omniRouteTitle` (TMDB's
+    // official display title, e.g. "Guardian: The Lonely and Great God").
+    // Fan-facing sites often key their own slugs on the colloquial name a
+    // user would actually type, not TMDB's official title or its native
+    // title — worker.js's slug-guess shortcut (DramaCool, etc.) tries this
+    // as a fallback candidate when the primary title's slug doesn't verify.
+    searchQuery: query || null,
   });
 
   // Tavily fallback removed (2026-08-21) — see comment near
