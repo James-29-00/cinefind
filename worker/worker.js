@@ -2339,8 +2339,11 @@ function mergeCachedGuessLinks(cachedPayload, d1Links, liveFetchLinks, freshLink
     });
     return { text: JSON.stringify({ links }), linkTypes, cached: true };
   } catch (err) {
-    // Cached text isn't the {links:...} shape (e.g. a raw fallback payload
-    // from the malformed-JSON path) — nothing to merge into, return as-is.
+    // Cached text isn't the {links:...} shape — this used to include the
+    // malformed-JSON fallback path, but that now always writes a proper
+    // {links:...} payload (see the parseError branch), so reaching here
+    // means genuinely unexpected cache corruption. Nothing to merge into,
+    // return as-is.
     return { ...cachedPayload, cached: true };
   }
 }
@@ -2734,7 +2737,28 @@ export default {
     if (env.SEARCH_CACHE) {
       const cached = await cacheGet(env, cacheKey);
       if (cached) {
-        return json(mergeCachedGuessLinks(cached, d1Links, liveFetchLinks, linkTypes));
+        const merged = mergeCachedGuessLinks(cached, d1Links, liveFetchLinks, linkTypes);
+        // mergeCachedGuessLinks only merges d1Links/liveFetchLinks on top of
+        // whatever was cached — it has no notion of "this site was guessed
+        // and rejected." A cached Layer 6c response can carry "" for a site
+        // (Groq guessed, verifyLinkContent/geminiCrossCheck rejected it) the
+        // same way a fresh one can, so this needs the identical last-chance
+        // fallback the fresh-guess path below applies, or a cache hit would
+        // silently skip it and return a blank link.
+        try {
+          const mergedParsed = JSON.parse(merged.text);
+          const mergedLinks = mergedParsed?.links || {};
+          const stillBlank = Object.keys(mergedLinks).filter((site) => !mergedLinks[site]);
+          if (stillBlank.length) {
+            const { links: linksWithFallback, types: typesWithFallback } = buildSearchFallbackLinks(stillBlank, mergedLinks, merged.linkTypes || {});
+            merged.text = JSON.stringify({ links: linksWithFallback });
+            merged.linkTypes = typesWithFallback;
+          }
+        } catch (err) {
+          // merged.text wasn't the {links:...} shape — nothing to backfill,
+          // return the cache-hit response as mergeCachedGuessLinks built it.
+        }
+        return json(merged);
       }
     }
 
@@ -2748,7 +2772,17 @@ export default {
     }
 
     if (!AI_PROVIDERS.some((p) => p.enabled(env))) {
-      return json({ error: 'No AI provider configured yet' }, 500);
+      // Previously returned a bare {error:...}. index.html's
+      // fetchOmniRouteDirectLinks treats any `data.error` as total failure
+      // and returns {links:{}, linkTypes:{}} to the caller — discarding
+      // whatever d1Links/liveFetchLinks this request already resolved, even
+      // though those sites have nothing to do with the AI provider being
+      // unavailable. Returning the same {links, linkTypes} shape every other
+      // tier uses (with a search-page fallback for whatever's left) lets the
+      // client keep what was actually resolved instead of losing it to an
+      // error path that was never about those sites' data.
+      const { links, types } = buildSearchFallbackLinks(remainingSites, { ...d1Links, ...liveFetchLinks }, linkTypes);
+      return json({ text: JSON.stringify({ links }), fromD1: Object.keys(d1Links).length > 0, fromLiveFetch: hadRealLiveFetchHits, noAiProvider: true, linkTypes: types });
     }
 
     // Lowered from 0.7 — this is the pure-guess layer (no real site data
@@ -2764,7 +2798,12 @@ export default {
     // fresh 55s regardless of how long Layers 4/5.5 already took.
     const result = await resolveGuessTiered(env, title, originalTitle, remainingSites, { year, type, season, part, episode, tmdbId, geminiEvidence }, Math.min(55000, budgetRemaining()));
     if (!result.ok) {
-      return json({ error: 'All AI providers failed (Groq and Gemini both unavailable)' }, 502);
+      // Same reasoning as the noAiProvider branch above — Groq/Gemini both
+      // being unavailable is a Layer 6c problem, not a reason to also throw
+      // away whatever D1/live-fetch/Gemini-search already found for other
+      // sites this same request.
+      const { links, types } = buildSearchFallbackLinks(remainingSites, { ...d1Links, ...liveFetchLinks }, linkTypes);
+      return json({ text: JSON.stringify({ links }), fromD1: Object.keys(d1Links).length > 0, fromLiveFetch: hadRealLiveFetchHits, aiProvidersFailed: true, linkTypes: types });
     }
 
     const data = result.data;
@@ -2866,7 +2905,23 @@ export default {
       // verifiedLinks: what THIS response actually returns to the client —
       // guessLinks plus this request's fresh d1Links/liveFetchLinks, which
       // always win over a guess for the same site.
-      const verifiedLinks = { ...guessLinks, ...d1Links, ...liveFetchLinks };
+      let verifiedLinks = { ...guessLinks, ...d1Links, ...liveFetchLinks };
+
+      // A site can reach this point with an empty string rather than being
+      // absent from remainingSites: Layer 6c (Groq) guessed a URL for it,
+      // but geminiCrossCheck or verifyLinkContent rejected it (line ~2836,
+      // ~2840 above). Previously that empty string was returned as-is —
+      // the site just silently had no link, even though sites resolved by
+      // earlier tiers (D1-empty, live-fetch-failed) already got an honest
+      // search-page URL via buildSearchFallbackLinks. This closes that gap:
+      // any site still blank here gets the same search-page fallback,
+      // instead of only the sites that failed before ever reaching Groq.
+      const stillBlankAfterGuess = Object.keys(verifiedLinks).filter((site) => !verifiedLinks[site]);
+      if (stillBlankAfterGuess.length) {
+        const { links: linksWithFallback, types: typesWithFallback } = buildSearchFallbackLinks(stillBlankAfterGuess, verifiedLinks, linkTypes);
+        verifiedLinks = linksWithFallback;
+        linkTypes = typesWithFallback;
+      }
 
       // ===== Layer 7: Auto-upsert to D1 =====
       // Exclude liveFetchLinks entries that are 'search' type (fallback
@@ -2912,12 +2967,14 @@ export default {
     }
 
     // Fallback: Layer 6c returned text that didn't parse into a usable
-    // {links: {...}} object (bad JSON, or missing "links" key). No links
-    // means no types to classify either — linkTypes is included explicitly
-    // (rather than omitted) so every response shape from this endpoint is
-    // consistent, even though index.html already defaults a missing
-    // linkTypes to {} on its end.
-    const payload = { text: trimmed, linkTypes: {} };
+    // {links: {...}} object (bad JSON, or missing "links" key). Previously
+    // this returned the raw unparsed text with no links at all — every
+    // site in remainingSites went out completely blank, the same failure
+    // mode the empty-string bug had, just triggered by a parse failure
+    // instead of a rejected guess. Give these sites the same last-chance
+    // search-page fallback everything else gets, rather than nothing.
+    const { links: fallbackOnlyLinks, types: fallbackOnlyTypes } = buildSearchFallbackLinks(remainingSites, { ...d1Links, ...liveFetchLinks }, linkTypes);
+    const payload = { text: JSON.stringify({ links: fallbackOnlyLinks }), linkTypes: fallbackOnlyTypes, parseError: true };
     await cacheSet(env, cacheKey, payload, ttlForPayload(payload));
     return json(payload);
   },
