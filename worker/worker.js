@@ -287,9 +287,56 @@ function normalizeTitle(title) {
 // that comes straight from the official TMDB title and stripping words
 // like "free" there would risk mangling real titles ("Free Guy", "Free
 // Solo").
-const SITE_NOISE_WORDS = /\b(watch|free|hd|online|full movie|movie|series|streaming|subbed|dubbed|download|eng sub)\b/gi;
-function normalizePageText(text) {
-  return normalizeTitle(text.replace(SITE_NOISE_WORDS, ' '));
+const SITE_NOISE_WORDS = /\b(watch|free|hd|online|full movie|movie|series|streaming|subbed|dubbed|download|eng(?:lish)? sub(?:bed|s)?)\b/gi;
+
+// Site brand names that show up appended to <title>/og:title on their own
+// pages (e.g. "Goblin (2016) English Sub - Dramacool"). Kept separate from
+// SITE_NOISE_WORDS since these are proper-noun site identities, not generic
+// streaming-site vocabulary. Add new sites here as they're seen in stats.
+const KNOWN_SITE_BRANDS = /\b(dramacool|myasiantv|kissasian|viewasian|animekisa|9anime|gogoanime)\b/gi;
+
+// normTitle (optional) is the already-normalized ground-truth title being
+// matched against. When a SITE_NOISE_WORDS match is also literally part of
+// normTitle (e.g. "free" in "Free Guy"), skip stripping that occurrence —
+// otherwise a legit title word gets deleted from only one side of the
+// comparison and tanks the similarity score. This mirrors the same
+// principle the top-of-file comment already applies to normTitle itself;
+// it just wasn't being applied on the normPageText side before.
+function normalizePageText(text, normTitle = null) {
+  // Guard against stripping a noise word out of the actual title span itself
+  // (e.g. "Free" in "Free Guy", "Free Solo"). We only protect the specific
+  // occurrence that lines up with where the title appears in the raw text —
+  // not every occurrence of that word — so a genuinely separate "Free" used
+  // as site noise elsewhere in the same string (e.g. "...Online Free HD")
+  // still gets stripped normally.
+  let titleSpanStart = -1, titleSpanEnd = -1;
+  if (normTitle) {
+    const normText = normalizeTitle(text);
+    const idx = normText.indexOf(normTitle);
+    if (idx !== -1) {
+      // Map the normalized-text index range back onto the raw text is fragile,
+      // so instead just locate the title as a raw case-insensitive substring
+      // when possible (covers the common case where punctuation didn't shift
+      // word boundaries), falling back to no protection if not found.
+      const rawIdx = text.toLowerCase().indexOf(normTitle);
+      if (rawIdx !== -1) { titleSpanStart = rawIdx; titleSpanEnd = rawIdx + normTitle.length; }
+    }
+  }
+  const noiseStripped = text.replace(SITE_NOISE_WORDS, (...args) => {
+    // SITE_NOISE_WORDS has a capturing group, so replace()'s callback args
+    // are (match, group1, offset, string) — offset is the second-to-last arg.
+    const match = args[0];
+    const offset = args[args.length - 2];
+    const withinTitleSpan = titleSpanStart !== -1 && offset >= titleSpanStart && offset < titleSpanEnd;
+    return withinTitleSpan ? match : ' ';
+  });
+  const stripped = noiseStripped.replace(KNOWN_SITE_BRANDS, ' ');
+  // Strip a bare 4-digit release-year token too — for short titles ("Goblin")
+  // a leftover "2016" still tanks Levenshtein similarity even after brand/noise
+  // stripping. This is purely for the similarity compare; the real year check
+  // a few lines down in verifyLinkContentInner uses extractYearFromPage on the
+  // actual page content and is untouched by this.
+  return normalizeTitle(stripped).replace(/\b(19|20)\d{2}\b/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function levenshtein(a, b) {
@@ -613,7 +660,7 @@ const TIER2_AUTO_RESOLVE_SCORE = 0.85;
 function rankAnchorCandidates(anchors, normTitle) {
   return anchors
     .map((a) => {
-      const baseScore = similarity(normTitle, normalizePageText(a.text));
+      const baseScore = similarity(normTitle, normalizePageText(a.text, normTitle));
       const hasSignal = baseScore >= KEYWORD_BONUS_MIN_SCORE &&
         (DIRECT_LINK_SIGNAL.test(a.text) || DIRECT_LINK_PATH_SIGNAL.test(a.href));
       const score = hasSignal ? Math.min(1, baseScore + KEYWORD_BONUS) : baseScore;
@@ -699,7 +746,7 @@ ${sections}`;
       if (!picked) { await recordStat(env, site, 'reject_invalid_idx'); continue; }
       // Belt-and-suspenders: re-check similarity ourselves, don't just
       // trust that Groq picked correctly.
-      if (similarity(normTitle, normalizePageText(picked.text)) < getFuzzyThreshold(normTitle)) { await recordStat(env, site, 'reject_anchor_similarity'); continue; }
+      if (similarity(normTitle, normalizePageText(picked.text, normTitle)) < getFuzzyThreshold(normTitle)) { await recordStat(env, site, 'reject_anchor_similarity'); continue; }
       // Confidence carries downstream to d1Upsert (#3, confidence-weighted
       // D1 TTL) — 'low' was already filtered above, so this is 'high' or
       // 'medium' only. Default to 'medium' for the old bare-number/no-object
@@ -1297,10 +1344,14 @@ async function verifyLinkContentInner(env, url, normTitle, site, year = null, se
     // using the native/romanized name instead of the display title, so
     // score against both (when we have one) and keep whichever is higher
     // rather than false-rejecting a legit page that just used the other name.
-    const normPageTitle = normalizePageText(pageTitle);
-    let titleSimilarity = similarity(normTitle, normPageTitle);
+    // normalizePageText is called once per candidate title (rather than
+    // reusing a single stripped pageTitle) because its noise-word guard is
+    // relative to whichever title it's being scored against — a word like
+    // "free" should only survive stripping when it's actually part of the
+    // title on that side of the comparison.
+    let titleSimilarity = similarity(normTitle, normalizePageText(pageTitle, normTitle));
     if (normOriginalTitle) {
-      titleSimilarity = Math.max(titleSimilarity, similarity(normOriginalTitle, normPageTitle));
+      titleSimilarity = Math.max(titleSimilarity, similarity(normOriginalTitle, normalizePageText(pageTitle, normOriginalTitle)));
     }
     if (titleSimilarity < getFuzzyThreshold(normTitle)) return { ok: false, reason: 'title_mismatch' };
 
