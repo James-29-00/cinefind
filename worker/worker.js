@@ -91,19 +91,15 @@ const AI_PROVIDERS = [
     // free options.
     model: () => 'gpt-4o-mini-2024-07-18',
   },
-  {
-    name: 'gemini',
-    enabled: (env) => !!env.GEMINI_API_KEY,
-    // Gemini's OpenAI-compatibility layer, NOT the native generateContent
-    // endpoint that geminiCrossCheck() (below) uses — different request/
-    // response shape, same API key.
-    url: () => 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-    headers: (env) => ({
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${env.GEMINI_API_KEY}`,
-    }),
-    model: () => GEMINI_MODEL,
-  },
+  // Gemini removed from this ranking/fallback chain (2026-08-30) — it's
+  // now used ONLY by geminiWebSearch() (Layer 5.5, real `google_search`
+  // grounding) instead of also competing here as a plain text-ranking
+  // provider. Two reasons: (1) this chain and geminiWebSearch shared the
+  // same GEMINI_API_KEY quota, so a busy ranking call could starve the
+  // actual search layer; (2) each provider in this chain is tried
+  // sequentially with its own timeout, so every extra entry here is
+  // another potential ~30s hop before the chain gives up or reaches a
+  // provider that actually responds.
   {
     name: 'cerebras',
     enabled: (env) => !!env.CEREBRAS_API_KEY,
@@ -983,19 +979,42 @@ const WORDPRESS_SLUG_SITES = {
 // verified hit, or null on any miss (config missing, no slug, unverified) —
 // a null here is never a dead end, the caller just falls through to the
 // normal Layer 4/5 search-based flow for that site.
+//
+// Tries multiple candidate titles, in order, until one verifies:
+//   1. `title` — TMDB's official display title (e.g. "Guardian: The Lonely
+//      and Great God").
+//   2. `context.searchQuery` — the raw text the user actually typed (e.g.
+//      "Goblin"). This is the fix for sites that key their own slugs on
+//      the colloquial/fan-facing name rather than the official title —
+//      DramaCool's own slug for this title is /drama/goblin, which never
+//      matches a slugified official TMDB title.
+//   3. `context.originalTitle` — TMDB's native/romanized title. Usually
+//      NOT useful for non-Latin-script originals (slugify() strips
+//      Hangul/Hanzi/Kana to nothing), but kept as a last try for cases
+//      where it IS Latin-script and differs from `title`.
 async function trySlugGuess(env, site, title, normTitle, context = {}) {
   const config = WORDPRESS_SLUG_SITES[site.toLowerCase()];
   if (!config) return null;
   if (config.requiresYear && !context.year) return null;
 
-  const slug = slugify(title);
-  if (!slug) return null;
+  const candidates = [title];
+  if (context.searchQuery && !candidates.includes(context.searchQuery)) {
+    candidates.push(context.searchQuery);
+  }
+  if (context.originalTitle && !candidates.includes(context.originalTitle)) {
+    candidates.push(context.originalTitle);
+  }
 
-  const guessedUrl = config.urlPattern(slug, context.year || null);
-  const ok = await verifyLinkContent(env, guessedUrl, normTitle, site, context.year || null, context.season || null, context.part || null, context.type || null, context.normOriginalTitle || null, context.episode || null);
-  await recordStat(env, site, ok ? 'slug_guess_hit' : 'slug_guess_miss');
-  if (!ok) return null;
-  return { url: guessedUrl, isDirect: true, confidence: 'high' };
+  for (const candidateTitle of candidates) {
+    const slug = slugify(candidateTitle);
+    if (!slug) continue;
+
+    const guessedUrl = config.urlPattern(slug, context.year || null);
+    const ok = await verifyLinkContent(env, guessedUrl, normTitle, site, context.year || null, context.season || null, context.part || null, context.type || null, context.normOriginalTitle || null, context.episode || null);
+    await recordStat(env, site, ok ? 'slug_guess_hit' : 'slug_guess_miss');
+    if (ok) return { url: guessedUrl, isDirect: true, confidence: 'high' };
+  }
+  return null;
 }
 
 // Live-fetch (Layer 4) for every remaining HEALTHY site in parallel, build
@@ -2420,9 +2439,9 @@ export default {
       console.warn('RATE_LIMIT_KV not bound — rate limiting is disabled.');
     }
 
-    let title, originalTitle, sites, year, type, season, part, episode, tmdbId;
+    let title, originalTitle, sites, year, type, season, part, episode, tmdbId, searchQuery;
     try {
-      ({ title, originalTitle, sites, year, type, season, part, episode, tmdbId } = await request.json());
+      ({ title, originalTitle, sites, year, type, season, part, episode, tmdbId, searchQuery } = await request.json());
     } catch (err) {
       return json({ error: 'Invalid JSON body' }, 400);
     }
@@ -2430,6 +2449,44 @@ export default {
     if (!title || typeof title !== 'string') {
       return json({ error: 'Missing or invalid title' }, 400);
     }
+
+    // ===== Phase 1 guardrail: overall request time budget =====
+    // Each tier below (live-fetch, Gemini search, AI-guess consensus) used
+    // to get its own fresh timeout with no regard for how long earlier
+    // tiers already took — worst case, several ~30s provider timeouts plus
+    // a full 55s Layer 6c budget could stack into 80-90+ seconds for one
+    // request. requestDeadline is a single wall-clock ceiling for the
+    // WHOLE request; helper functions below check it before starting any
+    // further expensive work and short-circuit to a best-effort response
+    // (whatever's already resolved, search-page links for the rest)
+    // instead of starting a tier that has no realistic time left to finish.
+    const requestStart = Date.now();
+    const REQUEST_BUDGET_MS = 45000;
+    const requestDeadline = requestStart + REQUEST_BUDGET_MS;
+    const budgetRemaining = () => requestDeadline - Date.now();
+    // Below this, don't bother starting another network-bound tier — not
+    // enough time left for even one realistic round-trip + verification.
+    const MIN_TIER_BUDGET_MS = 6000;
+
+    // Builds a links payload for sites that never got resolved, using their
+    // plain search-page URL (never a guessed detail URL) — the same honest
+    // 'search' linkType index.html already knows how to render. Used both
+    // by the final fallback below and by the budget-exhausted early-outs.
+    function buildSearchFallbackLinks(sitesNeedingFallback, existingLinks, existingLinkTypes) {
+      const links = { ...existingLinks };
+      const types = { ...existingLinkTypes };
+      for (const site of sitesNeedingFallback) {
+        const key = site.toLowerCase();
+        if (links[key]) continue; // already resolved by an earlier tier
+        const template = SITE_SEARCH_URLS[key];
+        if (template && title) {
+          links[key] = template(title);
+          types[key] = 'search';
+        }
+      }
+      return { links, types };
+    }
+
     // `episode` and `tmdbId` (new, from the HTML request-builder plan):
     // threaded through buildGuessPrompt/aiParseSearchResultsBatch (prompt
     // context) and verifyLinkContent (page-level episode-number check) —
@@ -2510,8 +2567,16 @@ export default {
     let liveFetchLinks = {};
     let linkTypes = {}; // site -> 'direct' | 'search', for honest labeling in index.html
     let linkConfidence = {}; // site -> 'high' | 'medium', Layer 5's Groq confidence, for d1Upsert (#3)
+    // Budget check: skip this tier entirely if there isn't realistic time
+    // left for a network round-trip + verification — return whatever D1
+    // already gave us plus honest search-page links for the rest, rather
+    // than starting a tier likely to get cut off mid-flight.
+    if (normTitle && remainingSites.length && budgetRemaining() < MIN_TIER_BUDGET_MS) {
+      const { links, types } = buildSearchFallbackLinks(remainingSites, d1Links, {});
+      return json({ text: JSON.stringify({ links }), fromD1: Object.keys(d1Links).length > 0, budgetExhausted: true, linkTypes: types });
+    }
     if (normTitle && remainingSites.length) {
-      const liveResults = await resolveLiveSites(env, remainingSites, title, normTitle, { year, type, season, part, episode, originalTitle, normOriginalTitle });
+      const liveResults = await resolveLiveSites(env, remainingSites, title, normTitle, { year, type, season, part, episode, originalTitle, normOriginalTitle, searchQuery });
       const stillMissingAfterLiveFetch = [];
       remainingSites.forEach((site) => {
         const result = liveResults[site];
@@ -2560,6 +2625,14 @@ export default {
     // geminiEvidence untouched — falls straight through to Layer 6c exactly
     // as before this layer existed. Gemini failure never breaks CineFind.
     let geminiEvidence = null;
+    // Budget check: same reasoning as the Layer 4 gate above — a Gemini
+    // search + parse + verify round-trip needs real time to be worth
+    // starting. If we're already short, take the combined D1 + live-fetch
+    // links we have and fill the rest with honest search-page fallbacks.
+    if (normTitle && remainingSites.length && budgetRemaining() < MIN_TIER_BUDGET_MS) {
+      const { links, types } = buildSearchFallbackLinks(remainingSites, { ...d1Links, ...liveFetchLinks }, linkTypes);
+      return json({ text: JSON.stringify({ links }), fromD1: Object.keys(d1Links).length > 0, fromLiveFetch: hadRealLiveFetchHits, budgetExhausted: true, linkTypes: types });
+    }
     if (normTitle && remainingSites.length) {
       const geminiCandidates = await geminiWebSearch(env, title, originalTitle, remainingSites, { year, type, season, part, episode });
       if (geminiCandidates) {
@@ -2614,6 +2687,15 @@ export default {
       }
     }
 
+    // Budget check: same reasoning as the two gates above. If we're
+    // already short, don't start the AI-guess consensus tier at all —
+    // return what D1/live-fetch/Gemini already resolved plus honest
+    // search-page fallbacks for the rest.
+    if (budgetRemaining() < MIN_TIER_BUDGET_MS) {
+      const { links, types } = buildSearchFallbackLinks(remainingSites, { ...d1Links, ...liveFetchLinks }, linkTypes);
+      return json({ text: JSON.stringify({ links }), fromD1: Object.keys(d1Links).length > 0, fromLiveFetch: hadRealLiveFetchHits, budgetExhausted: true, linkTypes: types });
+    }
+
     if (!AI_PROVIDERS.some((p) => p.enabled(env))) {
       return json({ error: 'No AI provider configured yet' }, 500);
     }
@@ -2626,7 +2708,10 @@ export default {
     // Layer 6c: tiered multi-AI — 1 call when everyone's confident, escalates
     // to a 2nd/3rd provider (+ consensus vote) only for the sites that came
     // back uncertain. Replaces the old always-single-call callAIWithFallback.
-    const result = await resolveGuessTiered(env, title, originalTitle, remainingSites, { year, type, season, part, episode, tmdbId, geminiEvidence }, 55000);
+    // Timeout is clamped to whatever's actually left of the overall request
+    // budget (capped at 55000 as before) — this tier no longer gets a full
+    // fresh 55s regardless of how long Layers 4/5.5 already took.
+    const result = await resolveGuessTiered(env, title, originalTitle, remainingSites, { year, type, season, part, episode, tmdbId, geminiEvidence }, Math.min(55000, budgetRemaining()));
     if (!result.ok) {
       return json({ error: 'All AI providers failed (Groq and Gemini both unavailable)' }, 502);
     }
