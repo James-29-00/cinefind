@@ -1,11 +1,11 @@
 {
   "healthy": true,
-  "lastRun": "2026-08-30T16:33:33.058Z",
+  "lastRun": "2026-08-30T16:38:33.846Z",
   "targetsAttempted": 2,
   "targetsOk": 2,
   "targetsFailed": 0,
   "failureRatio": 0,
   "budgetStopped": false,
-  "rotationProgress": "0/13",
+  "rotationProgress": "2/13",
   "reason": null
 }
