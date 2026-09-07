@@ -480,21 +480,16 @@
   .bookmark-btn svg { width: 19px; height: 19px; }
 
   .trending-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-lg);
-    overflow-x: auto;
     padding: 6px 6px 12px;
-    margin: -6px -6px -8px;
-    scrollbar-width: none;
   }
-  .trending-row::-webkit-scrollbar { display: none; }
   .trending-card {
-    flex-shrink: 0;
-    width: 108px;
     position: relative;
   }
   .trending-poster {
-    width: 108px; height: 150px;
+    width: 100%; aspect-ratio: 108 / 150;
     border-radius: var(--radius);
     box-shadow: var(--shadow-float);
     background-size: cover;
@@ -776,6 +771,7 @@
     position: relative;
     overflow: hidden;
   }
+  .poster-fallback { font-size: 1.8rem; line-height: 1; }
   .result-bookmark-flag {
     position: absolute;
     top: 0; right: 10px;
@@ -1374,6 +1370,8 @@
     color: #fff;
     font-size:var(--fs-lg);
     margin: 0 auto 5px;
+    padding: 0;
+    overflow: hidden;
   }
   .profile-fav-item .lbl { font-size:var(--fs-2xs); color: var(--text-muted); }
   .profile-fav-item .last-used { font-size:9px; color: var(--text-muted); opacity: .75; margin-top: 1px; }
@@ -1609,7 +1607,8 @@
     background: var(--surface); position: relative; overflow: hidden;
     display: flex; align-items: center; justify-content: center; font-size: 2rem;
   }
-  .movie-poster.poster-loading .poster-img { opacity: 0; transition: opacity .25s; }
+  .movie-poster.poster-loading .poster-img,
+  .result-poster.poster-loading .poster-img { opacity: 0; transition: opacity .25s; }
   .movie-info { flex: 1; min-width: 0; }
   .movie-title { font-size: 1.15rem; font-weight: 800; color: var(--text); line-height: 1.25; }
   .movie-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
@@ -1655,10 +1654,11 @@
      only once there's actually enough room for it. */
   .sites-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); }
   .site-card {
-    display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md) var(--space-xl);
-    background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md);
+    margin: 0 var(--space-xl);
+    background: var(--surface); border: 1px solid var(--border);
     border-left: 4px solid var(--site-card-accent, var(--border));
-    box-shadow: none; border-radius: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05); border-radius: var(--radius);
     text-decoration: none; color: var(--text); position: relative; cursor: pointer;
     transition: transform .15s ease, box-shadow .15s ease;
   }
@@ -1796,24 +1796,41 @@
      wider screens, giving posters a normal, readable size instead of the
      tiny-thumbnail rail or the earlier full-bleed cards. */
   .similar-rail {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md);
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md);
     padding: 0 var(--space-xl);
   }
   .similar-rail .result-card {
-    display: flex; align-items: flex-start; gap: 10px;
+    display: block;
     padding: 0; border-bottom: none;
+    min-width: 0;
+    position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
   }
-  .similar-rail .result-poster { width: 70px; height: auto; aspect-ratio: 2/3; flex-shrink: 0; }
-  .similar-rail .result-info { flex: 1; min-width: 0; padding-top: 1px; }
+  .similar-rail .result-poster {
+    width: 100%; height: auto; aspect-ratio: 2/3; flex-shrink: 0;
+    position: relative;
+  }
+  .similar-rail .result-info {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 20px var(--space-sm) var(--space-sm);
+    background: linear-gradient(to top, rgba(0,0,0,.85) 20%, rgba(0,0,0,0) 100%);
+    text-align: right;
+    min-width: 0; padding-top: 0;
+  }
   .similar-rail .result-title {
     font-size: var(--fs-sm); -webkit-line-clamp: 2; margin-bottom: 4px;
+    color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6);
   }
   .similar-rail .result-meta {
-    font-size: 10px; margin-bottom: 4px;
-    display: flex; align-items: center; gap: 4px; flex-wrap: nowrap;
+    font-size: 10px; margin-bottom: 0;
+    display: flex; align-items: center; justify-content: flex-end; gap: 4px; flex-wrap: nowrap;
+    overflow: hidden;
   }
   .similar-rail .result-meta .badge {
     font-size: 9px; padding: 2px 6px; white-space: nowrap;
+    background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.3); color: #fff;
+    backdrop-filter: blur(2px);
   }
   .similar-rail .result-rating-row { gap: 4px; margin-bottom: 0; }
   .similar-show-more-btn {
@@ -2061,9 +2078,9 @@
     <div class="section">
       <div class="section-head">
         <div><span class="section-eyebrow">Popular</span><h2>Trending Now</h2></div>
-        <span class="see-all" onclick="goToScreen('screen-search'); document.getElementById('search-input').focus();" style="cursor:pointer;">See all</span>
       </div>
       <div class="trending-row" id="home-trending-row"></div>
+      <button id="home-trending-showmore" onclick="toggleHomeTrendingExpanded()" style="cursor:pointer; display:block; margin:10px auto 0; background:none; border:none; font-size:var(--fs-sm); color:var(--text-muted); font-family:inherit;">Show more</button>
     </div>
 
   </div>
@@ -2903,7 +2920,7 @@ function showFavorites(sortBy, siteSortBy) {
     html += `
       <div class="movie-header" style="margin-bottom:16px;">
         <div class="movie-poster${movie.poster ? ' poster-loading' : ''}" id="poster-${movie.title}">
-          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" alt="${escapeAttr(movie.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${movie.type === 'series' ? '📺' : '🎬'}'">` : (movie.type === 'series' ? '📺' : '🎬')}
+          ${movie.poster ? `<img class="poster-img" src="${movie.poster}" alt="${escapeAttr(movie.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.outerHTML='<span class=\'poster-fallback\'>${movie.type === 'series' ? '📺' : '🎬'}</span>'">` : (movie.type === 'series' ? '📺' : '🎬')}
         </div>
         <div class="movie-info">
           <div class="movie-title">${movie.title}</div>
@@ -3196,7 +3213,7 @@ function renderVisibleResults() {
     return `
     <div class="result-card" onclick="selectMovie(${i})" style="cursor:pointer; animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
       <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${escapeAttr(m.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : `<span style="font-size:1.8rem;">${m.type === 'series' ? '📺' : '🎬'}</span>`}
+        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${escapeAttr(m.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.outerHTML='<span class=\'poster-fallback\'>${m.type === 'series' ? '📺' : '🎬'}</span>'">` : `<span class="poster-fallback">${m.type === 'series' ? '📺' : '🎬'}</span>`}
         ${isFav ? `<span class="result-bookmark-flag" aria-hidden="true"></span>` : ''}
       </div>
       <div class="result-info">
@@ -5771,13 +5788,13 @@ function renderSimilarCards(showAll) {
   const cardsHtml = visible.map((m, i) => `
     <div class="result-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="animation-delay:${i * 0.05}s">
       <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
-      </div>
-      <div class="result-info">
-        <div class="result-title">${m.title}</div>
-        <div class="result-meta">
-          ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
-          ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
+        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.outerHTML='<span class=\'poster-fallback\'>${m.type === 'series' ? '📺' : '🎬'}</span>'">` : (m.type === 'series' ? '📺' : '🎬')}
+        <div class="result-info">
+          <div class="result-title">${m.title}</div>
+          <div class="result-meta">
+            ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
+            ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
+          </div>
         </div>
       </div>
     </div>`).join('');
@@ -8957,11 +8974,15 @@ async function testLink() {
     const allSites = [...(typeof SITES_DIRECTORY !== 'undefined' ? SITES_DIRECTORY : []), ...(typeof customSites !== 'undefined' ? customSites : [])];
     row.innerHTML = favNames.map(name => {
       const site = allSites.find(s => s.name === name);
-      const initial = escapeAttr(name.charAt(0).toUpperCase());
-      const accent = site?.accent || '#555';
+      // Use the same branded logo mark (sourceRowLogoHtml) as the Home
+      // directory cards, Bookmarks rows, and Source-detail screen, instead
+      // of a plain flat-color initial — so a pinned favorite reads as the
+      // same brand identity everywhere instead of a mismatched letter badge.
+      const logoInner = site ? sourceRowLogoHtml(site) : escapeAttr(name.charAt(0).toUpperCase());
+      const fallbackBg = site ? '' : 'background:#555;';
       const lastUsed = getSiteLastUsed(name);
       const lastUsedLabel = lastUsed ? `Used ${formatRelativeTimeBare(lastUsed)}` : 'Not used yet';
-      return `<div class="profile-fav-item"><div class="profile-fav-logo" style="background:${accent};">${initial}</div><div class="lbl">${escapeAttr(name)}</div><div class="last-used">${escapeAttr(lastUsedLabel)}</div></div>`;
+      return `<div class="profile-fav-item"><div class="profile-fav-logo" style="${fallbackBg}">${logoInner}</div><div class="lbl">${escapeAttr(name)}</div><div class="last-used">${escapeAttr(lastUsedLabel)}</div></div>`;
     }).join('');
   }
 
@@ -9163,17 +9184,35 @@ async function testLink() {
   // (just CSS gradients) — nothing here ever opened a title. Now fetches
   // real poster art from TMDB and routes taps through selectSuggestion(),
   // the same path search-dropdown picks use, so it opens the real title.
+  // "See all" used to navigate away to the Search screen; removed in favor
+  // of a "Show more" button below the grid (same pattern as Favorite
+  // Sources), which expands the row in place instead of leaving the Home
+  // screen. Grid is always a fixed 2 columns, so the collapsed count is a
+  // multiple of 2 (2 full rows) and "Show more" reveals the rest.
   const HOME_TRENDING = [
     { title: 'Queen of Tears', rating: '8.7' },
     { title: 'The Glory', rating: '8.6' },
-    { title: 'Crash Landing on You', rating: '8.9' }
+    { title: 'Crash Landing on You', rating: '8.9' },
+    { title: 'Reborn Rich', rating: '8.5' },
+    { title: 'Hospital Playlist', rating: '9.0' },
+    { title: 'Vincenzo', rating: '8.6' },
+    { title: 'It\'s Okay to Not Be Okay', rating: '8.7' },
+    { title: 'My Name', rating: '8.3' }
   ];
+  const HOME_TRENDING_COLLAPSED_COUNT = 4; // 2 rows x 2 columns
+  let homeTrendingExpanded = false;
   const homeTrendingPosterCache = new Map();
+
+  function toggleHomeTrendingExpanded() {
+    homeTrendingExpanded = !homeTrendingExpanded;
+    renderHomeTrending();
+  }
 
   function renderHomeTrending() {
     const row = document.getElementById('home-trending-row');
     if (!row) return;
-    row.innerHTML = HOME_TRENDING.map((t, i) => `
+    const list = homeTrendingExpanded ? HOME_TRENDING : HOME_TRENDING.slice(0, HOME_TRENDING_COLLAPSED_COUNT);
+    row.innerHTML = list.map((t, i) => `
       <div class="trending-card" onclick="selectSuggestion('${escapeAttr(t.title)}')" style="cursor:pointer;">
         <div class="trending-poster" id="home-trending-poster-${i}" style="background-image:linear-gradient(160deg,#2a2a3a,#0d0d12);">
           <span class="rank-badge">${i + 1}</span>
@@ -9185,7 +9224,13 @@ async function testLink() {
       </div>
     `).join('');
 
-    HOME_TRENDING.forEach((t, i) => {
+    const showMoreBtn = document.getElementById('home-trending-showmore');
+    if (showMoreBtn) {
+      showMoreBtn.textContent = homeTrendingExpanded ? 'Show less' : 'Show more';
+      showMoreBtn.style.display = HOME_TRENDING.length > HOME_TRENDING_COLLAPSED_COUNT ? 'block' : 'none';
+    }
+
+    list.forEach((t, i) => {
       if (homeTrendingPosterCache.has(t.title)) {
         applyHomeTrendingPoster(i, homeTrendingPosterCache.get(t.title));
         return;
