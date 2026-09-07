@@ -1633,11 +1633,11 @@
   .fav-btn svg { fill: none; stroke: currentColor; stroke-width: 2; }
   .fav-btn.favorited svg { fill: currentColor; }
 
-  #sites-section { padding: var(--space-xl); }
+  #sites-section { padding: var(--space-xl) 0; }
   .section-label {
     font-size: var(--fs-xs); font-weight: 800; color: var(--text-muted);
     margin-bottom: var(--space-md); text-transform: uppercase; letter-spacing: .8px;
-    display: flex; align-items: center; gap: 6px;
+    display: flex; align-items: center; gap: 6px; padding: 0 var(--space-xl);
   }
   .section-label svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--accent); }
   /* Was referenced in the results header + section labels with no rule
@@ -1654,10 +1654,10 @@
      only once there's actually enough room for it. */
   .sites-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); }
   .site-card {
-    display: flex; align-items: center; gap: var(--space-md); padding: var(--space-lg);
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md) var(--space-xl);
+    background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
     border-left: 4px solid var(--site-card-accent, var(--border));
-    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 10px rgba(0,0,0,.06);
+    box-shadow: none; border-radius: 0;
     text-decoration: none; color: var(--text); position: relative; cursor: pointer;
     transition: transform .15s ease, box-shadow .15s ease;
   }
@@ -1684,7 +1684,7 @@
   .site-badge {
     display: inline-flex; align-items: center; gap: 4px; width: fit-content;
     font-size: var(--fs-xs); font-weight: 700; margin-top: 4px;
-    padding: 3px 9px; border-radius: 999px;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
   }
   .site-badge svg { flex-shrink: 0; }
   .site-badge.site-free { color: var(--green); background: color-mix(in srgb, var(--green) 16%, transparent); }
@@ -1693,7 +1693,7 @@
      lookup is in flight. All of the "muted/searching" look lives here so
      the two concerns (state tracking vs. appearance) can change
      independently. */
-  .site-badge.site-status-muted { color: var(--text-muted); background: var(--surface-2); }
+  .site-badge.site-status-muted { color: var(--text-muted); background: none; padding: 0; border-radius: 0; }
   /* Pending state: shimmer sweep on the pill still signals "still working,
      not frozen", but now paired with an actual hourglass icon (tipping
      back and forth) so the waiting-for-direct-link-or-search state reads
@@ -1704,14 +1704,14 @@
     background-size: 200% 100%;
     animation: shimmer 1.4s infinite;
   }
-  .badge-hourglass-icon {
-    transform-origin: center;
-    animation: hourglassTip 1.6s ease-in-out infinite;
+  .badge-dots span {
+    animation: dotPulse 1.4s ease-in-out infinite;
   }
-  @keyframes hourglassTip {
-    0%, 15% { transform: rotate(0deg); }
-    50%, 65% { transform: rotate(180deg); }
-    100% { transform: rotate(180deg); }
+  .badge-dots span:nth-child(2) { animation-delay: .2s; }
+  .badge-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes dotPulse {
+    0%, 80%, 100% { opacity: .25; }
+    40% { opacity: 1; }
   }
   /* Copy + Report grouped into one action cluster of filled circular
      buttons — a deliberate control, not two apologetic gray ghost icons
@@ -1790,6 +1790,30 @@
     aspect-ratio: 2/3;
   }
   .results-grid .result-info { padding-top: var(--space-sm); }
+  /* "You might also like" — 2-column grid. Each card is a grid fraction
+     (not a fixed px width), capped with max-width so it can't blow up on
+     wider screens, giving posters a normal, readable size instead of the
+     tiny-thumbnail rail or the earlier full-bleed cards. */
+  .similar-rail {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md);
+    padding: 0 var(--space-xl);
+  }
+  .similar-rail .result-card {
+    display: block; padding: 0; border-bottom: none; gap: 0;
+    max-width: 220px;
+  }
+  .similar-rail .result-poster { width: 100%; height: auto; aspect-ratio: 2/3; }
+  .similar-rail .result-info { padding-top: var(--space-sm); }
+  .similar-rail .result-title {
+    font-size: var(--fs-sm); -webkit-line-clamp: 2; margin-bottom: 3px;
+  }
+  .similar-rail .result-meta { font-size: 10px; gap: 4px; }
+  .similar-show-more-btn {
+    display: block; margin: var(--space-md) auto 0; padding: 8px 20px;
+    border-radius: 20px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+  }
+  .similar-show-more-btn:active { background: var(--surface-2); }
   .poster-shimmer {
     background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
     background-size: 200% 100%; animation: shimmer 1.4s infinite;
@@ -2100,7 +2124,6 @@
     <div class="detail-hero" id="detail-hero" style="background-image:linear-gradient(160deg,#5a1620,#1a0a0d);">
       <div class="detail-top-bar">
         <button class="icon-circle" onclick="goToScreen('screen-search')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <button class="icon-circle" onclick="shareTitle()" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg></button>
       </div>
       <div class="detail-hero-content">
         <h1 class="detail-title" id="detail-title">My Demon</h1>
@@ -5350,10 +5373,9 @@ function siteBadgeIconSvg(kind) {
     return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
   }
   if (kind === 'pending') {
-    // Hourglass — the still-checking state, animated via .badge-hourglass-icon
-    // (tips back and forth) so "waiting on a direct link or search-inside
-    // resolution" is legible at a glance, not just implied by the shimmer.
-    return '<svg class="badge-hourglass-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12M7 2c0 5.5 5 6.5 5 8 0 1.5-5 2.5-5 8M17 2c0 5.5-5 6.5-5 8 0 1.5 5 2.5 5 8"/></svg>';
+    // No icon here — pulsing dots (.badge-dots) are appended after the
+    // label in siteBadgeHtml instead.
+    return '';
   }
   // 'search' — search-inside-site.
   return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
@@ -5367,15 +5389,36 @@ function siteBadgeIconSvg(kind) {
 // styled. 'pending' now gets its own hourglass icon (see
 // siteBadgeIconSvg/.badge-hourglass-icon) alongside the shimmer, so the
 // "waiting on a direct link or search-inside result" state is explicit.
+// Rotating labels for the pending badge — cycled by badgeStatusRotationTick()
+// every ~1.5s so the "still checking" state reads as active progress rather
+// than idle dots. First phrase matches the label callers already pass in
+// (kept as the initial paint) so there's no flash-of-different-text on
+// first render.
+const BADGE_PENDING_PHRASES = ['Checking for direct link…', 'Almost there…', 'Verifying link…'];
+
 function siteBadgeHtml(kind, label) {
   if (kind === 'pending') {
-    const icon = siteBadgeIconSvg('pending');
-    return `<span class="site-badge site-status-loading omni-pending">${icon} <span>${label}</span></span>`;
+    return `<span class="site-badge site-status-loading omni-pending"><span class="badge-status-label">${label}</span><span class="badge-dots"><span>.</span><span>.</span><span>.</span></span></span>`;
   }
   const stateClass = kind === 'direct' ? 'site-free' : 'site-status-muted';
   const icon = siteBadgeIconSvg(kind);
   return `<span class="site-badge ${stateClass}">${icon} <span>${label}</span></span>`;
 }
+
+// Cycles every still-pending badge's label through BADGE_PENDING_PHRASES so
+// the "checking" state reads as active progress instead of idle dots. Runs
+// as a single global interval (all pending badges stay in lockstep) rather
+// than one timer per badge, since badges get replaced wholesale via
+// outerHTML the moment a real answer lands — no per-badge teardown needed.
+let badgeStatusRotationIndex = 0;
+function badgeStatusRotationTick() {
+  const labels = document.querySelectorAll('.omni-pending .badge-status-label');
+  if (!labels.length) return;
+  badgeStatusRotationIndex = (badgeStatusRotationIndex + 1) % BADGE_PENDING_PHRASES.length;
+  const next = BADGE_PENDING_PHRASES[badgeStatusRotationIndex];
+  labels.forEach(el => { el.textContent = next; });
+}
+setInterval(badgeStatusRotationTick, 1500);
 
 function renderResult(data, query) {
   // Race-condition guard: this render pass "claims" the current generation.
@@ -5579,8 +5622,7 @@ function renderResult(data, query) {
   area.innerHTML = `
     <div class="movie-header">
       <div class="movie-info">
-        <p class="movie-desc" id="movie-desc" onclick="toggleDescription()">${escapeAttr(data.description || '')}</p>
-        <button class="movie-desc-toggle" id="movie-desc-toggle" onclick="toggleDescription()" style="display:none;">Show more</button>
+        <p class="movie-desc" id="movie-desc">${escapeAttr(data.description || '')}</p>
       </div>
     </div>
 
@@ -5590,15 +5632,9 @@ function renderResult(data, query) {
       ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
     </div>
 
-    <div style="margin-top:var(--space-xl); display:flex; gap:10px; flex-wrap:wrap;">
-      ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
-      <button class="pop-chip" onclick="resetSearch()">${canGoBack ? 'New search' : '← Search again'}</button>
-      <button class="pop-chip" onclick="shareMovie()">Share</button>
-    </div>
-
     ${data.id ? `
       <div class="section-label" style="margin-top:32px;">You might also like</div>
-      <div class="results-grid" id="similar-grid" aria-hidden="true">
+      <div class="similar-rail" id="similar-grid" aria-hidden="true">
         ${Array(6).fill('<div class="poster-shimmer" style="aspect-ratio:2/3; border-radius:12px;"></div>').join('')}
       </div>` : ''}
   `;
@@ -5687,6 +5723,7 @@ function renderResult(data, query) {
 
 // ========== SIMILAR / RELATED ==========
 let similarResults = [];
+const SIMILAR_VISIBLE_INITIAL = 4; // 2 rows at 2-per-row before "Show more"
 
 function loadSimilar(movie) {
   const mediaType = movie.type === 'series' ? 'tv' : 'movie';
@@ -5695,7 +5732,7 @@ function loadSimilar(movie) {
     .then(tmdb => {
       const results = (tmdb.results || [])
         .filter(m => m.poster_path)
-        .slice(0, 6)
+        .slice(0, 10)
         .map(r => parseTmdbItem(r, mediaType));
 
       similarResults = results;
@@ -5707,24 +5744,46 @@ function loadSimilar(movie) {
         return;
       }
 
-      grid.innerHTML = results.map((m, i) => `
-        <div class="result-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="animation-delay:${i * 0.05}s">
-          <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-            ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
-          </div>
-          <div class="result-info">
-            <div class="result-title">${m.title}</div>
-            <div class="result-meta">
-              ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
-              ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
-            </div>
-          </div>
-        </div>`).join('');
+      renderSimilarCards(false);
     })
     .catch(() => {
       const grid = document.getElementById('similar-grid');
       if (grid) grid.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">Couldn't load recommendations right now.</p>`;
     });
+}
+
+// Renders the similar-titles cards. showAll=false caps the list at
+// SIMILAR_VISIBLE_INITIAL and appends a "Show more" button (outside the
+// grid, so it doesn't get stretched into a grid cell) when there's more to
+// reveal — keeps the section from pushing the page long by default.
+function renderSimilarCards(showAll) {
+  const grid = document.getElementById('similar-grid');
+  if (!grid) return;
+  const visible = showAll ? similarResults : similarResults.slice(0, SIMILAR_VISIBLE_INITIAL);
+  const cardsHtml = visible.map((m, i) => `
+    <div class="result-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="animation-delay:${i * 0.05}s">
+      <div class="result-poster${m.poster ? ' poster-loading' : ''}">
+        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+      </div>
+      <div class="result-info">
+        <div class="result-title">${m.title}</div>
+        <div class="result-meta">
+          ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
+          ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+  grid.innerHTML = cardsHtml;
+
+  const oldBtn = grid.parentElement.querySelector('.similar-show-more-btn');
+  if (oldBtn) oldBtn.remove();
+  if (!showAll && similarResults.length > SIMILAR_VISIBLE_INITIAL) {
+    const btn = document.createElement('button');
+    btn.className = 'similar-show-more-btn';
+    btn.textContent = `Show more (${similarResults.length - SIMILAR_VISIBLE_INITIAL})`;
+    btn.onclick = () => renderSimilarCards(true);
+    grid.insertAdjacentElement('afterend', btn);
+  }
 }
 
 function selectSimilar(index) {
