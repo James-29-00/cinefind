@@ -1486,6 +1486,35 @@
     transform: translateY(0);
     pointer-events: auto;
   }
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+  }
+  .suggestion-item:last-child { border-bottom: none; }
+  .suggestion-item:hover, .suggestion-item:active, .suggestion-item.active { background: var(--surface-2); }
+  .suggestion-poster {
+    width: 36px; height: 54px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--fs-lg);
+  }
+  .suggestion-poster .poster-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .2s ease; }
+  .suggestion-text { min-width: 0; flex: 1; }
+  .suggestion-title {
+    font-size: var(--fs-base);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .suggestion-meta { font-size: var(--fs-xs); color: var(--text-muted); }
 
   .offline-banner {
     position: fixed;
@@ -1637,8 +1666,9 @@
   .site-logo-box {
     width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; overflow: hidden;
-    border: 1px solid var(--border);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 3px rgba(0,0,0,.18);
+    background: var(--surface);
+    border: 1.5px solid var(--site-card-accent, var(--border));
+    box-shadow: none;
   }
   .site-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .site-name { font-size: var(--fs-md); font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1664,16 +1694,24 @@
      the two concerns (state tracking vs. appearance) can change
      independently. */
   .site-badge.site-status-muted { color: var(--text-muted); background: var(--surface-2); }
-  /* Pending state: no spinner, no cycling text — the shimmer sweep on the
-     pill itself is the "still working, not frozen" signal, using the same
-     animation the app's poster/card loading skeletons already use
-     elsewhere, so this reads as one consistent loading language instead of
-     its own separate hourglass-and-narration routine. */
+  /* Pending state: shimmer sweep on the pill still signals "still working,
+     not frozen", but now paired with an actual hourglass icon (tipping
+     back and forth) so the waiting-for-direct-link-or-search state reads
+     clearly at a glance instead of relying on color/texture alone. */
   .site-badge.site-status-loading {
     color: var(--text-muted);
     background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.4s infinite;
+  }
+  .badge-hourglass-icon {
+    transform-origin: center;
+    animation: hourglassTip 1.6s ease-in-out infinite;
+  }
+  @keyframes hourglassTip {
+    0%, 15% { transform: rotate(0deg); }
+    50%, 65% { transform: rotate(180deg); }
+    100% { transform: rotate(180deg); }
   }
   /* Copy + Report grouped into one action cluster of filled circular
      buttons — a deliberate control, not two apologetic gray ghost icons
@@ -1691,8 +1729,7 @@
     display: flex; align-items: center; justify-content: center;
   }
   #back-to-top-btn {
-    display: none; position: fixed; left: 50%; bottom: 100px; z-index: 60;
-    transform: translateX(129px);
+    display: none; position: fixed; right: 20px; bottom: 100px; z-index: 60;
     width: 46px; height: 46px; border-radius: 50%; border: none;
     background: var(--accent); color: #fff; align-items: center; justify-content: center;
     cursor: pointer; box-shadow: var(--shadow-float);
@@ -1734,6 +1771,25 @@
      wrapped in .results-grid by mistake, squeezing each row into a third
      of the screen width. */
   .results-list { display: flex; flex-direction: column; }
+  /* .result-card defaults to a horizontal row (fixed 96x144 poster + text
+     beside it) sized for .results-list. That doesn't fit a 3-column
+     .results-grid cell (~108px wide on a 390px screen) — the row's min
+     content width exceeds the column, overflowing the grid and clipping
+     the last card at the screen edge. Override to a compact vertical
+     card (poster on top, text below) matching the grid's poster-shimmer
+     placeholders. */
+  .results-grid .result-card {
+    display: block;
+    padding: 0;
+    border-bottom: none;
+    gap: 0;
+  }
+  .results-grid .result-poster {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2/3;
+  }
+  .results-grid .result-info { padding-top: var(--space-sm); }
   .poster-shimmer {
     background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
     background-size: 200% 100%; animation: shimmer 1.4s infinite;
@@ -5293,8 +5349,13 @@ function siteBadgeIconSvg(kind) {
   if (kind === 'direct') {
     return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
   }
-  // 'search' — search-inside-site. ('pending' never reaches here — its
-  // badge has no icon at all, see siteBadgeHtml.)
+  if (kind === 'pending') {
+    // Hourglass — the still-checking state, animated via .badge-hourglass-icon
+    // (tips back and forth) so "waiting on a direct link or search-inside
+    // resolution" is legible at a glance, not just implied by the shimmer.
+    return '<svg class="badge-hourglass-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12M7 2c0 5.5 5 6.5 5 8 0 1.5-5 2.5-5 8M17 2c0 5.5-5 6.5-5 8 0 1.5 5 2.5 5 8"/></svg>';
+  }
+  // 'search' — search-inside-site.
   return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
 }
 
@@ -5303,11 +5364,13 @@ function siteBadgeIconSvg(kind) {
 // upgradeCardsWithOmniRoute() queries against) — .site-status-muted /
 // .site-status-loading are what actually paint the look, so re-querying for
 // "still pending" nodes never depends on how that state happens to be
-// styled. 'pending' skips the icon entirely — the shimmer sweep on the pill
-// itself is the "still working" signal, so there's nothing to spin.
+// styled. 'pending' now gets its own hourglass icon (see
+// siteBadgeIconSvg/.badge-hourglass-icon) alongside the shimmer, so the
+// "waiting on a direct link or search-inside result" state is explicit.
 function siteBadgeHtml(kind, label) {
   if (kind === 'pending') {
-    return `<span class="site-badge site-status-loading omni-pending"><span>${label}</span></span>`;
+    const icon = siteBadgeIconSvg('pending');
+    return `<span class="site-badge site-status-loading omni-pending">${icon} <span>${label}</span></span>`;
   }
   const stateClass = kind === 'direct' ? 'site-free' : 'site-status-muted';
   const icon = siteBadgeIconSvg(kind);
@@ -5472,7 +5535,7 @@ function renderResult(data, query) {
     // badge already solves this same size constraint for the Home/
     // Bookmarks rows — reusing it here instead of defaultLogoHtml (which
     // is an icon + 2-line name, also too much content for 36px).
-    const logoInner = dirMatch ? sourceRowLogoHtml(dirMatch) : `<span style="font-size:1.3rem;">🎥</span>`;
+    const logoInner = dirMatch ? sourceRowLogoHtml(dirMatch, null, true) : `<span style="font-size:1.3rem;">🎥</span>`;
     // PART 3: resolve a verified STATIC_OVERRIDES link when one exists,
     // otherwise fall back to s.url (already a search-URL from PART 1).
     const linkInfo = getSiteLink(s.name, data.title, s.url);
@@ -8956,7 +9019,7 @@ async function testLink() {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
-  function sourceRowLogoHtml(site, fontSize) {
+  function sourceRowLogoHtml(site, fontSize, outlined) {
     const custom = {
       'Dulo':     { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">D<svg viewBox="0 0 24 24" width="11" height="11" fill="#fff" style="position:absolute;top:3px;right:3px;"><path d="M12 2l2 7 7 2-7 2-2 7-2-7-7-2 7-2z"/></svg></div>' },
       'MovieBox': { inner: '<div style="display:flex;flex-direction:column;align-items:center;line-height:1;letter-spacing:-0.3px;"><span style="color:#fff;font-size:9px;font-weight:800;">MOVIE</span><span style="color:#f4c430;font-size:9px;font-weight:800;">BOX</span></div>' },
@@ -8974,11 +9037,15 @@ async function testLink() {
     const c = custom[site.name];
     const finalBg = getSourceAccentColor(site);
     const inner = c ? c.inner : site.name.charAt(0).toUpperCase();
-    // A single flat color read as a placeholder-avatar fallback rather than
-    // a deliberate mark. A soft diagonal gradient off the same accent gives
-    // it a bit of depth/dimension without needing a real logo asset per site.
-    const bgStyle = `linear-gradient(135deg, color-mix(in srgb, ${finalBg} 78%, white), ${finalBg})`;
-    return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${bgStyle};border-radius:12px;color:#fff;font-weight:800;font-size:${fontSize || 'var(--fs-2xl)'};">${inner}</div>`;
+    // Outlined variant: the box border (drawn by the parent .site-logo-box)
+    // already carries the accent color, so the fill here is just a faint
+    // accent tint instead of a solid gradient block — reads as an outlined
+    // brand mark rather than a filled avatar swatch.
+    const bgStyle = outlined
+      ? `color-mix(in srgb, ${finalBg} 14%, transparent)`
+      : `linear-gradient(135deg, color-mix(in srgb, ${finalBg} 78%, white), ${finalBg})`;
+    const textColor = outlined ? finalBg : '#fff';
+    return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${bgStyle};border-radius:12px;color:${textColor};font-weight:800;font-size:${fontSize || 'var(--fs-2xl)'};">${inner}</div>`;
   }
 
   // Badge + wordmark lockup used by the directory grid cards (buildCard,
