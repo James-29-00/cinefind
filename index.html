@@ -6,7 +6,7 @@
 <title>CineFind — New Design</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f7f7f8;
@@ -15,12 +15,15 @@
     --border: #e5e5e8;
     --text: #16161a;
     --text-muted: #75757c;
+    --text-faint: #a5a5ac; /* Reserved for large/decorative text only (18px+, or non-text like dividers/ghosting) — never small body copy, meta text, or button labels. That's what caused the AA failure here; every prior use of this token has been moved to --text-muted. */
     --accent: #e2242f;
     --accent-dim: #fbe0e1;
     --gold: #d99a00;
     --radius: 14px;
     --radius-sm: 10px;
-    --shadow-card: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
+    --shadow-card: 0 1px 1px rgba(0,0,0,.04), 0 3px 6px rgba(0,0,0,.05), 0 10px 20px rgba(0,0,0,.05);
+    --shadow-float: 0 1px 2px rgba(0,0,0,.08), 0 3px 7px rgba(0,0,0,.10), 0 8px 16px rgba(0,0,0,.12);
+    --shadow-pop: 0 1px 2px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.08);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
     /* Type scale: consolidates the old ad-hoc .5px sizes (11.5, 12.5, 13.5,
@@ -79,16 +82,19 @@
     --border: #2e2e32;
     --text: #f2f2f3;
     --text-muted: #9a9aa1;
+    --text-faint: #6c6c72; /* Reserved for large/decorative text only — see :root comment. Unused elsewhere currently. */
     --accent: #ff3b44;
     --accent-dim: #3a1418;
     --gold: #e8b23d;
     --accent2: #ff6b6b;
     --bg-glow-rgb: 255, 59, 68;
     --info-highlight: #8f9dff;
-    --shadow-card: 0 1px 2px rgba(0,0,0,.3), 0 2px 8px rgba(0,0,0,.24);
+    --shadow-card: 0 1px 1px rgba(0,0,0,.3), 0 3px 6px rgba(0,0,0,.28), 0 10px 24px rgba(0,0,0,.32);
+    --shadow-float: 0 1px 2px rgba(0,0,0,.4), 0 3px 8px rgba(0,0,0,.4), 0 8px 18px rgba(0,0,0,.4);
+    --shadow-pop: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.32);
   }
 
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
   body {
     margin: 0;
@@ -97,6 +103,10 @@
     display: flex;
     justify-content: center;
     transition: background 0.25s ease, color 0.25s ease;
+  }
+  .search-bar, .source-row, .chip, .result-card, .site-card, .info-section,
+  .stats-grid, .watchlist-card, .profile-menu, .settings-row {
+    transition: background-color .25s ease, border-color .25s ease, box-shadow .25s ease;
   }
 
   /* Phone frame for preview purposes only */
@@ -116,7 +126,8 @@
     padding-bottom: 84px; /* space for bottom nav */
   }
 
-  .screen.active { display: block; }
+  .screen.active { display: block; animation: screenFadeIn .22s ease; }
+  @keyframes screenFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   #screen-detail.active { padding-bottom: 0; }
 
   /* ---------- Bottom Nav ---------- */
@@ -178,28 +189,6 @@
     margin: 0;
   }
   .home-header-actions { display: flex; align-items: center; gap: var(--space-md); flex-shrink: 0; }
-  .notif-btn {
-    position: relative;
-    background: none;
-    border: none;
-    width: 26px; height: 26px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text);
-    flex-shrink: 0;
-  }
-  .notif-btn svg { width: 23px; height: 23px; }
-  .notif-badge {
-    position: absolute;
-    top: -3px; right: -4px;
-    background: var(--accent);
-    color: #fff;
-    font-size:var(--fs-2xs);
-    font-weight: 800;
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    border: 2px solid var(--bg);
-  }
   .theme-toggle-btn {
     position: relative;
     background: var(--surface);
@@ -218,39 +207,141 @@
     margin: 2px 0 var(--space-lg);
     padding: 0 var(--space-xl);
     color: var(--text-muted);
-    font-size:var(--fs-base);
+    font-size: var(--fs-md);
+    font-weight: 500;
   }
 
   .search-bar {
-    margin: 0 var(--space-xl) 22px;
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    height: 42px;
+    background: #fff;
+    border: 1px solid #e7e7e7;
+    border-radius: 13px;
+    overflow: hidden;
+    margin: 0 var(--space-xl) 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    transition: border-color .2s ease, box-shadow .2s ease;
+    position: relative;
+  }
+  .search-bar:focus-within {
+    border-color: #e7e7e7;
+    box-shadow: 0 1px 3px rgba(0,0,0,.09);
+  }
+  .search-header .search-bar {
+    height: 48px;
     background: var(--surface-2);
-    border: 1px solid var(--surface-2);
-    border-radius: var(--radius);
-    padding: var(--space-md) var(--space-lg);
+    border-color: var(--surface-2);
+    box-shadow: none;
+    border-radius: 12px;
   }
-  .search-header .search-bar { background: var(--surface-2); border-color: var(--surface-2); }
-  .search-bar svg { width: 18px; height: 18px; color: var(--text-muted); flex-shrink: 0; }
-  .search-bar input {
-    flex: 1;
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size:var(--fs-md);
-    outline: none;
+  .search-bar > svg.search-lead-icon {
+    width: 20px;
+    height: 20px;
+    color: #68728c;
+    flex-shrink: 0;
+    margin-left: 16px;
   }
-  .search-bar input::placeholder { color: var(--text-muted); }
-  .search-go {
-    background: var(--accent);
-    border: none;
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
+  .search-bar svg {
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
     flex-shrink: 0;
   }
-  .search-go svg { width: 17px; height: 17px; color: #fff; }
+  .search-bar input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    color: #303a55;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    padding: 0 8px 0 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-bar input::placeholder {
+    color: #46516e;
+    opacity: 1;
+    font-weight: 500;
+  }
+  .search-bar .mic-btn {
+    width: 36px;
+    height: 40px;
+    margin-right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .search-bar .mic-btn svg { width: 19px; height: 19px; }
+  .search-go {
+    align-self: center;
+    background: #ed0b14;
+    border: none;
+    width: 72px;
+    height: 72px;
+    min-width: 72px;
+    max-height: calc(100% - 16px);
+    aspect-ratio: 1 / 1;
+    border-radius: 22px;
+    margin: 8px 8px 8px 4px;
+    flex: 0 0 72px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: filter .15s ease, background .15s ease, transform .12s ease;
+  }
+  .search-go:active { filter: brightness(.92); transform: scale(.95); }
+  .search-go svg { width: 20px; height: 20px; color: #fff; }
+  .search-go { box-shadow: 0 3px 8px rgba(var(--bg-glow-rgb),.35), 0 1px 2px rgba(0,0,0,.15); }
+
+  .search-glow-wrap { position: relative; }
+  .search-glow-wrap::before {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 92%; height: 140%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(ellipse at center, rgba(var(--bg-glow-rgb),.22) 0%, rgba(var(--bg-glow-rgb),0) 70%);
+    z-index: 0;
+    pointer-events: none;
+    animation: search-glow-pulse 2s ease-out 1;
+  }
+  .search-glow-wrap > * { position: relative; z-index: 1; }
+  @keyframes search-glow-pulse {
+    0% { opacity: 0; }
+    35% { opacity: 1; }
+    100% { opacity: .55; }
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin .8s linear infinite; transform-origin: center; }
+
+  .ptr-indicator {
+    position: fixed;
+    top: 54px;
+    left: 50%;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: var(--shadow-pop);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 0);
+  }
+  .ptr-indicator svg { width: 16px; height: 16px; color: var(--accent); }
+
+  .watch-btn, .watch-btn-secondary { position: relative; }
+  @keyframes watchPulse {
+    0% { box-shadow: 0 0 0 0 rgba(var(--bg-glow-rgb), .5); }
+    100% { box-shadow: 0 0 0 14px rgba(var(--bg-glow-rgb), 0); }
+  }
+  .watch-btn.pulse { animation: watchPulse .5s ease-out; }
+
 
   .section {
     padding: 0 var(--space-xl);
@@ -259,13 +350,22 @@
   .section-head {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: flex-end;
     margin-bottom: var(--space-md);
   }
   .section-head h2 {
     font-size:var(--fs-lg);
     margin: 0;
     font-weight: 700;
+  }
+  .section-eyebrow {
+    display: block;
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 3px;
   }
   .section-head .see-all {
     font-size:var(--fs-sm);
@@ -276,8 +376,8 @@
     display: flex;
     gap: var(--space-sm);
     overflow-x: auto;
-    padding-bottom: 4px;
-    margin-bottom: 4px;
+    padding: 6px 6px 8px;
+    margin: -6px -6px 0;
     scrollbar-width: none;
   }
   .chip-row::-webkit-scrollbar { display: none; }
@@ -286,17 +386,20 @@
     padding: var(--space-sm) var(--space-lg);
     border-radius: 20px;
     font-size:var(--fs-base);
-    font-weight: 600;
+    font-weight: 500; /* down from 600 — restores unselected/selected distinction via weight since color is pinned to AA-safe --text-muted */
     background: var(--surface);
     color: var(--text-muted);
     border: 1px solid var(--border);
     white-space: nowrap;
     cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
   }
   .chip.active {
     background: var(--accent);
     color: #fff;
     border-color: var(--accent);
+    box-shadow: 0 2px 6px rgba(var(--bg-glow-rgb),.35);
+    transform: translateY(-1px) scale(1.04);
   }
 
   .source-row {
@@ -330,6 +433,16 @@
     font-size:var(--fs-xs);
     color: var(--text-muted);
   }
+  .source-info .cat-tag {
+    display: inline-block;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border-radius: 6px;
+    padding: 1px 6px;
+    margin-top: 2px;
+  }
   .status-dot {
     width: 6px; height: 6px;
     border-radius: 50%;
@@ -359,7 +472,7 @@
     border: none;
     color: var(--text-muted);
     flex-shrink: 0;
-    width: 36px; height: 36px;
+    width: 44px; height: 44px;
     margin-right: -6px;
     display: flex; align-items: center; justify-content: center;
   }
@@ -369,6 +482,8 @@
     display: flex;
     gap: var(--space-lg);
     overflow-x: auto;
+    padding: 6px 6px 12px;
+    margin: -6px -6px -8px;
     scrollbar-width: none;
   }
   .trending-row::-webkit-scrollbar { display: none; }
@@ -380,12 +495,17 @@
   .trending-poster {
     width: 108px; height: 150px;
     border-radius: var(--radius);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-float);
     background-size: cover;
     background-position: center;
     position: relative;
     margin-bottom: var(--space-sm);
     overflow: hidden;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .trending-card:hover .trending-poster,
+  .trending-card:active .trending-poster {
+    transform: translateY(-3px) scale(1.015);
   }
   .trending-poster::before {
     content: "";
@@ -416,6 +536,45 @@
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 0 0 2px rgba(255,255,255,0.85);
   }
+  .poster-rating-badge {
+    position: absolute;
+    z-index: 2;
+    top: 8px; right: 8px;
+    display: flex; align-items: center; gap: 3px;
+    background: rgba(20,20,22,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: #fff;
+    font-size: var(--fs-2xs);
+    font-weight: 800;
+    padding: 3px 7px 3px 5px;
+    border-radius: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  }
+  .poster-rating-badge svg { width: 9px; height: 9px; color: var(--gold); flex-shrink: 0; }
+  .poster-play-overlay {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity .18s ease;
+    pointer-events: none;
+  }
+  .trending-card:hover .poster-play-overlay,
+  .trending-card:active .poster-play-overlay {
+    opacity: 1;
+  }
+  .poster-play-overlay span {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.92);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,.35);
+  }
+  .poster-play-overlay svg { width: 13px; height: 13px; color: #16161a; margin-left: 2px; }
   .trending-title {
     font-size:var(--fs-sm);
     font-weight: 600;
@@ -448,7 +607,7 @@
   .filter-btn {
     background: var(--surface-2);
     border: 1px solid var(--surface-2);
-    width: 42px; height: 42px;
+    width: 44px; height: 44px;
     border-radius: var(--radius-sm);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -472,6 +631,7 @@
     padding-bottom: 6px;
     position: relative;
   }
+  .filter-tab { background:none; border:none; cursor:pointer; font-family:inherit; }
   .filter-tab.active { color: var(--accent); font-weight: 700; }
   .filter-tab.active::after {
     content: "";
@@ -547,68 +707,134 @@
     text-align: center;
     padding: 48px var(--space-xl);
     color: var(--text-muted);
+    animation: fadeInUp .3s ease backwards;
   }
-  .empty .big { font-size: 2.2rem; margin-bottom: var(--space-md); }
+  .empty .big {
+    font-size: 2rem;
+    margin: 0 auto var(--space-md);
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+  }
   .empty p { font-size: .85rem; }
+  #result-area { transition: opacity .16s ease; }
 
 
+  /* ---------- Search results list ---------- */
+  .results-header { padding: 20px 20px 14px; }
+  .results-heading {
+    font-size: var(--fs-2xl);
+    font-weight: 800;
+    letter-spacing: -.3px;
+    color: var(--text);
+    margin: 0 0 6px;
+    line-height: 1.25;
+  }
+  .results-subrow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+  }
+  .results-count { font-size:var(--fs-sm); color: var(--text-muted); }
+  .results-sort {
+    appearance: none;
+    -webkit-appearance: none;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size:var(--fs-sm);
+    font-weight: 700;
+    padding: 2px 0;
+    cursor: pointer;
+  }
+
+  .results-list { display: flex; flex-direction: column; }
   .result-card {
     display: flex;
-    gap: var(--space-md);
-    padding: var(--space-lg) var(--space-xl);
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
     border-bottom: 1px solid var(--border);
+    transition: background-color .12s ease;
+    animation: fadeInUp .35s ease backwards;
   }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .results-list .result-card:last-child { border-bottom: none; }
+  .result-card:active { background: var(--surface-2); }
   .result-poster {
-    width: 64px; height: 92px;
+    width: 96px; height: 144px;
     border-radius: var(--radius-sm);
     flex-shrink: 0;
+    background: var(--surface-2);
     background-size: cover;
     background-position: center;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
     position: relative;
+    overflow: hidden;
   }
   .result-bookmark-flag {
     position: absolute;
-    top: -3px; right: 6px;
-    width: 16px; height: 20px;
+    top: 0; right: 10px;
+    width: 16px; height: 21px;
     background: var(--accent);
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
   }
-  .result-info { flex: 1; min-width: 0; }
-  .result-title { font-size:var(--fs-xl); font-weight: 700; letter-spacing: -.2px; margin-bottom: 4px; color: var(--text); }
+  .result-info { flex: 1; min-width: 0; padding-top: 1px; }
+  .result-title {
+    font-size:var(--fs-lg);
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -.1px;
+    margin-bottom: 5px;
+    color: var(--text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   .result-meta {
     font-size:var(--fs-sm);
     font-weight: 500;
     color: var(--text-muted);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
   .result-rating-row {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-sm);
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 7px;
+    min-height: 20px;
   }
   .result-rating {
-    display: flex; align-items: center; gap: 3px;
+    display: flex; align-items: center; gap: 4px;
     font-size:var(--fs-sm);
     font-weight: 700;
     color: var(--gold);
   }
   .result-rating svg { width: 12px; height: 12px; }
   .sources-pill {
-    background: rgba(62,207,95,0.15);
-    color: #3ecf5f;
+    background: rgba(62,207,95,0.14);
+    color: #1f9e52;
     font-size:var(--fs-xs);
     font-weight: 700;
-    padding: 3px var(--space-sm);
+    padding: 3px 9px;
     border-radius: 20px;
+    line-height: 1.4;
   }
-  .result-tags { display: flex; gap: 6px; }
+  body.dark .sources-pill { color: #3ecf5f; }
+  .result-tags { display: flex; gap: 6px; flex-wrap: wrap; }
   .result-tag {
     font-size:var(--fs-xs);
     font-weight: 600;
     color: var(--text-muted);
     background: var(--surface);
-    padding: 3px var(--space-sm);
+    border: 1px solid var(--border);
+    padding: 3px 9px;
     border-radius: 20px;
   }
   .result-bookmark-icon {
@@ -616,9 +842,16 @@
     background: none;
     border: none;
     color: var(--text-muted);
-    width: 18px; height: 18px;
+    width: 36px; height: 36px;
+    margin: -8px -10px 0 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    border-radius: 50%;
+    transition: transform .15s ease;
   }
-  .result-bookmark-icon svg { width: 18px; height: 18px; }
+  .result-bookmark-icon:active { transform: scale(1.25); }
+  .result-bookmark-icon:active { background: var(--surface-2); }
+  .result-bookmark-icon svg { width: 19px; height: 19px; }
 
   /* ---------- Detail screen ---------- */
   .detail-hero {
@@ -655,18 +888,6 @@
     border: none;
   }
   .icon-circle svg { width: 17px; height: 17px; }
-  .play-btn-overlay {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%,-50%);
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.18);
-    border: 1.5px solid rgba(255,255,255,0.5);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 2;
-  }
-  .play-btn-overlay svg { width: 26px; height: 26px; color: #fff; margin-left: 3px; }
 
   .detail-body { padding: var(--space-xl) var(--space-xl) 0; }
   .detail-title { font-size:var(--fs-3xl); font-weight: 800; margin: 0 0 var(--space-sm); color: #fff; }
@@ -681,7 +902,9 @@
   .detail-rating-badge {
     color: #fff;
     font-weight: 700;
-    display: flex; align-items: center; gap: 3px;
+    font-size: var(--fs-sm);
+    padding: 5px 12px;
+    display: flex; align-items: center; gap: 4px;
   }
   .detail-rating-badge svg { width: 12px; height: 12px; color: var(--gold); }
   .genre-chip {
@@ -697,92 +920,100 @@
     display: flex;
     align-items: stretch;
     gap: var(--space-md);
-    margin-bottom: var(--space-xl);
+    margin-bottom: 22px;
   }
-  .sources-banner-main {
+  .watch-now-cta-btn {
     flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: var(--space-lg) var(--space-lg);
-  }
-  .sources-banner-main .banner-label { font-size:var(--fs-sm); font-weight: 700; color: var(--accent); margin-bottom: 2px; }
-  .sources-banner-main .count { font-size:var(--fs-sm); color: var(--text-muted); margin-bottom: var(--space-md); }
-  .view-sources-btn {
     background: var(--accent);
     border: none;
     color: #fff;
-    font-size:var(--fs-sm);
-    font-weight: 700;
-    padding: var(--space-sm) var(--space-lg);
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .watchlist-add-btn {
-    width: 78px;
-    background: var(--surface);
-    border: 1px solid var(--accent);
+    font-size: var(--fs-md);
+    font-weight: 800;
+    padding: 14px 16px;
     border-radius: var(--radius);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4px;
-    color: var(--accent);
-    font-size:var(--fs-xs);
-    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
   }
-  .watchlist-add-btn svg { width: 18px; height: 18px; }
+  .watch-now-cta-btn svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .watchlist-icon-btn {
+    width: 52px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .watchlist-icon-btn.favorited { color: var(--accent); border-color: rgba(226,36,47,.35); }
+  .watchlist-icon-btn svg { width: 20px; height: 20px; }
 
   .detail-section-title {
-    font-size:var(--fs-lg);
-    font-weight: 700;
-    margin: 0 0 var(--space-sm);
+    font-size:var(--fs-xl);
+    font-weight: 800;
+    letter-spacing: -.2px;
+    margin: 0 0 10px;
   }
   .synopsis-text {
     font-size:var(--fs-base);
-    line-height: 1.55;
+    line-height: 1.6;
     color: var(--text);
     margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .synopsis-text.expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
   }
   .read-more {
     font-size:var(--fs-base);
     color: var(--accent);
-    font-weight: 600;
+    font-weight: 700;
     margin-top: 6px;
-    margin-bottom: var(--space-xl);
+    margin-bottom: 26px;
     display: inline-block;
+    cursor: pointer;
   }
 
   .detail-section-head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: var(--space-md);
+    margin-bottom: 12px;
   }
   .detail-section-head .see-all { font-size:var(--fs-sm); color: var(--text-muted); }
 
   .cast-row {
     display: flex;
-    gap: var(--space-lg);
+    gap: 18px;
     overflow-x: auto;
     scrollbar-width: none;
     padding-bottom: 4px;
+    margin-bottom: 26px;
   }
   .cast-row::-webkit-scrollbar { display: none; }
-  .cast-item { flex-shrink: 0; width: 84px; text-align: center; }
+  .cast-item { flex-shrink: 0; width: 76px; text-align: center; }
   .cast-avatar {
-    width: 60px; height: 60px;
+    width: 72px; height: 72px;
     border-radius: 50%;
     background-size: cover;
     background-position: center;
-    background-color: #e3ddec;
-    margin: 0 auto 6px;
-    border: 2px solid var(--surface);
-    box-shadow: 0 0 0 1.5px var(--border), 0 2px 6px rgba(0,0,0,.12);
+    background-color: var(--surface-2);
+    margin: 0 auto 8px;
+    box-shadow: 0 0 0 1px var(--border), 0 3px 8px rgba(0,0,0,.1);
     cursor: pointer;
   }
-  .cast-name { font-size:var(--fs-sm); font-weight: 700; line-height: 1.3; white-space: nowrap; }
-  .cast-role { font-size:var(--fs-xs); color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+  .cast-name { font-size:var(--fs-sm); font-weight: 700; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cast-role { font-size:var(--fs-xs); color: var(--text-muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .related-row {
     display: flex;
@@ -859,6 +1090,7 @@
   .source-list-info { flex: 1; min-width: 0; }
   .source-list-info .name { font-size:var(--fs-base); font-weight: 700; }
   .source-list-info .tags { font-size:var(--fs-xs); color: var(--text-muted); margin: 2px 0; }
+  .source-list-info .tags svg { vertical-align: -1px; }
   .source-list-info .checked { font-size:var(--fs-2xs); color: var(--text-muted); }
   .source-list-row .watch-btn { padding: var(--space-sm) var(--space-lg); font-size:var(--fs-sm); }
 
@@ -929,7 +1161,7 @@
     flex-shrink: 0;
   }
   .src-detail-name { font-size:var(--fs-2xl); font-weight: 800; }
-  .src-detail-status { font-size:var(--fs-sm); color: #1a9e4a; font-weight: 600; margin: 2px 0; }
+  .src-detail-status { font-size:var(--fs-sm); color: #1a9e4a; font-weight: 600; margin: 2px 0; display: flex; align-items: center; gap: 5px; }
   .src-detail-cats { font-size:var(--fs-sm); color: var(--text-muted); }
 
   .watch-cta-btn {
@@ -1237,6 +1469,24 @@
     transform: translateX(-50%) translateY(0);
   }
 
+  #report-modal-overlay, #about-modal-overlay, #outbound-modal-overlay { opacity: 0; transition: opacity .18s ease; }
+  #report-modal-overlay > div, #about-modal-overlay > div, #outbound-modal-overlay > div { transform: scale(.95); transition: transform .18s ease; }
+  #report-modal-overlay.modal-in, #about-modal-overlay.modal-in, #outbound-modal-overlay.modal-in { opacity: 1; }
+  #report-modal-overlay.modal-in > div, #about-modal-overlay.modal-in > div, #outbound-modal-overlay.modal-in > div { transform: scale(1); }
+
+  .suggestions-box {
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+  }
+  .suggestions-box.open {
+    display: block !important;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
   .offline-banner {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -1360,29 +1610,79 @@
      defined anywhere, so it rendered as plain unstyled browser text
      (no bold, no size bump) instead of a heading. */
   .popular-label { font-size:var(--fs-xl); font-weight: 700; letter-spacing: -.2px; color: var(--text); }
-  .sites-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+  /* Single column by default — on a ~380-410px phone viewport, 2 columns
+     left each card ~150-170px wide (minus the logo box + gap), which
+     wasn't enough room for site name + note + badge text, forcing ugly
+     multi-line wraps of short phrases like "Checking for direct link…"
+     and slicing the 2nd column's card off at the screen edge. There was
+     no @media rule anywhere in this file to relax that on wider screens,
+     so it applied even on the narrowest phones. Widens back to 2 columns
+     only once there's actually enough room for it. */
+  .sites-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); }
+  @media (min-width: 480px) {
+    .sites-grid { grid-template-columns: repeat(2, 1fr); }
+  }
   .site-card {
     display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md);
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     border-left: 3px solid var(--site-card-accent, var(--border));
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 10px rgba(0,0,0,.06);
     text-decoration: none; color: var(--text); position: relative; cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
   }
+  .site-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.09), 0 2px 6px rgba(0,0,0,.06); }
+  .site-card:active { transform: translateY(0) scale(.99); }
   .site-logo-box {
-    width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; overflow: hidden;
-    background: var(--surface);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 3px rgba(0,0,0,.18);
   }
-  .site-info { flex: 1; min-width: 0; }
-  .site-name { font-size: .85rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .site-note { font-size: .7rem; color: var(--muted); margin-top: 2px; }
-  .site-free { font-size: .68rem; color: var(--green); font-weight: 700; }
-  .omni-pending { font-size: .68rem; color: var(--muted); }
+  .site-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .site-name { font-size: var(--fs-md); font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Fills the space between name and badge with something real instead of
+     empty air — the site's own domain (already in SITES_DIRECTORY) when
+     there's no more specific note to show, so nothing here is made up. */
+  .site-domain, .site-note { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* One badge shape for every link-status state (direct / search-inside /
+     checking) — icon + pill, same layout, only the color changes.
+     Replaces the old mix of a ✅/🔍 emoji-as-text and a bare-color
+     .omni-pending span with a single consistent, slightly-more-alive
+     line-icon-in-a-chip system. */
+  .site-badge {
+    display: inline-flex; align-items: center; gap: 4px; width: fit-content;
+    font-size: var(--fs-xs); font-weight: 700; margin-top: 4px;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .site-badge svg { flex-shrink: 0; }
+  .site-badge.site-free { color: var(--green); background: color-mix(in srgb, var(--green) 16%, transparent); }
+  /* .omni-pending itself carries no styling — it's kept purely as the
+     behavioral marker upgradeCardsWithOmniRoute() queries against while a
+     lookup is in flight. All of the "muted/searching" look lives here so
+     the two concerns (state tracking vs. appearance) can change
+     independently. */
+  .site-badge.site-status-muted { color: var(--text-muted); background: var(--surface-2); }
+  /* Pending state: no spinner, no cycling text — the shimmer sweep on the
+     pill itself is the "still working, not frozen" signal, using the same
+     animation the app's poster/card loading skeletons already use
+     elsewhere, so this reads as one consistent loading language instead of
+     its own separate hourglass-and-narration routine. */
+  .site-badge.site-status-loading {
+    color: var(--text-muted);
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+  /* Copy + Report grouped into one action cluster of filled circular
+     buttons — a deliberate control, not two apologetic gray ghost icons
+     plus a separate arrow glyph fending for themselves in the corner. */
+  .site-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .copy-link-btn {
-    background: none; border: none; color: var(--muted); cursor: pointer;
-    padding: 4px; display: flex; align-items: center; gap: 3px; font-size:var(--fs-2xs);
+    background: var(--surface-2); border: none; color: var(--text-muted); cursor: pointer;
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s ease, color .15s ease;
   }
-  .site-card .arrow { position: absolute; right: 10px; bottom: 10px; color: var(--muted); font-size: .8rem; }
+  .copy-link-btn:hover { background: var(--accent-dim); color: var(--accent); }
   .tips-box {
     margin-top: var(--space-lg); padding: var(--space-md) var(--space-md); background: var(--surface);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -1469,13 +1769,34 @@
   .card-content.card-pastel-gold { background: linear-gradient(160deg, rgba(217,154,0,.18), var(--surface) 60%); }
   .card-content.card-pastel-rose { background: linear-gradient(160deg, rgba(255,95,143,.16), var(--surface) 60%); }
 
-  .card-logo { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 32px; }
+  .card-logo {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; min-height: 32px; max-width: 100%; padding: 0 6px;
+  }
+  .card-logo-badge {
+    width: 32px; height: 32px; flex-shrink: 0; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 3px 8px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  .card-logo-word {
+    display: flex; min-width: 0; max-width: 100%; overflow: hidden;
+  }
   .logo-word {
     font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.15rem; font-weight: 800; letter-spacing: -.2px;
-    white-space: nowrap; text-decoration: none;
+    font-size: 1.02rem; font-weight: 700; letter-spacing: -.1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none;
   }
   .lw-white { color: var(--text); }
+  /* Thin strip of the site's own accent color along the card's top edge —
+     a quiet, real (not decorative) brand cue that reads even before the
+     wordmark is legible, using the same --card-accent already threaded
+     onto .gradient-card-wrapper (previously only consumed by the 🔥 hot
+     gradient, unused on every ordinary card). */
+  .card-content::before {
+    content: ""; position: absolute; top: 0; left: 14px; right: 14px; height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--card-accent, var(--border));
+    opacity: .8;
+  }
 
   .pin-icon {
     border: none; border-radius: 50%;
@@ -1512,6 +1833,66 @@
     background: none; border: none; color: var(--text-muted); cursor: pointer;
     font-size: .8rem; line-height: 1; padding: 0 0 0 2px;
   }
+  /* Final home-search sizing: clean, premium app proportions */
+  #screen-home .search-bar {
+    height: 58px;
+    border-radius: 20px;
+    border-color: #dcdce0;
+    box-shadow: 0 4px 14px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.06);
+  }
+  #screen-home .search-bar:focus-within {
+    border-color: #cfd0d6;
+    box-shadow: 0 6px 18px rgba(0,0,0,.11), 0 1px 3px rgba(0,0,0,.06);
+  }
+
+  #screen-home .search-bar > .search-lead-icon { display: none; }
+  #screen-home .search-bar input { font-size: 14px; padding-left: 20px; padding-right: 0; }
+  #screen-home .search-bar .mic-btn {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    align-self: center;
+    padding: 0 !important;
+    background: var(--surface-2) !important;
+    border: 1px solid #dfe0e4;
+    border-radius: 50%;
+    color: #68728c;
+  }
+  #screen-home .search-bar .mic-btn:active { background: var(--border); }
+  #screen-home .search-bar .mic-btn svg { width: 15px; height: 15px; }
+  #screen-home .search-go {
+    width: 42px; height: 42px; min-width: 42px; flex: 0 0 42px;
+    border-radius: 14px; margin: 0 8px 0 0;
+    box-shadow: 0 2px 4px rgba(180,10,17,.30);
+  }
+  #screen-home .search-go svg { width: 17px; height: 17px; }
+
+  /* Dark mode variant — the light-mode search bar above hardcodes white/gray
+     values that don't adapt via CSS variables, so without this override the
+     bar stayed white and visually disconnected from the rest of the dark UI. */
+  body.dark #screen-home .search-bar {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.3);
+  }
+  body.dark #screen-home .search-bar:focus-within {
+    border-color: #3a3a40;
+    box-shadow: 0 6px 18px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.3);
+  }
+  body.dark #screen-home .search-bar input {
+    color: var(--text);
+  }
+  body.dark #screen-home .search-bar input::placeholder {
+    color: var(--text-muted);
+  }
+  body.dark #screen-home .search-bar .mic-btn {
+    background: var(--surface-2) !important;
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+  body.dark #screen-home .search-bar .mic-btn:active {
+    background: var(--border);
+  }
 </style>
 </head>
 <body>
@@ -1520,14 +1901,11 @@
 
   <!-- HOME SCREEN -->
   <div class="screen active" id="screen-home">
+    <div class="ptr-indicator" id="ptr-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9" stroke-opacity=".25"/><path d="M21 12a9 9 0 0 0-9-9"/></svg></div>
 
     <div class="home-header">
       <h1 class="home-title"><span style="color:var(--text);">Cine</span><span style="color:var(--accent);">Find</span></h1>
       <div class="home-header-actions">
-        <button class="notif-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-          <span class="notif-badge">3</span>
-        </button>
         <button class="theme-toggle-btn" onclick="toggleAppTheme()">
           <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
           <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8.5 8.5 0 119.5 4a7 7 0 0010.5 10.5z"/></svg>
@@ -1536,20 +1914,23 @@
     </div>
     <p class="home-tagline">Find where to watch. Instantly.</p>
 
-    <div class="search-bar" style="position:relative;">
-      <input type="text" id="search-input" placeholder="Search movies, dramas, actors..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-haspopup="listbox" aria-controls="suggestions-box">
-      <button class="mic-btn" id="mic-btn" onclick="startVoiceSearch()" aria-label="Search by voice" style="display:none; background:none; border:none; cursor:pointer; padding:4px; color:var(--text-muted); flex-shrink:0;">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-      </button>
-      <button class="search-go search-btn" onclick="onHomeSearchSubmit()" aria-label="Search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      </button>
-      <div class="suggestions-box" id="suggestions-box" role="listbox" aria-label="Search suggestions" style="position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; z-index:20; max-height:320px; overflow-y:auto; box-shadow:0 12px 30px rgba(0,0,0,.15); display:none;"></div>
+    <div style="position:relative;" class="search-glow-wrap">
+      <div class="search-bar">
+        <svg class="search-lead-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="search-input" placeholder="Search movies, shows, or actors" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-haspopup="listbox" aria-controls="suggestions-box">
+        <button class="mic-btn" id="mic-btn" onclick="startVoiceSearch()" aria-label="Search by voice" style="display:none; background:none; border:none; cursor:pointer; padding:4px; color:var(--text-muted); flex-shrink:0;">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button class="search-go search-btn" onclick="onHomeSearchSubmit()" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+      </div>
+      <div class="suggestions-box" id="suggestions-box" role="listbox" aria-label="Search suggestions" style="position:absolute; top:calc(100% + 6px); left:20px; right:20px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; z-index:20; max-height:320px; overflow-y:auto; box-shadow:0 12px 30px rgba(0,0,0,.15); display:none;"></div>
     </div>
 
     <div class="section">
       <div class="section-head">
-        <h2>Browse by Category</h2>
+        <div><span class="section-eyebrow">Discover</span><h2>Browse by Category</h2></div>
       </div>
       <div class="chip-row">
         <span class="chip active" onclick="browseCategoryFromHome('all', this)">All</span>
@@ -1562,7 +1943,7 @@
 
     <div class="section">
       <div class="section-head">
-        <h2>Where to Watch</h2>
+        <div><span class="section-eyebrow">Sources</span><h2>Where to Watch</h2></div>
       </div>
       <div style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:8px;">Free sources</div>
 
@@ -1576,32 +1957,10 @@
 
     <div class="section">
       <div class="section-head">
-        <h2>Trending Now</h2>
-        <span class="see-all">See all</span>
+        <div><span class="section-eyebrow">Popular</span><h2>Trending Now</h2></div>
+        <span class="see-all" onclick="goToScreen('screen-search'); document.getElementById('search-input').focus();" style="cursor:pointer;">See all</span>
       </div>
-      <div class="trending-row">
-        <div class="trending-card">
-          <div class="trending-poster" style="background-image:linear-gradient(160deg,#4a1620,#1a0a0d);">
-            <span class="rank-badge">1</span>
-          </div>
-          <div class="trending-title">Queen of Tears</div>
-          <div class="trending-rating"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg> 8.7</div>
-        </div>
-        <div class="trending-card">
-          <div class="trending-poster" style="background-image:linear-gradient(160deg,#2a2a3a,#0d0d12);">
-            <span class="rank-badge">2</span>
-          </div>
-          <div class="trending-title">The Glory</div>
-          <div class="trending-rating"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg> 8.6</div>
-        </div>
-        <div class="trending-card">
-          <div class="trending-poster" style="background-image:linear-gradient(160deg,#3a1a30,#12060f);">
-            <span class="rank-badge">3</span>
-          </div>
-          <div class="trending-title">Crash Landing on You</div>
-          <div class="trending-rating"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg> 8.9</div>
-        </div>
-      </div>
+      <div class="trending-row" id="home-trending-row"></div>
     </div>
 
   </div>
@@ -1667,13 +2026,11 @@
 
   <!-- DETAIL SCREEN (not a bottom-nav tab — reached from a result card) -->
   <div class="screen" id="screen-detail">
-    <div class="detail-hero" style="background-image:linear-gradient(160deg,#5a1620,#1a0a0d);">
+    <div class="detail-hero" id="detail-hero" style="background-image:linear-gradient(160deg,#5a1620,#1a0a0d);">
       <div class="detail-top-bar">
         <button class="icon-circle" onclick="goToScreen('screen-search')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <button class="icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg></button>
+        <button class="icon-circle" onclick="shareTitle()" aria-label="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg></button>
       </div>
-      <div class="play-btn-overlay"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg></div>
-
       <div class="detail-hero-content">
         <h1 class="detail-title" id="detail-title">My Demon</h1>
         <div class="detail-meta-row" id="detail-meta-row">
@@ -1692,19 +2049,18 @@
 
     <div class="detail-body">
       <div class="sources-banner">
-        <div class="sources-banner-main">
-          <div class="count" style="font-weight:700;color:var(--text);font-size:var(--fs-md);margin-bottom:8px;">10 sources available</div>
-          <button class="view-sources-btn" onclick="goToScreen('screen-sources')">View All Sources <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-        <button class="watchlist-add-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          Watchlist
+        <button class="watch-now-cta-btn" onclick="goToScreen('screen-sources')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg>
+          <span id="detail-sources-label">Watch now &middot; 10 sources</span>
+        </button>
+        <button class="watchlist-icon-btn" id="detail-watchlist-btn" onclick="toggleDetailWatchlist(event)" aria-label="Add to watchlist" aria-pressed="false" title="Add to watchlist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg>
         </button>
       </div>
 
       <div class="detail-section-title">Synopsis</div>
       <p class="synopsis-text" id="detail-synopsis">A ruthless demon becomes powerless after an unexpected encounter with a cold-hearted heiress. To regain his abilities, he must protect her, but love is the last thing he expected.</p>
-      <span class="read-more">Read more ▾</span>
+      <span class="read-more" onclick="toggleSynopsis(this)">Read more &#9662;</span>
 
       <!-- Cast section left as static mockup placeholder — TMDB search results
            don't include cast/credits data (parseTmdbItem has no cast field),
@@ -1714,21 +2070,9 @@
         <span class="see-all">See all</span>
       </div>
       <div class="cast-row" id="detail-cast-row">
-        <div class="cast-item">
-          <div class="cast-avatar" style="background:linear-gradient(160deg,#333,#111);"></div>
-          <div class="cast-name">Song Kang</div>
-          <div class="cast-role">as Jung Gu Won</div>
-        </div>
-        <div class="cast-item">
-          <div class="cast-avatar" style="background:linear-gradient(160deg,#3a2a30,#151015);"></div>
-          <div class="cast-name">Kim Yoo Jung</div>
-          <div class="cast-role">as Do Do Hee</div>
-        </div>
-        <div class="cast-item">
-          <div class="cast-avatar" style="background:linear-gradient(160deg,#2a2a3a,#101015);"></div>
-          <div class="cast-name">Lee Sang Yi</div>
-          <div class="cast-role">as Joo Seok Hoon</div>
-        </div>
+        <div class="cast-item"><div class="cast-avatar" style="background:linear-gradient(160deg,#333,#111);"></div></div>
+        <div class="cast-item"><div class="cast-avatar" style="background:linear-gradient(160deg,#3a2a30,#151015);"></div></div>
+        <div class="cast-item"><div class="cast-avatar" style="background:linear-gradient(160deg,#2a2a3a,#101015);"></div></div>
       </div>
 
     <!-- Real renderResult() output lands here: movie-header/sites-grid,
@@ -1766,7 +2110,7 @@
            KissKH/MovieBox/Dulo/Miuro/DramaCool markup before this pass. -->
     </div>
 
-    <div class="empty-cta" style="margin:0 20px 16px;">Can't find what you're looking for?<br><span style="color:var(--accent); font-weight:700;">+ Request a Source</span></div>
+    <div class="empty-cta" style="margin:0 20px 16px;">Can't find what you're looking for?<br><span style="color:var(--accent); font-weight:700; cursor:pointer;" onclick="openRequestSourceModal()">+ Request a Source</span></div>
   </div>
 
   <!-- INDIVIDUAL SOURCE DETAIL SCREEN. Wired to real per-title/site data
@@ -1859,23 +2203,12 @@
   <!-- PROFILE SCREEN -->
   <div class="screen" id="screen-profile">
     <div class="profile-hero">
-      <div class="profile-avatar" style="padding:0;">
-        <svg viewBox="0 0 56 56" style="width:100%;height:100%;">
-          <circle cx="28" cy="28" r="28" fill="#ee4136"/>
-          <circle cx="28" cy="25" r="12" fill="#f2b78c"/>
-          <path d="M14 26c0-10 6-17 14-17s14 7 14 17c0-3-1-5-2-5-1-6-6-9-12-9s-11 3-12 9c-1 0-2 2-2 5z" fill="#1c1c1e"/>
-          <path d="M15 22c-1 2-1 5-1 7 0-8 0-14 3-17-1 3-2 6-2 10z" fill="#1c1c1e"/>
-          <circle cx="23.5" cy="25" r="1.3" fill="#241412"/>
-          <circle cx="32.5" cy="25" r="1.3" fill="#241412"/>
-          <path d="M23 31.5c1.5 1 6.5 1 8 0" stroke="#8a4a35" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-          <path d="M8 56c0-9 9-15 20-15s20 6 20 15z" fill="#1c1c1e"/>
-        </svg>
-      </div>
+      <div class="profile-avatar" id="profile-avatar-box" style="padding:0;"></div>
       <div class="profile-name-block">
-        <div class="name">James Manio</div>
-        <div class="role">Movie Lover <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></div>
+        <div class="name" id="profile-name-text">James Manio</div>
+        <div class="role"><span id="profile-role-text">Movie Lover</span> <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg></div>
       </div>
-      <button class="profile-edit-btn">Edit</button>
+      <button class="profile-edit-btn" onclick="openEditProfileModal()">Edit</button>
     </div>
 
     <div class="profile-stats">
@@ -1931,7 +2264,7 @@
 
   <!-- BOTTOM NAV (shared across all screens) -->
   <nav class="bottom-nav">
-    <button class="nav-item active" data-target="screen-home">
+    <button class="nav-item active" data-target="screen-home" aria-current="page">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
       Home
     </button>
@@ -1957,7 +2290,10 @@
     document.getElementById(id).classList.add('active');
     // sync bottom nav highlight only if this screen has a matching tab
     document.querySelectorAll('.nav-item').forEach(b => {
-      b.classList.toggle('active', b.dataset.target === id);
+      const isActive = b.dataset.target === id;
+      b.classList.toggle('active', isActive);
+      if (isActive) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
     });
     // Detail isn't a tab destination (see markup comment above) — full-screen
     // hero view reached by pushing from a result card, exited via its own
@@ -2369,8 +2705,8 @@ function buildFavSiteCard(s, i) {
   // the card silently still rendering the dark #16161f background.
   const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][(i || 0) % 3];
   return `
-    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}">
-      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab" onclick="trackSiteClick('${escapeAttr(s.name).replace(/'/g, "\\'")}')">
+    <div class="gradient-card-wrapper" data-site-name="${escapeAttr(s.name)}" style="--card-accent:${s.accent || 'var(--accent)'};">
+      <div role="button" tabindex="0" class="card-content ${pastelClass}" aria-label="${s.name}" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
@@ -2379,8 +2715,8 @@ function buildFavSiteCard(s, i) {
         <button class="pin-icon faved" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="Remove from favorites">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg>
         </button>
-        <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
-      </a>
+        <div class="card-logo">${dirCardLogoHtml(s)}</div>
+      </div>
     </div>`;
 }
 
@@ -2618,9 +2954,32 @@ function applyFilters() {
 // Renders a grid of clickable result cards for a list of movies/series
 const RESULTS_PER_PAGE = 9;
 let visibleResultsCount = RESULTS_PER_PAGE;
+// The exact array of movie objects actually rendered as cards on the last
+// paint (after category-tab filtering + pagination slicing) — card
+// onclick handlers index into THIS, not currentDisplayedResults, since
+// the tab filter means a card's on-screen position no longer matches its
+// position in the full unfiltered list.
+let lastRenderedVisibleList = [];
 let currentResultsLabel = null; // optional custom header, e.g. "🎭 Comedy"
 let currentResultsRaw = null;   // original, unsorted order — kept so sorting can always start fresh
 let currentSortBy = 'default';
+// Category tab filter shown above the results list (All/Movies/Asian
+// Drama/Anime/Pinoy) — purely client-side, filters whatever's already in
+// currentDisplayedResults using the same `category` field parseTmdbItem()
+// already computes (no extra TMDB call needed).
+let resultsCategoryTab = 'all';
+const RESULTS_CATEGORY_TABS = [
+  ['all', 'All'],
+  ['movie', 'Movies'],
+  ['drama', 'Asian Drama'],
+  ['anime', 'Anime'],
+  ['pinoy', 'Pinoy'],
+];
+function setResultsCategoryTab(tab) {
+  resultsCategoryTab = tab;
+  visibleResultsCount = RESULTS_PER_PAGE; // fresh pagination for the new subset
+  renderVisibleResults();
+}
 // "Search Deeper" state — the search itself always fetches+merges TMDB
 // pages 1-2 automatically (see runSearch()); these track manual on-demand
 // fetches beyond that, since always auto-fetching many pages on every
@@ -2675,6 +3034,7 @@ function renderResultsGrid(movies, label) {
   currentDisplayedResults = movies;
   currentResultsLabel = label || null;
   currentSortBy = 'default';
+  resultsCategoryTab = 'all'; // fresh list — start from the unfiltered tab
   visibleResultsCount = RESULTS_PER_PAGE; // reset to first page whenever a new list is shown
   genreBrowseState = null; // only browseGenre() turns this back on
   pushViewState('results');
@@ -2706,45 +3066,85 @@ function setResultsSort(sortBy) {
 
 // Renders however many results are currently "unlocked" (visibleResultsCount),
 // plus a Load More button if there are more left to show.
+function fadeIntoArea(area, html) {
+  if (!area) return;
+  area.style.opacity = '0';
+  setTimeout(() => {
+    area.innerHTML = html;
+    requestAnimationFrame(() => { area.style.opacity = '1'; });
+  }, 140);
+}
+
 function renderVisibleResults() {
-  const movies = currentDisplayedResults || [];
+  const allMovies = currentDisplayedResults || [];
+  // Tab filter applies on top of whatever sort/order is already active —
+  // 'series' isn't offered as its own tab per the current tab set, so a
+  // plain (non-Asian, non-anime, non-Pinoy) TV series still shows up under
+  // "All" even though none of the 4 category tabs match it directly.
+  const movies = resultsCategoryTab === 'all'
+    ? allMovies
+    : allMovies.filter(m => m.category === resultsCategoryTab);
   const area = document.getElementById('result-area');
   const visible = movies.slice(0, visibleResultsCount);
+  lastRenderedVisibleList = visible;
 
-  const cards = visible.map((m, i) => `
+  const cards = visible.map((m, i) => {
+    const sourceCount = Array.isArray(m.sites) ? m.sites.length : 0;
+    const genreTags = (m.genres && m.genres.length ? m.genres : (m.genre ? [m.genre] : [])).slice(0, 3);
+    const isFav = getFavorites().some(f => f.title === m.title);
+    return `
     <div class="result-card" onclick="selectMovie(${i})" style="cursor:pointer; animation-delay:${(i % RESULTS_PER_PAGE) * 0.05}s">
       <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : (m.type === 'series' ? '📺' : '🎬')}
+        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${escapeAttr(m.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${m.type === 'series' ? '📺' : '🎬'}'">` : `<span style="font-size:1.8rem;">${m.type === 'series' ? '📺' : '🎬'}</span>`}
+        ${isFav ? `<span class="result-bookmark-flag" aria-hidden="true"></span>` : ''}
       </div>
       <div class="result-info">
-        <div class="result-title">${m.title}</div>
+        <div class="result-title">${escapeAttr(m.title)}</div>
         <div class="result-meta">${m.year ? `${m.year} · ` : ''}${m.type === 'series' ? 'TV Series' : 'Movie'}${m.genre === 'Documentary' ? ' · Documentary' : ''}</div>
         <div class="result-rating-row">
-          ${m.rating ? `<span class="result-rating"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg> ${m.rating}</span>` : '<span></span>'}
+          ${m.rating && parseFloat(m.rating) > 0 ? `<span class="result-rating"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg> ${m.rating}</span>` : ''}
+          ${sourceCount > 0 ? `<span class="sources-pill">${sourceCount} source${sourceCount === 1 ? '' : 's'}</span>` : ''}
         </div>
+        ${genreTags.length ? `<div class="result-tags">${genreTags.map(g => `<span class="result-tag">${escapeAttr(g)}</span>`).join('')}</div>` : ''}
       </div>
-      <button class="result-bookmark-icon" onclick="event.stopPropagation(); toggleGridFavorite(${i});"><svg viewBox="0 0 24 24" fill="${getFavorites().some(f => f.title === m.title) ? 'var(--accent)' : 'none'}" stroke="var(--accent)" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg></button>
-    </div>`).join('');
+      <button class="result-bookmark-icon" onclick="event.stopPropagation(); toggleGridFavorite(${i});" aria-label="${isFav ? 'Remove bookmark' : 'Add bookmark'}"><svg viewBox="0 0 24 24" fill="${isFav ? 'var(--accent)' : 'none'}" stroke="var(--accent)" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg></button>
+    </div>`;
+  }).join('');
 
   const hasMore = visibleResultsCount < movies.length;
   const canSearchDeeper = !hasMore && currentSearchQueryForApi && currentSearchPagesFetched < MAX_SEARCH_PAGES;
-  const headerText = currentResultsLabel || `✅ Found ${movies.length} result(s) — tap one to see streaming links`;
+  // "Search results for ..." only applies to an actual text search (no
+  // custom label); category/genre browsing keeps its own label as-is.
+  const headingText = currentResultsLabel
+    ? currentResultsLabel
+    : (window.lastSearchDisplayQuery ? `Search results for "${escapeAttr(window.lastSearchDisplayQuery)}"` : 'Search results');
 
-  area.innerHTML = `
-    <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-      <div class="popular-label" style="margin-bottom:0;">${headerText}</div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <select class="filter-select" onchange="setResultsSort(this.value)" style="width:auto;" aria-label="Sort results by">
+  const tabBarHtml = allMovies.length > 0 ? `
+    <div class="filter-tabs">
+      ${RESULTS_CATEGORY_TABS.map(([key, label]) => `<button class="filter-tab${resultsCategoryTab === key ? ' active' : ''}" onclick="setResultsCategoryTab('${key}')">${label}</button>`).join('')}
+    </div>` : '';
+
+  fadeIntoArea(area, `
+    ${tabBarHtml}
+    <div class="results-header">
+      <h2 class="results-heading">${headingText}</h2>
+      <div class="results-subrow">
+        <span class="results-count">${movies.length} result${movies.length === 1 ? '' : 's'} found</span>
+        <select class="results-sort" onchange="setResultsSort(this.value)" aria-label="Sort results by">
           <option value="default" ${currentSortBy === 'default' ? 'selected' : ''}>Sort: Relevance</option>
           <option value="rating-desc" ${currentSortBy === 'rating-desc' ? 'selected' : ''}>Highest rated</option>
           <option value="year-desc" ${currentSortBy === 'year-desc' ? 'selected' : ''}>Newest first</option>
           <option value="year-asc" ${currentSortBy === 'year-asc' ? 'selected' : ''}>Oldest first</option>
           <option value="az" ${currentSortBy === 'az' ? 'selected' : ''}>Title A–Z</option>
         </select>
-        <button class="pop-chip" onclick="resetSearch()" style="font-size:.75rem; padding:6px 12px;">← Home</button>
       </div>
     </div>
-    <div class="results-list">${cards}</div>
+    <div class="results-list">${movies.length > 0 ? cards : `
+      <div class="empty">
+        <div class="big">🔍</div>
+        <p>No ${RESULTS_CATEGORY_TABS.find(([k]) => k === resultsCategoryTab)?.[1] || ''} results here.</p>
+        <button class="pop-chip" onclick="setResultsCategoryTab('all')" style="margin-top:12px;">← Show all results</button>
+      </div>`}</div>
     ${hasMore ? `
       <div style="text-align:center; margin-top:18px;">
         <button class="pop-chip" onclick="loadMoreResults()">Load More (${movies.length - visibleResultsCount} left)</button>
@@ -2752,7 +3152,7 @@ function renderVisibleResults() {
       <div style="text-align:center; margin-top:18px;" id="search-deeper-wrap">
         <p style="font-size:.78rem; color:var(--muted); margin-bottom:8px;">Not seeing what you're looking for?</p>
         <button class="pop-chip" id="search-deeper-btn" onclick="searchDeeper()">Search Deeper (more results)</button>
-      </div>` : ''}`;
+      </div>` : ''}`);
 }
 
 // On-demand only (not automatic on every search) — fetches one more TMDB
@@ -2798,7 +3198,7 @@ function loadMoreResults() {
 // keyed by grid index instead of window.currentMovie since the grid shows
 // many movies at once, not one "current" one.
 function toggleGridFavorite(index) {
-  const movie = currentDisplayedResults && currentDisplayedResults[index];
+  const movie = lastRenderedVisibleList && lastRenderedVisibleList[index];
   if (!movie) return;
   const isFav = getFavorites().some(f => f.title === movie.title);
   if (isFav) removeFavorite(movie.title);
@@ -2808,7 +3208,7 @@ function toggleGridFavorite(index) {
 
 // Called when the user taps a card in the results grid
 function selectMovie(index) {
-  const movie = currentDisplayedResults && currentDisplayedResults[index];
+  const movie = lastRenderedVisibleList && lastRenderedVisibleList[index];
   if (!movie) return;
   // Grid cards never went through enrichWithSeasonData() (that only ran on
   // a single auto-rendered top result) — apply it now, lazily, only for
@@ -2818,7 +3218,18 @@ function selectMovie(index) {
   // checks item.type/seasonNumber and just resolves the original item).
   if (movie.type === 'series' && currentSearchSeasonHint) {
     enrichWithSeasonData(movie, currentSearchSeasonHint).then(enriched => {
-      currentDisplayedResults[index] = enriched;
+      // Patch the same object reference wherever it still lives (the full
+      // unfiltered list, the raw pre-sort list, and this render's own
+      // visible slice) so "Back to results" and re-filtering all reflect
+      // the enrichment instead of only this one render.
+      const patchInto = (arr) => {
+        if (!Array.isArray(arr)) return;
+        const idx = arr.indexOf(movie);
+        if (idx !== -1) arr[idx] = enriched;
+      };
+      patchInto(currentDisplayedResults);
+      patchInto(currentResultsRaw);
+      patchInto(lastRenderedVisibleList);
       renderResult(enriched, enriched.title);
     });
   } else {
@@ -3582,9 +3993,10 @@ const ANIME_SITES = (title) => [
 function detectCategory(r, type) {
   const isAnime = (r.genre_ids || []).includes(16) && r.original_language === 'ja';
   if (isAnime) return 'anime';
+  const isPinoy = r.original_language === 'tl' || (r.origin_country || []).includes('PH') || hasTagalogTitleMarker(r.title || r.name || '');
+  if (isPinoy) return 'pinoy';
   if (type === 'series') {
-    const isPinoy = r.original_language === 'tl' || (r.origin_country || []).includes('PH');
-    return (isAsianOrigin(r) && !isPinoy) ? 'drama' : 'series';
+    return isAsianOrigin(r) ? 'drama' : 'series';
   }
   return 'movie';
 }
@@ -3603,11 +4015,24 @@ function isAsianOrigin(r) {
 }
 
 
+// Pinoy (Filipino) content — pulls straight from SITES_DIRECTORY's own
+// 'pinoy'-tagged entries (legit, ad-supported rights-holder channels, not
+// unlicensed aggregators — see the note by SITES_DIRECTORY itself) rather
+// than a hardcoded list, so adding a Pinoy site to the directory later
+// automatically makes it show up here too. Referenced at call-time only
+// (parseTmdbItem never runs before the rest of the script has finished
+// initializing SITES_DIRECTORY/customSites), so the forward reference here
+// is safe despite SITES_DIRECTORY being declared further down the file.
+const PINOY_SITES = (title) => [...SITES_DIRECTORY, ...(Array.isArray(customSites) ? customSites : [])]
+  .filter(d => (d.categories || []).includes('pinoy'))
+  .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site', linkType: 'homepage' }));
+
 const CATEGORY_SITES = {
   movie: MOVIE_SITES,
   series: SERIES_SITES,
   drama: DRAMA_SITES,
   anime: ANIME_SITES,
+  pinoy: PINOY_SITES,
 };
 
 // ===== STATIC_OVERRIDES (PART 2) =====
@@ -3735,60 +4160,49 @@ async function fetchOmniRouteDirectLinks(title, siteNames, context = {}) {
   }
 }
 
-// ===== Progress ticker for the "Checking for direct link…" badges =====
-// Purely cosmetic UX fix — the worker call this feeds into can legitimately
-// take anywhere from ~10s to ~95s (see AbortSignal.timeout comment above:
-// Layer 4 live-fetch + Layer 5 batch parse, or worst case falling through
-// to Layer 6's slower guess/cross-check/verify chain). Before this, every
-// pending badge just sat on the same static "⏳ Checking for direct link…"
-// the whole time with zero feedback on whether it's stuck or still working.
-// This has no idea which Layer the worker is actually on (that's server-
-// side and not reported back) — it just swaps the text through a few
-// honest, non-committal stages as elapsed time passes, so a long wait
-// reads as "still working" instead of "frozen."
-// Text only — the ⏳ icon lives in its own always-spinning .omni-pending-icon
-// span (see CSS) and is never touched here, so only .omni-pending-text gets
-// rewritten on each tick.
-const OMNI_PROGRESS_STAGES = [
-  { at: 0,  text: 'Checking for direct link…' },
-  { at: 8,  text: 'Still checking…' },
-  { at: 20, text: 'Looking a bit harder…' },
-  { at: 40, text: 'Almost there…' },
-  { at: 70, text: 'Taking longer than usual…' },
-];
-
-function startOmniProgressTicker() {
-  const startedAt = Date.now();
-  const intervalId = setInterval(() => {
-    const elapsedSec = (Date.now() - startedAt) / 1000;
-    // Latest stage whose threshold has been passed.
-    let stage = OMNI_PROGRESS_STAGES[0];
-    for (const s of OMNI_PROGRESS_STAGES) {
-      if (elapsedSec >= s.at) stage = s;
-    }
-    // Re-query every tick rather than caching the node list once — cards
-    // for sites OmniRoute already resolved get their badge swapped out
-    // (className changes from 'omni-pending' to 'site-free'), so the
-    // live .omni-pending set shrinks over time as results trickle in via
-    // any earlier-resolving requests; only genuinely-still-pending badges
-    // should keep advancing. Only the text child is rewritten — leaving
-    // the .omni-pending-icon span alone keeps its CSS spin animation
-    // running uninterrupted instead of restarting it every 3s.
-    document.querySelectorAll('.omni-pending .omni-pending-text').forEach(textEl => {
-      if (textEl.textContent !== stage.text) textEl.textContent = stage.text;
-    });
-  }, 3000); // 3s granularity — fine enough to feel alive, cheap enough to ignore
-  return () => clearInterval(intervalId);
-}
+// The direct-link check can legitimately take anywhere from ~10s to ~95s
+// (see AbortSignal.timeout comment above: Layer 4 live-fetch + Layer 5 batch
+// parse, or worst case falling through to Layer 6's slower guess/cross-
+// check/verify chain). The pending badge communicates "still working, not
+// frozen" through the shimmer sweep on the pill itself (same shimmer
+// animation the poster/card skeletons already use elsewhere in the app) —
+// no spinner icon or narrated text stages needed on top of that; the
+// moving light is the "still alive" signal.
 
 // Kicks off the background lookup and patches matching cards in place once
 // results arrive. Call this once, right after renderResult() has already
 // painted the page with fallback links.
 function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
   debugLog('🚀 upgradeCardsWithOmniRoute started for:', title);
-  const stopOmniProgress = startOmniProgressTicker();
+
+  // Bug fix: badges were getting stuck on "Checking for direct link…"
+  // forever. Root cause — this whole .then() chain had no .catch(), and
+  // the per-site loop below had no per-iteration error handling. If
+  // updating any ONE card threw (a card that couldn't be matched, a
+  // stale/duplicate node, whatever the trigger), the exception silently
+  // killed the update for every OTHER still-pending card too, with
+  // nothing ever telling them to stop spinning. Three layers now make
+  // sure that can't happen again:
+  //   1) try/catch around each site's own update, so one bad card can't
+  //      take the rest down with it.
+  //   2) a final sweep that force-resolves any card still stuck in
+  //      omni-pending once we DO have a response, even one we somehow
+  //      failed to update above (covers name-matching misses).
+  //   3) a hard safety timer, independent of all of the above, that
+  //      force-resolves every still-pending badge on the page a couple
+  //      seconds after the fetch's own worst-case timeout — a true
+  //      last-resort net so nothing can spin forever no matter what goes
+  //      wrong upstream.
+  const SAFETY_TIMEOUT_MS = 97000; // fetchOmniRouteDirectLinks's own AbortSignal.timeout is 95000
+  const resolveStuckBadges = () => {
+    document.querySelectorAll('.omni-pending').forEach(badge => {
+      badge.outerHTML = siteBadgeHtml('search', 'Search inside site');
+    });
+  };
+  const safetyTimer = setTimeout(resolveStuckBadges, SAFETY_TIMEOUT_MS);
+
   fetchOmniRouteDirectLinks(title, siteNames, context).then(({ links, linkTypes }) => {
-    stopOmniProgress();
+    clearTimeout(safetyTimer);
     // Race-condition guard: if a newer search has started since this
     // request was fired (context.generation no longer matches the live
     // counter), this response is for a title the user has already
@@ -3809,43 +4223,71 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
     const linkTypesLC = {};
     Object.keys(linkTypes).forEach(k => { linkTypesLC[k.toLowerCase()] = linkTypes[k]; });
     siteNames.forEach(siteKey => {
-      const card = document.querySelector(`.site-card[data-site-name="${CSS.escape(siteKey)}"]`)
-        || Array.from(document.querySelectorAll('.site-card')).find(
-             el => normalizeSiteName(el.dataset.siteName || '') === normalizeSiteName(siteKey)
-           );
-      if (!card) return;
-      const badge = card.querySelector('.omni-pending');
-      if (!badge) return; // already a static-override direct link (.site-free), nothing to resolve
-      const url = linksLC[siteKey.toLowerCase()];
-      if (!url) {
-        // OmniRoute found nothing — stop showing "checking…", fall back to plain note.
-        badge.textContent = '🔍 Search inside site';
-        badge.classList.remove('omni-pending');
-        return;
-      }
-      urlCount++;
-      card.setAttribute('href', url);
-      // worker.js verifies each URL is reachable before returning it, but
-      // "reachable" isn't the same as "points at the title" — a search
-      // page is reachable too. linkTypes[siteKey] tells us which one this
-      // actually is, so the badge doesn't overclaim.
-      const isDirect = linkTypesLC[siteKey.toLowerCase()] === 'direct';
-      if (isDirect) directCount++;
-      badge.textContent = isDirect ? '✅ Direct link' : '🔍 Search inside site';
-      badge.className = 'site-free';
-      badge.style.marginTop = '2px';
-      badge.style.display = 'inline-block';
-      // Keep the copy/report buttons in sync with the upgraded link
-      const escapedUrl = url.replace(/'/g, "\\'");
-      const copyBtn = card.querySelector('button.copy-link-btn:not(.report-icon)');
-      if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${escapedUrl}', this)`);
-      const reportBtn = card.querySelector('button.copy-link-btn.report-icon');
-      if (reportBtn) {
-        const escapedSiteKey = siteKey.replace(/'/g, "\\'");
-        reportBtn.setAttribute('onclick', `event.preventDefault(); event.stopPropagation(); openReportModal('${escapedSiteKey}', '${escapedUrl}')`);
+      try {
+        // querySelectorAll (not querySelector) — if more than one card on
+        // the page shares this site name (e.g. a stale node left over from
+        // a prior render), every matching card gets upgraded, not just
+        // whichever one happens to be first in the DOM.
+        let cards = Array.from(document.querySelectorAll(`.site-card[data-site-name="${CSS.escape(siteKey)}"]`));
+        if (cards.length === 0) {
+          cards = Array.from(document.querySelectorAll('.site-card')).filter(
+            el => normalizeSiteName(el.dataset.siteName || '') === normalizeSiteName(siteKey)
+          );
+        }
+        if (cards.length === 0) return;
+        const url = linksLC[siteKey.toLowerCase()];
+        const isDirect = linkTypesLC[siteKey.toLowerCase()] === 'direct';
+        if (url) { urlCount++; if (isDirect) directCount++; }
+        cards.forEach(card => {
+          const badge = card.querySelector('.omni-pending');
+          if (!badge) return; // already a static-override direct link (.site-free), nothing to resolve
+          if (!url) {
+            // OmniRoute found nothing — stop showing "checking…", fall back to plain note.
+            badge.outerHTML = siteBadgeHtml('search', 'Search inside site');
+            return;
+          }
+          card.setAttribute('href', url);
+          // worker.js verifies each URL is reachable before returning it, but
+          // "reachable" isn't the same as "points at the title" — a search
+          // page is reachable too. linkTypes[siteKey] tells us which one this
+          // actually is, so the badge doesn't overclaim (and only a genuine
+          // 'direct' result gets the green .site-free treatment — a search
+          // link that merely resolved stays in the same muted style as
+          // before, instead of turning green like it used to).
+          badge.outerHTML = isDirect
+            ? siteBadgeHtml('direct', 'Direct link')
+            : siteBadgeHtml('search', 'Search inside site');
+          // Keep the copy/report buttons in sync with the upgraded link
+          const escapedUrl = url.replace(/'/g, "\\'");
+          const copyBtn = card.querySelector('button.copy-link-btn:not(.report-icon)');
+          if (copyBtn) copyBtn.setAttribute('onclick', `copySiteLink(event, '${escapedUrl}', this)`);
+          const reportBtn = card.querySelector('button.copy-link-btn.report-icon');
+          if (reportBtn) {
+            const escapedSiteKey = siteKey.replace(/'/g, "\\'");
+            reportBtn.setAttribute('onclick', `event.preventDefault(); event.stopPropagation(); openReportModal('${escapedSiteKey}', '${escapedUrl}')`);
+          }
+        });
+      } catch (err) {
+        // Whatever went wrong for THIS site, it stays contained to this
+        // site — every other card in siteNames still gets processed.
+        debugLog('⚠️ Failed to upgrade card for site:', `${siteKey}: ${err && err.message}`);
       }
     });
+    // Final sweep: anything still pending at this point (a card we somehow
+    // never matched above, for instance) gets force-resolved rather than
+    // left spinning, now that we know a response has actually arrived.
+    resolveStuckBadges();
     debugLog('🏁 Done —', `${urlCount}/${siteNames.length} site(s) got a URL from OmniRoute, ${directCount} of those confirmed direct.`);
+  }).catch(err => {
+    // fetchOmniRouteDirectLinks already catches its own errors internally
+    // and resolves (rather than rejects) in every case it knows about —
+    // but this .catch() is the difference between "impossible" and
+    // "guaranteed": if anything above ever throws unexpectedly, this stops
+    // it from becoming a silent unhandled rejection that leaves every
+    // badge on the page frozen with no fallback at all.
+    clearTimeout(safetyTimer);
+    debugLog('❌ upgradeCardsWithOmniRoute failed unexpectedly:', err && err.message);
+    resolveStuckBadges();
   });
 }
 
@@ -3868,8 +4310,9 @@ function parseTmdbItem(r, fallbackMediaType) {
     genre: genreIdsToLabel(r.genre_ids),
     genres: genreIdsToLabels(r.genre_ids),
     poster: r.poster_path ? `https://image.tmdb.org/t/p/w300${r.poster_path}` : null,
+    backdrop: r.backdrop_path ? `https://image.tmdb.org/t/p/w780${r.backdrop_path}` : null,
     sites: CATEGORY_SITES[category](title),
-    tip: `Tip: Search for "<strong>${title}</strong>" on the site directly if direct link doesn't work.`,
+    tip: `Search for "<strong>${title}</strong>" on the site directly if direct link doesn't work.`,
     // Preserved so renderResult()'s isPinoyContent check further down actually
     // has data to read — without these two fields it always evaluated
     // undefined === 'tl' (false), so Pinoy sites never appended regardless
@@ -4226,6 +4669,10 @@ function searchMovie() {
 
   saveSearchHistory(query);
   logPopularSearch(query);
+  // Used by renderVisibleResults() to build the "Search results for ..."
+  // header — kept separate from the cleaned/aliased query sent to TMDB so
+  // the header always reflects exactly what the person typed.
+  window.lastSearchDisplayQuery = query;
   isSearching = true;
   const searchBtn = document.querySelector('.search-btn');
   if (searchBtn) {
@@ -4651,16 +5098,16 @@ function renderSourcesScreen() {
     const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.1rem;">🎥</span>`;
     const linkInfo = getSiteLink(s.name, movie ? movie.title : '', s.url);
     const status = getSiteStatus(dirMatch ? dirMatch.name : s.name);
-    const statusLabel = status === 'up' ? 'Online' : status === 'down' ? 'Down' : status === 'blocked' ? 'Flagged' : 'Unknown';
+    const statusLabel = statusShortLabel(status) || 'Unknown';
     const isFav = dirFavs.includes(dirMatch ? dirMatch.name : s.name);
     return `
     <div class="source-list-row" onclick="openSourceDetail('${escapeAttr(dirMatch ? dirMatch.name : s.name)}')" style="cursor:pointer; background:${dirMatch && dirMatch.accent ? dirMatch.accent : '#333'};">
       <div class="source-logo">${logoInner}</div>
       <div class="source-list-info">
         <div class="name">${s.name}</div>
-        <div class="tags">${linkInfo.isDirect ? 'Direct link · ' : ''}${statusLabel}</div>
+        <div class="tags" title="${escapeAttr(statusDotLabel(status) || '')}">${linkInfo.isDirect ? 'Direct link · ' : ''}${statusIconSvg(status, 8)} ${statusLabel}</div>
       </div>
-      <button class="watch-btn" onclick="event.stopPropagation(); window.open('${escapeAttr(linkInfo.url)}', '_blank', 'noopener')">Watch <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:11px;height:11px;margin-left:2px;"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <button class="watch-btn" onclick="event.stopPropagation(); confirmOutboundLink('${escapeAttr(dirMatch ? dirMatch.name : s.name)}', '${escapeAttr(linkInfo.url)}', '${status || ''}')">Watch <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:11px;height:11px;margin-left:2px;"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       <button class="bookmark-btn" onclick="event.stopPropagation(); toggleSourceFav(event, '${escapeAttr(dirMatch ? dirMatch.name : s.name)}')"><svg viewBox="0 0 24 24" fill="${isFav ? 'var(--accent)' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg></button>
     </div>`;
   };
@@ -4750,7 +5197,7 @@ function renderSourceDetailScreen() {
   if (statusEl) {
     const color = statusDotColor(status) || 'var(--text-muted)';
     statusEl.style.color = color;
-    statusEl.innerHTML = `<span class="status-dot" style="background:${color};"></span> ${statusShortLabel(status) || 'Status unknown'}`;
+    statusEl.innerHTML = `${statusIconSvg(status)} ${statusShortLabel(status) || 'Status unknown'}`;
     statusEl.title = statusDotLabel(status) || '';
   }
   setText('src-detail-cats', dirMatch && dirMatch.categories ? dirMatch.categories.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(' · ') : '');
@@ -4758,7 +5205,7 @@ function renderSourceDetailScreen() {
   // Watch button — real per-title link (direct link when verified, search link otherwise)
   setText('src-detail-watch-label', `Watch on ${displayName}`);
   const watchBtn = document.getElementById('src-detail-watch-btn');
-  if (watchBtn) watchBtn.onclick = () => { recordSiteUsed(displayName); window.open(linkInfo.url, '_blank', 'noopener'); };
+  if (watchBtn) watchBtn.onclick = () => { confirmOutboundLink(displayName, linkInfo.url, status || ''); };
 
   // Best-choice badge/card — only for the actual fastest-and-up site, not every source
   const bestName = computeBestSourceName();
@@ -4823,6 +5270,36 @@ function renderSourceDetailScreen() {
   }
 }
 
+// Single icon system for a site's link-status badge (direct / search-inside /
+// checking), used both on first paint (buildSiteCard) and later when
+// upgradeCardsWithOmniRoute() patches a card in place once the real answer
+// comes back. Keeping both call sites on one function is what stops the
+// "emoji here, SVG there" drift from creeping back in.
+function siteBadgeIconSvg(kind) {
+  if (kind === 'direct') {
+    return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  }
+  // 'search' — search-inside-site. ('pending' never reaches here — its
+  // badge has no icon at all, see siteBadgeHtml.)
+  return '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
+}
+
+// Returns the full <span> markup for a badge. `kind` is 'direct' | 'search' |
+// 'pending'. .omni-pending stays purely a behavioral marker (that's what
+// upgradeCardsWithOmniRoute() queries against) — .site-status-muted /
+// .site-status-loading are what actually paint the look, so re-querying for
+// "still pending" nodes never depends on how that state happens to be
+// styled. 'pending' skips the icon entirely — the shimmer sweep on the pill
+// itself is the "still working" signal, so there's nothing to spin.
+function siteBadgeHtml(kind, label) {
+  if (kind === 'pending') {
+    return `<span class="site-badge site-status-loading omni-pending"><span>${label}</span></span>`;
+  }
+  const stateClass = kind === 'direct' ? 'site-free' : 'site-status-muted';
+  const icon = siteBadgeIconSvg(kind);
+  return `<span class="site-badge ${stateClass}">${icon} <span>${label}</span></span>`;
+}
+
 function renderResult(data, query) {
   // Race-condition guard: this render pass "claims" the current generation.
   // Any earlier, still-in-flight search's OmniRoute callback (captured a
@@ -4841,6 +5318,15 @@ function renderResult(data, query) {
   // need a separate TMDB credits call, not implemented).
   const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setText('detail-title', data.title || '');
+  const heroEl = document.getElementById('detail-hero');
+  if (heroEl) {
+    const heroImg = data.backdrop || data.poster;
+    heroEl.style.backgroundImage = heroImg
+      ? `linear-gradient(180deg, rgba(10,10,15,.15), rgba(10,10,15,.85)), url('${heroImg}')`
+      : 'linear-gradient(160deg,#5a1620,#1a0a0d)';
+    heroEl.style.backgroundSize = 'cover';
+    heroEl.style.backgroundPosition = 'center';
+  }
   const metaEl = document.getElementById('detail-meta-row');
   if (metaEl) {
     const parts = [data.year, data.type === 'series' ? 'TV Series' : 'Movie'].filter(Boolean);
@@ -4931,13 +5417,26 @@ function renderResult(data, query) {
     // showing both just buries the useful links under noise.
     otherSites = [...SITES_DIRECTORY, ...customSites]
       .filter(d => (d.categories || []).includes('pinoy'))
-      .map(d => ({ name: d.name, url: d.url, note: 'Filipino content — search inside site' }))
+      .map(d => ({ name: d.name, url: d.url, note: 'Filipino content' }))
       .sort(byHotThenStatus);
   }
   // Stored globally so the Sources screen (renderSourcesScreen(), a
   // separate screen from this Detail view) can render the same per-title
   // site list without recomputing the Pinoy/sort logic above.
   window.currentSites = otherSites;
+  const sourcesLabelEl = document.getElementById('detail-sources-label');
+  if (sourcesLabelEl) {
+    sourcesLabelEl.textContent = otherSites.length > 0
+      ? `Watch now \u00b7 ${otherSites.length} source${otherSites.length === 1 ? '' : 's'}`
+      : 'No sources found yet';
+  }
+  const detailWatchlistBtn = document.getElementById('detail-watchlist-btn');
+  if (detailWatchlistBtn) {
+    const onWatchlist = getFavorites().some(f => f.title === data.title);
+    detailWatchlistBtn.classList.toggle('favorited', onWatchlist);
+    detailWatchlistBtn.setAttribute('aria-pressed', String(onWatchlist));
+    detailWatchlistBtn.title = onWatchlist ? 'Remove from watchlist' : 'Add to watchlist';
+  }
   const SITES_VISIBLE_INITIAL = 4;
 
   // Reuse the same branded wordmark logos from the homepage directory (SITES_DIRECTORY)
@@ -4952,24 +5451,39 @@ function renderResult(data, query) {
     if (!dirMatch) {
       dirMatch = SITES_DIRECTORY.find(d => normS.includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normS));
     }
-    const logoInner = dirMatch ? (dirMatch.logoHtml || defaultLogoHtml(dirMatch)) : `<span style="font-size:1.3rem;">🎥</span>`;
+    // Deliberately NOT using dirMatch.logoHtml here — those wordmark logos
+    // (e.g. "Miru"+"ro", "En"+"ma") are sized/white-space:nowrap for the
+    // much wider homepage directory card and just get clipped/illegible
+    // inside this compact 36px box. sourceRowLogoHtml's single bold-letter
+    // badge already solves this same size constraint for the Home/
+    // Bookmarks rows — reusing it here instead of defaultLogoHtml (which
+    // is an icon + 2-line name, also too much content for 36px).
+    const logoInner = dirMatch ? sourceRowLogoHtml(dirMatch) : `<span style="font-size:1.3rem;">🎥</span>`;
     // PART 3: resolve a verified STATIC_OVERRIDES link when one exists,
     // otherwise fall back to s.url (already a search-URL from PART 1).
     const linkInfo = getSiteLink(s.name, data.title, s.url);
+    // A custom note (e.g. "Filipino content") wins when there is one — it's
+    // more relevant than generic metadata. Otherwise the site's own domain
+    // (real data already in SITES_DIRECTORY, not invented filler) fills
+    // that middle line instead of leaving it blank.
+    const subtitleHtml = s.note
+      ? `<div class="site-note">${s.note}</div>`
+      : (dirMatch && dirMatch.domain ? `<div class="site-domain">${escapeAttr(dirMatch.domain)}</div>` : '');
     const linkBadge = linkInfo.isDirect
-      ? `<span class="site-free" style="margin-top:2px; display:inline-block;">✅ Direct link</span>`
-      : `<span class="site-note omni-pending" style="margin-top:2px; display:inline-block; opacity:.75;"><span class="omni-pending-icon">⏳</span> <span class="omni-pending-text">Checking for direct link…</span></span>`;
+      ? siteBadgeHtml('direct', 'Direct link')
+      : siteBadgeHtml('pending', 'Checking for direct link…');
     return `
     <a href="${linkInfo.url}" target="_blank" rel="noopener" class="site-card" data-site-name="${escapeAttr(dirMatch ? dirMatch.name : s.name)}" onclick="trackSiteClick('${escapeAttr(dirMatch ? dirMatch.name : s.name).replace(/'/g, "\\'")}')" style="animation-delay:${i*0.07}s; --site-card-accent:${dirMatch && dirMatch.accent ? dirMatch.accent : 'var(--border)'};">
       <div class="site-logo-box">${logoInner}</div>
       <div class="site-info">
         <div class="site-name">${s.name}</div>
-        <div class="site-note">${s.note || 'Search inside site'}</div>
+        ${subtitleHtml}
         ${linkBadge}
       </div>
-      <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(linkInfo.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg><span class="report-label-text">Report</span></button>
-      <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(linkInfo.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
-      <span class="arrow">→</span>
+      <div class="site-actions">
+        <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(linkInfo.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
+        <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(linkInfo.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+      </div>
     </a>`;
   };
 
@@ -5011,7 +5525,7 @@ function renderResult(data, query) {
       ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
     </div>
 
-    <div style="margin-top:24px; display:flex; gap:10px; flex-wrap:wrap;">
+    <div style="margin-top:var(--space-xl); display:flex; gap:10px; flex-wrap:wrap;">
       ${canGoBack ? `<button class="pop-chip" onclick="renderVisibleResults()">← Back to results</button>` : ''}
       <button class="pop-chip" onclick="resetSearch()">${canGoBack ? 'New search' : '← Search again'}</button>
       <button class="pop-chip" onclick="shareMovie()">Share</button>
@@ -5155,6 +5669,39 @@ function selectSimilar(index) {
   renderResult(movie, movie.title);
 }
 
+// Wires the icon-only watchlist button in the detail hero's CTA row (see
+// the sources-banner markup). Shares the same favorites store as the
+// heart-shaped fav-btn elsewhere on this screen and the Watchlist tab
+// itself (getFavorites/addFavorite/removeFavorite) so all three stay in
+// sync — this button just gives it a second, more prominent entry point.
+function toggleDetailWatchlist(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const movie = window.currentMovie;
+  if (!movie) return;
+  const btn = e.currentTarget;
+  const isOn = btn.classList.contains('favorited');
+
+  btn.animate(
+    [{ transform: 'scale(1)' }, { transform: 'scale(1.2)' }, { transform: 'scale(1)' }],
+    { duration: 260, easing: 'ease-out' }
+  );
+
+  if (isOn) {
+    removeFavorite(movie.title);
+    btn.classList.remove('favorited');
+    btn.title = 'Add to watchlist';
+    btn.setAttribute('aria-label', 'Add to watchlist');
+    btn.setAttribute('aria-pressed', 'false');
+  } else {
+    addFavorite(movie);
+    btn.classList.add('favorited');
+    btn.title = 'Remove from watchlist';
+    btn.setAttribute('aria-label', 'Remove from watchlist');
+    btn.setAttribute('aria-pressed', 'true');
+  }
+}
+
 function toggleFavorite(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -5226,6 +5773,130 @@ function normalizeSiteName(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+// ========== OUTBOUND LINK CONFIRMATION (user-facing) ==========
+// Shown right before every window.open() out to a third-party source —
+// the one moment the "we don't host content" disclaimer and the source's
+// live status actually matter, instead of being buried on a settings/about
+// screen nobody visits before clicking Watch. "Don't ask again this
+// session" (sessionStorage, not localStorage — deliberately resets each
+// visit) keeps this from becoming a tap-through annoyance for repeat use
+// in one sitting.
+function confirmOutboundLink(siteName, url, status) {
+  let skip = false;
+  try { skip = sessionStorage.getItem('cinefind-outbound-skip') === '1'; } catch (e) { /* storage unavailable */ }
+  if (skip) { recordSiteUsed(siteName); if (typeof trackSiteClick === 'function') trackSiteClick(siteName); window.open(url, '_blank', 'noopener'); return; }
+
+  const existing = document.getElementById('outbound-modal-overlay');
+  if (existing) existing.remove();
+
+  const movieTitle = window.currentMovie?.title || '';
+  const statusColor = statusDotColor(status) || 'var(--text-muted)';
+  const statusLabel = statusShortLabel(status) || 'Status unknown';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'outbound-modal-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; max-width:320px; width:100%;">
+      <div style="display:flex; justify-content:center; margin-bottom:14px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+        </div>
+      </div>
+      <div style="text-align:center; font-weight:800; font-size:var(--fs-lg); margin-bottom:4px;">Leaving CineFind</div>
+      <div style="text-align:center; font-size:var(--fs-base); color:var(--text-muted); line-height:1.6; margin-bottom:14px;">You're about to open <strong style="color:var(--text);">${escapeAttr(siteName)}</strong>${movieTitle ? ` to watch <strong style="color:var(--text);">${escapeAttr(movieTitle)}</strong>` : ''}.</div>
+      <div style="background:var(--surface-2); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${statusColor};flex-shrink:0;"></span>
+        <span style="font-size:var(--fs-sm); color:var(--text-muted);">${escapeAttr(statusLabel)}</span>
+      </div>
+      <div style="font-size:var(--fs-2xs); color:var(--text-muted); line-height:1.6; margin-bottom:18px;">CineFind does not host or control this content. We only help you find where to watch.</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button style="width:100%; background:var(--accent); color:#fff; border:none; border-radius:10px; padding:12px; font-size:var(--fs-md); font-weight:700; cursor:pointer;" onclick="proceedOutboundLink('${escapeAttr(siteName)}', '${escapeAttr(url)}')">Continue to ${escapeAttr(siteName)}</button>
+        <button style="width:100%; background:none; border:1px solid var(--border); border-radius:10px; padding:12px; font-size:var(--fs-md); font-weight:700; color:var(--text-muted); cursor:pointer;" onclick="document.getElementById('outbound-modal-overlay').remove()">Cancel</button>
+      </div>
+      <label style="display:flex; align-items:center; justify-content:center; gap:6px; margin-top:14px; font-size:var(--fs-2xs); color:var(--text-muted); cursor:pointer;">
+        <input type="checkbox" id="outbound-skip-checkbox" style="width:14px;height:14px;">
+        Don't ask again this session
+      </label>
+    </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('modal-in'));
+}
+
+function proceedOutboundLink(siteName, url) {
+  const skipBox = document.getElementById('outbound-skip-checkbox');
+  if (skipBox && skipBox.checked) {
+    try { sessionStorage.setItem('cinefind-outbound-skip', '1'); } catch (e) { /* storage unavailable */ }
+  }
+  recordSiteUsed(siteName);
+  if (typeof trackSiteClick === 'function') trackSiteClick(siteName);
+  const overlay = document.getElementById('outbound-modal-overlay');
+  if (overlay) overlay.remove();
+  window.open(url, '_blank', 'noopener');
+}
+
+function toggleSynopsis(el) {
+  const p = document.getElementById('detail-synopsis');
+  if (!p) return;
+  const expanded = p.classList.toggle('expanded');
+  el.innerHTML = expanded ? 'Show less &#9652;' : 'Read more &#9662;';
+}
+
+function shareTitle() {
+  const movie = window.currentMovie;
+  const title = movie ? movie.title : 'CineFind';
+  const shareData = { title, text: `Watch ${title} on CineFind`, url: location.href };
+  if (navigator.share) { navigator.share(shareData).catch(() => {}); return; }
+  navigator.clipboard?.writeText(location.href).then(() => {
+    const btn = event?.currentTarget;
+    if (btn) { const old = btn.title; btn.title = 'Link copied!'; setTimeout(() => btn.title = old, 1500); }
+  }).catch(() => {});
+}
+
+function openRequestSourceModal() {
+  const existing = document.getElementById('request-modal-overlay');
+  if (existing) { existing.remove(); return; }
+  const movieTitle = window.currentMovie?.title || '';
+  const overlay = document.createElement('div');
+  overlay.id = 'request-modal-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; max-width:340px; width:100%;">
+      <div style="font-weight:800; margin-bottom:4px;">Request a source</div>
+      <div style="font-size:var(--fs-sm); color:var(--text-muted); margin-bottom:12px;">Know a site that has ${escapeAttr(movieTitle) || 'this title'}? Send us the name or link.</div>
+      <input type="text" id="request-source-input" placeholder="Site name or URL" style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); font-size:var(--fs-base); margin-bottom:10px; box-sizing:border-box;">
+      <div id="request-source-status" style="font-size:var(--fs-xs); color:var(--text-muted); min-height:16px; margin-bottom:10px;"></div>
+      <div style="display:flex; gap:8px;">
+        <button class="pop-chip" style="flex:1;" onclick="document.getElementById('request-modal-overlay').remove()">Cancel</button>
+        <button class="pop-chip" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent);" onclick="submitSourceRequest('${escapeAttr(movieTitle)}')">Submit</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('modal-in'));
+}
+
+async function submitSourceRequest(movieTitle) {
+  const input = document.getElementById('request-source-input');
+  const statusEl = document.getElementById('request-source-status');
+  const value = input ? input.value.trim() : '';
+  if (!value) { if (statusEl) { statusEl.textContent = 'Enter a site name or link first.'; statusEl.style.color = 'var(--accent2)'; } return; }
+  if (statusEl) { statusEl.textContent = 'Sending...'; statusEl.style.color = 'var(--text-muted)'; }
+  try {
+    const res = await fetch(REPORT_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'source-request', siteName: value, movieTitle, timestamp: Date.now() }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (statusEl) { statusEl.textContent = 'Thanks — we\'ll take a look!'; statusEl.style.color = 'var(--green)'; }
+    setTimeout(() => { const o = document.getElementById('request-modal-overlay'); if (o) o.remove(); }, 1200);
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = "Couldn't send — try again later."; statusEl.style.color = 'var(--accent2)'; }
+  }
+}
+
 // ========== REPORT BROKEN SITE (user-facing) ==========
 // Small inline modal any visitor can use to flag a site card as broken —
 // no login needed. Submits to REPORT_WORKER_URL (a separate Worker that
@@ -5255,6 +5926,7 @@ function openReportModal(siteName, url) {
       </div>
     </div>`;
   document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('modal-in'));
 }
 
 // ===== About & Disclaimer modal (footer link) =====
@@ -5288,6 +5960,7 @@ function openAboutModal() {
       </div>
     </div>`;
   document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('modal-in'));
 }
 
 function selectReportReason(btn) {
@@ -5606,7 +6279,28 @@ function statusDotLabel(status) {
 // don't parse color-only signals — pairing it with a word is more accessible
 // and answers the question people actually have ("does this work right now?").
 function statusShortLabel(status) {
-  return status === 'up' ? 'Online' : status === 'blocked' ? 'Flagged' : status === 'down' ? 'Down' : '';
+  return status === 'up' ? 'Online' : status === 'blocked' ? 'Unverified' : status === 'down' ? 'Down' : '';
+}
+
+// A colored dot alone fails colorblind users (green/amber/red at 8px are
+// hard to tell apart), and a bare word doesn't scan as fast as a glyph. This
+// pairs each status with both a distinct SHAPE and its color, so the signal
+// survives even if one channel is lost. Also used everywhere in place of
+// the old plain `<span class="status-dot">` so status always looks the same
+// wherever it shows up, instead of three near-duplicate ad-hoc dots.
+function statusIconSvg(status, size) {
+  const s = size || 9;
+  const color = statusDotColor(status) || 'var(--text-muted)';
+  if (status === 'up') {
+    return `<svg width="${s}" height="${s}" viewBox="0 0 10 10" aria-hidden="true" style="flex-shrink:0;"><circle cx="5" cy="5" r="5" fill="${color}"/></svg>`;
+  }
+  if (status === 'blocked') {
+    return `<svg width="${s}" height="${s}" viewBox="0 0 10 10" aria-hidden="true" style="flex-shrink:0;"><circle cx="5" cy="5" r="4" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
+  }
+  if (status === 'down') {
+    return `<svg width="${s}" height="${s}" viewBox="0 0 10 10" aria-hidden="true" style="flex-shrink:0;"><rect x="1" y="1" width="8" height="8" fill="none" stroke="${color}" stroke-width="2" transform="rotate(45 5 5)"/></svg>`;
+  }
+  return `<svg width="${s}" height="${s}" viewBox="0 0 10 10" aria-hidden="true" style="flex-shrink:0;"><circle cx="5" cy="5" r="5" fill="${color}"/></svg>`;
 }
 
 // Relative "last checked" freshness text shown on the card's bottom strip —
@@ -5748,34 +6442,34 @@ function applyStatusDots() {
 
 const SITES_DIRECTORY = [
   { name: 'MyAsianTV', url: 'https://myasiantv.com.lv/', domain: 'myasiantv.com.lv', categories: ['drama'], icon: '🏔️', accent: '#e63946',
-    logoHtml: `<span class="logo-word"><span class="lw-white">My</span><span style="color:#e63946;">Asian</span><span class="lw-white">TV</span></span>` },
+    logoHtml: `<span class="logo-word" style="letter-spacing:-.3px;"><span class="lw-white" style="font-weight:600;">my</span><span style="color:#e63946; font-weight:800;">ASIAN</span><span class="lw-white" style="font-weight:600;">tv</span></span>` },
   { name: 'DramaCool',  url: 'https://dramacool.baby/', domain: 'dramacool.baby', categories: ['drama'], icon: '🎬', accent: '#5b8def',
-    logoHtml: `<span class="logo-word"><span style="color:#5b8def;">Drama</span><span class="lw-white">Cool</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:#5b8def; font-weight:800;">Drama</span><span class="lw-white" style="font-weight:400;">Cool</span></span>` },
   { name: 'KissKH',        url: 'https://kisskh.co/',           domain: 'kisskh.co',           categories: ['drama'], accent: '#ff4d8f',
-    logoHtml: `<span class="logo-word"><span style="color:var(--brand-pink);">Kiss</span><span class="lw-white">KH</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:var(--brand-pink); font-style:italic; font-weight:700;">Kiss</span><span class="lw-white" style="font-weight:800;">KH</span></span>` },
   { name: 'Viki',          url: 'https://www.viki.com/',        domain: 'viki.com',             categories: ['drama'], accent: '#00c2b8',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Vi</span><span style="color:var(--brand-cyan);">ki</span></span>` },
+    logoHtml: `<span class="logo-word" style="text-transform:uppercase; letter-spacing:1px; font-weight:700;"><span class="lw-white">VI</span><span style="color:var(--brand-cyan);">KI</span></span>` },
   { name: 'MovieBox',      url: 'https://movie-box.co/',        domain: 'movie-box.co',         categories: ['movie'], accent: '#f4c430',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--text);">Movie</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--gold);">Box</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:.92rem;line-height:1.05;color:var(--text);">MOVIE</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.1rem;line-height:1.05;color:var(--gold); letter-spacing:.5px;">BOX</span></div>` },
   { name: 'FMovies',       url: 'https://fmoviess.org/',       domain: 'fmoviess.org',        categories: ['movie'], accent: '#3b82f6',
-    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--accent);">F</span><span class="lw-white">Movies</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:#3b82f6; font-weight:800; border-bottom:2px solid #3b82f6; padding-bottom:1px;">F</span><span class="lw-white" style="font-weight:600;">Movies</span></span>` },
   { name: 'ReAnime',       url: 'https://reanime.to/',          domain: 'reanime.to',           categories: ['anime'], accent: '#10b981',
-    logoHtml: `<span class="logo-word" style="font-size:1.4rem;"><span style="color:var(--brand-teal);">Re</span><span class="lw-white">Anime</span></span>` },
+    logoHtml: `<span class="logo-word"><span style="color:var(--brand-teal); font-weight:600; font-size:.85em;">RE</span><span class="lw-white" style="font-weight:800; font-style:italic;">Anime</span></span>` },
   { name: 'Miruro',        url: 'https://miruro.to/',           domain: 'miruro.to',            categories: ['anime'], accent: '#9333ea',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Miru</span><span style="color:var(--brand-purple);">ro</span></span>` },
+    logoHtml: `<span class="logo-word" style="font-weight:700;"><span class="lw-white">Miru</span><span style="color:var(--brand-purple);">ro</span><span style="color:var(--brand-purple); font-weight:900;">.</span></span>` },
   { name: 'Enma',          url: 'https://enma.lol/',            domain: 'enma.lol',             categories: ['anime'], accent: '#ff8a3d',
-    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span class="lw-white">En</span><span style="color:var(--brand-orange);">ma</span></span>` },
+    logoHtml: `<span class="logo-word" style="text-transform:uppercase; letter-spacing:.5px; font-weight:800; color:var(--brand-orange); border-bottom:2px solid var(--brand-orange); padding-bottom:1px;">ENMA</span>` },
   // ===== 🇵🇭 Pinoy — legal, licensed, genuinely free sources only. =====
   // No aggregator/mirror sites here on purpose — those are usually unlicensed
   // and get taken down constantly. These are the actual rights-holders
   // streaming their own library for free (ad-supported), so links stay
   // working long-term instead of rotting in a few months.
   { name: 'TBA Studios',   url: 'https://www.youtube.com/@TBAStudios/', domain: 'youtube.com',    categories: ['pinoy'], accent: '#059669',
-    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;line-height:1.05;color:var(--text);">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.2rem;line-height:1.05;color:var(--brand-teal);">Studios</span></div>` },
+    logoHtml: `<div style="display:flex;flex-direction:column;align-items:center;gap:0;"><span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.1rem;line-height:1.05;color:var(--text); letter-spacing:1px;">TBA</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:.72rem;line-height:1.2;color:var(--brand-teal); text-transform:uppercase; letter-spacing:.8px;">Studios</span></div>` },
   { name: 'CineWhale',     url: 'https://cinewhale.cc/',        domain: 'cinewhale.cc',         categories: ['movie'], accent: '#1e9edb',
-    logoHtml: `<span class="logo-word"><span class="lw-white">Cine</span><span style="color:var(--brand-skyblue);">Whale</span></span>` },
+    logoHtml: `<span class="logo-word"><span class="lw-white" style="font-style:italic; font-weight:500;">Cine</span><span style="color:var(--brand-skyblue); font-weight:800;">Whale</span></span>` },
   { name: 'Dulo',          url: 'https://dulo.sx/',             domain: 'dulo.sx',              categories: ['movie'], accent: '#f4522b',
-    logoHtml: `<span class="logo-word" style="font-size:1.7rem;"><span style="color:var(--brand-orangered);">Du</span><span class="lw-white">lo</span></span>` },
+    logoHtml: `<span class="logo-word" style="font-weight:800; text-transform:uppercase; letter-spacing:.5px; background:linear-gradient(135deg, var(--brand-orangered), #ffb26b); -webkit-background-clip:text; background-clip:text; color:transparent;">Dulo</span>` },
 ];
 
 let activeDirFilters = []; // multi-select: any combo of 'drama' / 'anime' / 'movie'
@@ -5946,18 +6640,18 @@ function renderSitesDirectory() {
     const buildRow = (s) => {
       const liveUrl = getOverriddenUrl(s.name, s.url);
       const status = getSiteStatus(s.name); // null | 'up' | 'down' | 'blocked'
-      const statusLabel = status === 'up' ? 'Online' : status === 'down' ? 'Down' : status === 'blocked' ? 'Flagged' : 'Unknown';
-      const statusColor = status === 'up' ? '#3ecf5f' : status === 'down' ? '#e5484d' : status === 'blocked' ? '#e8b23d' : '#8a8a94';
+      const statusLabel = statusShortLabel(status) || 'Unknown';
+      const statusColor = statusDotColor(status) || 'var(--text-muted)';
       const logo = sourceRowLogoHtml(s);
       return `
       <div class="source-row" data-site-name="${escapeAttr(s.name)}">
         <div class="source-logo" style="padding:0;overflow:hidden;">${logo}</div>
         <div class="source-info">
           <div class="name">${s.name}</div>
-          <div class="status-line"><span class="status-dot" style="background:${statusColor};"></span><span style="color:${statusColor};">${statusLabel}</span></div>
-          <div class="meta">Free &middot; No signup</div>
+          <div class="status-line" title="${escapeAttr(statusDotLabel(status) || '')}">${statusIconSvg(status)}<span style="color:${statusColor};">${statusLabel}</span></div>
+          ${s.categories && s.categories.length ? `<span class="cat-tag">${s.categories.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ')}</span>` : ''}
         </div>
-        <a class="watch-btn" href="${liveUrl}" target="_blank" rel="noopener" onclick="trackSiteClick('${escapeAttr(s.name).replace(/'/g, "\\'")}')">Watch Now</a>
+        <button class="watch-btn" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '${status || ''}')">Watch Now</button>
         <button class="bookmark-btn" style="margin-left:4px;" onclick="toggleDirFav(event, '${escapeAttr(s.name).replace(/'/g, "\\'")}')" aria-label="Remove from bookmarks"><svg viewBox="0 0 24 24" width="18" height="18" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg></button>
       </div>`;
     };
@@ -5988,7 +6682,7 @@ function renderSitesDirectory() {
     const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][i % 3];
     return `
     <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}${isEditorPick ? ' editor-pick' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
-      <a href="${liveUrl}" target="_blank" rel="noopener" class="card-content ${pastelClass}" aria-label="${s.name} — opens in new tab" onclick="trackSiteClick('${escapeAttr(s.name).replace(/'/g, "\\'")}')">
+      <div role="button" tabindex="0" class="card-content ${pastelClass}" aria-label="${s.name}" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
         <span class="status-label-mini status-loading" data-status-label>
           <span class="status-dot-mini" data-status-dot></span>
           <span class="status-text-mini" data-status-text></span>
@@ -5997,8 +6691,8 @@ function renderSitesDirectory() {
         </span>
         <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
         ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff8f1f"/><stop offset="100%" stop-color="#ffd23f"/></linearGradient></defs><path fill="url(#flameGrad)" d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/><path fill="#1a1a2e" fill-opacity=".35" d="M12 21a3.3 3.3 0 0 1-3.3-3.3c0-1.6 1-2.5 1.9-3.3-.1.7.2 1.3.8 1.3.7 0 1-.6 1-1.3.7.9 1.2 1.8 1.2 3.1A2.6 2.6 0 0 1 12 21Z"/></svg></span>` : ''}
-        <div class="card-logo">${s.logoHtml || defaultLogoHtml(s)}</div>
-      </a>
+        <div class="card-logo">${dirCardLogoHtml(s)}</div>
+      </div>
     </div>`;
   };
 
@@ -6243,12 +6937,12 @@ function browseGenre(genreId, label, el) {
         .map(r => parseTmdbItem(r, 'movie'));
 
       if (results.length === 0) {
-        area.innerHTML = `
+        fadeIntoArea(area, `
           <div class="empty">
             <div class="big">🤔</div>
             <p>No titles found for ${label} right now.</p>
             <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
-          </div>`;
+          </div>`);
         return;
       }
 
@@ -6256,12 +6950,12 @@ function browseGenre(genreId, label, el) {
       renderResultsGrid(results, label);
     })
     .catch(() => {
-      area.innerHTML = `
+      fadeIntoArea(area, `
         <div class="empty">
           <div class="big">😔</div>
           <p>Couldn't load ${label} right now. Try again.</p>
           <button class="pop-chip" onclick="resetSearch()" style="margin-top:16px;">← Go back</button>
-        </div>`;
+        </div>`);
     });
 }
 
@@ -7994,6 +8688,125 @@ async function testLink() {
     if (bookmarksEl) bookmarksEl.textContent = getDirFavs().length;
     if (favSourcesEl) favSourcesEl.textContent = getDirFavs().length;
     renderProfileFavSourcesRow();
+    applyStoredProfileIdentity();
+  }
+
+  // ===== Profile identity (name + tagline + avatar) =====
+  // The header used to show hardcoded "James Manio" / "Movie Lover" with an
+  // Edit button that had no handler — a dead control on a real screen.
+  // This makes it a real, local-only profile edit: no account, no server,
+  // just strings/an id in localStorage the header reads on render.
+  const PROFILE_NAME_KEY = 'cinefind-profile-name';
+  const PROFILE_ROLE_KEY = 'cinefind-profile-role';
+  const PROFILE_AVATAR_KEY = 'cinefind-profile-avatar';
+  const DEFAULT_PROFILE_NAME = 'James Manio';
+  const DEFAULT_PROFILE_ROLE = 'Movie Lover';
+  const DEFAULT_AVATAR_ID = 'captain';
+
+  // Avatar choices use the supplied circular emblem artwork, cropped to the individual badges.
+  // Each badge is embedded directly in this HTML so the file remains self-contained.
+  const AVATAR_PRESETS = {
+    captain: { label: 'Captain', image: 'assets/avatar_captain.webp' },
+    swordsman: { label: 'Swordsman', image: 'assets/avatar_swordsman.webp' },
+    navigator: { label: 'Navigator', image: 'assets/avatar_navigator.webp' },
+    sniper: { label: 'Sniper', image: 'assets/avatar_sniper.webp' },
+    chef: { label: 'Chef', image: 'assets/avatar_chef.webp' },
+    doctor: { label: 'Doctor', image: 'assets/avatar_doctor.webp' },
+    archaeologist: { label: 'Archaeologist', image: 'assets/avatar_archaeologist.webp' },
+    shipwright: { label: 'Shipwright', image: 'assets/avatar_shipwright.webp' },
+    musician: { label: 'Musician', image: 'assets/avatar_musician.webp' },
+    sea_warrior: { label: 'Sea Warrior', image: 'assets/avatar_sea_warrior.webp' }
+  };
+
+  function avatarPresetSvg(id, sizePct) {
+    const preset = AVATAR_PRESETS[id] || AVATAR_PRESETS[DEFAULT_AVATAR_ID];
+    const size = sizePct || '100%';
+    return `<div style="width:100%;height:100%;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--surface-2);">
+      <img src="${preset.image}" alt="${escapeAttr(preset.label)}" style="width:${size};height:${size};object-fit:cover;border-radius:50%;display:block;">
+    </div>`;
+  }
+
+  function getStoredAvatarId() {
+    try {
+      const id = localStorage.getItem(PROFILE_AVATAR_KEY);
+      return (id && AVATAR_PRESETS[id]) ? id : DEFAULT_AVATAR_ID;
+    } catch (e) { return DEFAULT_AVATAR_ID; }
+  }
+
+  function applyStoredProfileIdentity() {
+    const nameEl = document.getElementById('profile-name-text');
+    const roleEl = document.getElementById('profile-role-text');
+    const avatarBox = document.getElementById('profile-avatar-box');
+    let name = DEFAULT_PROFILE_NAME, role = DEFAULT_PROFILE_ROLE;
+    try {
+      name = localStorage.getItem(PROFILE_NAME_KEY) || DEFAULT_PROFILE_NAME;
+      role = localStorage.getItem(PROFILE_ROLE_KEY) || DEFAULT_PROFILE_ROLE;
+    } catch (e) { /* storage unavailable — falls back to defaults */ }
+    if (nameEl) nameEl.textContent = name;
+    if (roleEl) roleEl.textContent = role;
+    if (avatarBox) avatarBox.innerHTML = avatarPresetSvg(getStoredAvatarId());
+  }
+
+  let pendingAvatarId = DEFAULT_AVATAR_ID;
+
+  function selectAvatarPreset(id) {
+    pendingAvatarId = id;
+    document.querySelectorAll('#edit-profile-avatar-grid .avatar-preset-btn').forEach(btn => {
+      btn.style.borderColor = btn.dataset.avatarId === id ? 'var(--accent)' : 'transparent';
+    });
+  }
+
+  function openEditProfileModal() {
+    const existing = document.getElementById('edit-profile-modal-overlay');
+    if (existing) { existing.remove(); return; }
+    let curName = DEFAULT_PROFILE_NAME, curRole = DEFAULT_PROFILE_ROLE;
+    try {
+      curName = localStorage.getItem(PROFILE_NAME_KEY) || DEFAULT_PROFILE_NAME;
+      curRole = localStorage.getItem(PROFILE_ROLE_KEY) || DEFAULT_PROFILE_ROLE;
+    } catch (e) { /* storage unavailable */ }
+    pendingAvatarId = getStoredAvatarId();
+    const avatarGridHtml = Object.keys(AVATAR_PRESETS).map(id => `
+      <button type="button" class="avatar-preset-btn" data-avatar-id="${id}" onclick="selectAvatarPreset('${id}')"
+        style="width:64px; min-height:82px; border-radius:12px; padding:3px; overflow:hidden; border:2px solid ${id === pendingAvatarId ? 'var(--accent)' : 'transparent'}; cursor:pointer; background:var(--surface-2); flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--text);">
+        <span style="width:54px;height:54px;display:block;border-radius:50%;overflow:hidden;">${avatarPresetSvg(id, '100%')}</span>
+        <span style="font-size:.55rem;line-height:1.05;text-align:center;white-space:normal;">${escapeAttr(AVATAR_PRESETS[id].label)}</span>
+      </button>`).join('');
+    const overlay = document.createElement('div');
+    overlay.id = 'edit-profile-modal-overlay';
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
+    overlay.innerHTML = `
+      <div style="background:var(--surface); border:1.5px solid rgba(var(--bg-glow-rgb),.3); border-radius:16px; padding:22px; max-width:340px; width:100%; box-shadow:0 12px 40px rgba(var(--bg-glow-rgb),.15), 0 4px 20px rgba(0,0,0,.4);">
+        <div style="font-weight:700; color:var(--text); margin-bottom:4px;">Edit Profile</div>
+        <div style="font-size:.75rem; color:var(--muted); margin-bottom:14px;">Just for this device — no account needed.</div>
+        <label style="display:block; font-size:.72rem; color:var(--muted); margin-bottom:6px;">Avatar</label>
+        <div id="edit-profile-avatar-grid" style="display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; margin-bottom:16px;">${avatarGridHtml}</div>
+        <label style="display:block; font-size:.72rem; color:var(--muted); margin-bottom:4px;">Name</label>
+        <input id="edit-profile-name-input" type="text" maxlength="40" value="${escapeAttr(curName)}" style="width:100%; box-sizing:border-box; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); font-size:var(--fs-md); margin-bottom:12px;">
+        <label style="display:block; font-size:.72rem; color:var(--muted); margin-bottom:4px;">Tagline</label>
+        <input id="edit-profile-role-input" type="text" maxlength="30" value="${escapeAttr(curRole)}" style="width:100%; box-sizing:border-box; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:10px 12px; color:var(--text); font-size:var(--fs-md); margin-bottom:16px;">
+        <div style="display:flex; gap:8px;">
+          <button class="pop-chip" style="flex:1;" onclick="document.getElementById('edit-profile-modal-overlay').remove()">Cancel</button>
+          <button class="pop-chip" style="flex:1; background:var(--accent); color:#fff; border-color:var(--accent);" onclick="saveEditedProfile()">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('modal-in'));
+    document.getElementById('edit-profile-name-input')?.focus();
+  }
+
+  function saveEditedProfile() {
+    const nameInput = document.getElementById('edit-profile-name-input');
+    const roleInput = document.getElementById('edit-profile-role-input');
+    const name = (nameInput?.value || '').trim() || DEFAULT_PROFILE_NAME;
+    const role = (roleInput?.value || '').trim() || DEFAULT_PROFILE_ROLE;
+    try {
+      localStorage.setItem(PROFILE_NAME_KEY, name);
+      localStorage.setItem(PROFILE_ROLE_KEY, role);
+      localStorage.setItem(PROFILE_AVATAR_KEY, pendingAvatarId);
+    } catch (e) { /* storage unavailable — edit won't persist across reloads */ }
+    applyStoredProfileIdentity();
+    document.getElementById('edit-profile-modal-overlay')?.remove();
+    if (typeof showToast === 'function') showToast('Profile updated');
   }
 
   // The Favorite Sources row under the stats used to be 5 sites hard-coded
@@ -8098,7 +8911,7 @@ async function testLink() {
     if (id === 'screen-watchlist') renderWatchlistScreen();
     if (id === 'screen-profile') renderProfileScreen();
     if (id === 'screen-sources') renderSourcesScreen();
-    if (id === 'screen-home') renderHomeSourcesPreview();
+    if (id === 'screen-home') { renderHomeSourcesPreview(); renderHomeTrending(); }
     if (id === 'screen-source-detail') renderSourceDetailScreen();
   };
 
@@ -8114,30 +8927,83 @@ async function testLink() {
   // Flat brand color + bold initial — kept simple and clean. Only Dulo
   // (play icon) and MovieBox (wordmark) get a custom mark since those
   // read clearly at this size; everything else is just its initial.
-  function sourceRowLogoHtml(site) {
-    const flat = site.accent || '#333';
+  function getSourceAccentColor(site) {
+    const custom = { 'Dulo': '#f4522b', 'MovieBox': '#111' };
+    return custom[site.name] || site.accent || '#333';
+  }
+
+  function hexToRgb(hex) {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const num = parseInt(full, 16) || 0;
+    return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+  }
+
+  // Fixed alpha so every source row's glow reads at the same visual
+  // weight — mixing raw accent hex at one opacity made pale accents
+  // nearly invisible and dark ones (MovieBox's near-black) render as a
+  // muddy smudge instead of a colored glow. Dark accents get lightened
+  // toward a usable brightness floor first.
+  function glowRgba(hex, alpha) {
+    let { r, g, b } = hexToRgb(hex);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    if (brightness < 90) {
+      const lift = (c) => Math.round(c + (255 - c) * 0.55);
+      r = lift(r); g = lift(g); b = lift(b);
+    }
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function sourceRowLogoHtml(site, fontSize) {
     const custom = {
-      'Dulo':     { bg: '#f4522b', inner: '<svg viewBox="0 0 24 24" fill="#fff" style="width:21px;height:21px;"><path d="M8 5v14l11-7z"/></svg>' },
-      'MovieBox': { bg: '#111', inner: '<div style="display:flex;flex-direction:column;align-items:center;line-height:1;letter-spacing:-0.3px;"><span style="color:#fff;font-size:9px;font-weight:800;">MOVIE</span><span style="color:#f4c430;font-size:9px;font-weight:800;">BOX</span></div>' }
+      'Dulo':     { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">D<svg viewBox="0 0 24 24" width="11" height="11" fill="#fff" style="position:absolute;top:3px;right:3px;"><path d="M12 2l2 7 7 2-7 2-2 7-2-7-7-2 7-2z"/></svg></div>' },
+      'MovieBox': { inner: '<div style="display:flex;flex-direction:column;align-items:center;line-height:1;letter-spacing:-0.3px;"><span style="color:#fff;font-size:9px;font-weight:800;">MOVIE</span><span style="color:#f4c430;font-size:9px;font-weight:800;">BOX</span></div>' },
+      'MyAsianTV': { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">MA<svg viewBox="0 0 24 24" width="12" height="12" fill="#fff" style="position:absolute;top:3px;right:3px;"><path d="M2 20l7-12 4 6 3-4 6 10z"/></svg></div>' },
+      'KissKH': { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">K<svg viewBox="0 0 24 24" width="12" height="12" fill="#fff" style="position:absolute;top:3px;right:3px;"><path d="M12 21s-6.7-4.35-9.5-8.28C.7 10.2 1 6.9 3.6 5.2c2.2-1.4 4.9-.7 6.4 1.1.5.6 1.3.6 1.8 0 1.5-1.8 4.2-2.5 6.4-1.1 2.6 1.7 2.9 5 1.1 7.52C18.7 16.65 12 21 12 21z"/></svg></div>' },
+      'Enma': { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">E<svg viewBox="0 0 24 24" width="12" height="12" fill="#fff" style="position:absolute;top:2px;right:3px;"><path d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/></svg></div>' },
+      'TBA Studios': { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">TB<svg viewBox="0 0 24 24" width="10" height="10" fill="#fff" style="position:absolute;top:3px;right:3px;"><path d="M8 5v14l11-7z"/></svg></div>' },
+      'CineWhale': { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">CW<svg viewBox="0 0 24 24" width="12" height="12" fill="#fff" style="position:absolute;top:3px;right:2px;"><path d="M12 3c-1 4-5 6-9 5 2 3 6 5 9 3 3 2 7 0 9-3-4 1-8-1-9-5z"/></svg></div>' },
+      'FMovies': { inner: '<div style="display:flex;flex-direction:column;align-items:center;line-height:1;gap:2px;">F<span style="width:12px;height:2px;background:#fff;border-radius:1px;"></span></div>' },
+      'DramaCool': { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">D<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="2" style="position:absolute;top:3px;right:3px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.2" fill="#fff" stroke="none"/><circle cx="16" cy="8" r="1.2" fill="#fff" stroke="none"/><circle cx="8" cy="16" r="1.2" fill="#fff" stroke="none"/><circle cx="16" cy="16" r="1.2" fill="#fff" stroke="none"/></svg></div>' },
+      'Viki': { inner: '<div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;gap:3px;">V<div style="display:flex;gap:3px;"><span style="width:3px;height:3px;border-radius:50%;background:#fff;"></span><span style="width:3px;height:3px;border-radius:50%;background:#fff;"></span></div></div>' },
+      'ReAnime': { inner: '<div style="display:flex;flex-direction:column;align-items:center;line-height:1;letter-spacing:.2px;"><span style="color:#fff;font-size:11px;font-weight:800;">RE</span><span style="color:#fff;font-size:6.5px;font-weight:600;letter-spacing:.6px;">ANIME</span></div>' },
+      'Miruro': { inner: '<div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">Mi<span style="position:absolute;bottom:8px;right:7px;width:4px;height:4px;border-radius:50%;background:#fff;"></span></div>' }
     };
     const c = custom[site.name];
-
-    const finalBg = c ? c.bg : flat;
+    const finalBg = getSourceAccentColor(site);
     const inner = c ? c.inner : site.name.charAt(0).toUpperCase();
-    return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${finalBg};border-radius:12px;color:#fff;font-weight:800;font-size:var(--fs-2xl);">${inner}</div>`;
+    // A single flat color read as a placeholder-avatar fallback rather than
+    // a deliberate mark. A soft diagonal gradient off the same accent gives
+    // it a bit of depth/dimension without needing a real logo asset per site.
+    const bgStyle = `linear-gradient(135deg, color-mix(in srgb, ${finalBg} 78%, white), ${finalBg})`;
+    return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${bgStyle};border-radius:12px;color:#fff;font-weight:800;font-size:${fontSize || 'var(--fs-2xl)'};">${inner}</div>`;
+  }
+
+  // Badge + wordmark lockup used by the directory grid cards (buildCard,
+  // buildFavSiteCard) — pairs the same small brand-color mark already
+  // shown in the Home/Bookmarks row list with the card's own wordmark, so
+  // a site reads as the same identity in both places instead of a plain
+  // block of colored text with nothing to anchor it. Falls back cleanly
+  // to a flat initial-letter badge for any site without a hand-tuned mark
+  // or wordmark (custom/admin-added sites).
+  function dirCardLogoHtml(s) {
+    const badge = sourceRowLogoHtml(s, '13px');
+    const word = s.logoHtml || `<span class="logo-word lw-white">${escapeAttr(s.name)}</span>`;
+    return `<div class="card-logo-badge">${badge}</div><div class="card-logo-word">${word}</div>`;
   }
 
   function buildHomeSourceRow(site, idx) {
     const favs = getDirFavs();
     const isFav = favs.includes(site.name);
     const status = getSiteStatus(site.name); // null | 'up' | 'down' | 'blocked'
-    const statusLabel = status === 'up' ? 'Online' : status === 'down' ? 'Down' : status === 'blocked' ? 'Flagged' : 'Unknown';
-    const statusColor = status === 'up' ? '#3ecf5f' : status === 'down' ? '#e5484d' : status === 'blocked' ? '#e8b23d' : '#8a8a94';
+    const statusLabel = statusShortLabel(status) || 'Unknown';
+    const statusColor = statusDotColor(status) || 'var(--text-muted)';
     // A 42px circle can't legibly fit a full brand wordmark (flickystream's
     // two-word logo, TBA Studios, etc. were spilling/clipping past the
     // edges) — falls back to a plain letter/glyph badge instead, same
     // treatment for every site so nothing looks cut off.
     const logo = sourceRowLogoHtml(site);
+    const glow = glowRgba(getSourceAccentColor(site), 0.32);
     // Only the top row (first result / current favorite pick) gets the
     // solid primary button — the rest use an outline secondary style so
     // one recommended source visually stands out instead of every row
@@ -8145,15 +9011,65 @@ async function testLink() {
     const btnClass = idx === 0 ? 'watch-btn' : 'watch-btn watch-btn-secondary';
     return `
       <div class="source-row">
-        <div class="source-logo" style="padding:0;overflow:hidden;">${logo}</div>
+        <div class="source-logo" style="width:56px;height:56px;padding:0;overflow:hidden;box-shadow:0 3px 10px ${glow}, 0 1px 3px rgba(0,0,0,.10);">${logo}</div>
         <div class="source-info">
           <div class="name">${site.name}</div>
-          <div class="status-line"><span class="status-dot" style="background:${statusColor};"></span><span style="color:${statusColor};">${statusLabel}</span></div>
-          <div class="meta">Free &middot; No signup</div>
+          <div class="status-line" title="${escapeAttr(statusDotLabel(status) || '')}">${statusIconSvg(status)}<span style="color:${statusColor};">${statusLabel}</span></div>
+          ${site.categories && site.categories.length ? `<span class="cat-tag">${site.categories.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ')}</span>` : ''}
         </div>
-        <button class="${btnClass}" onclick="recordSiteUsed('${site.name.replace(/'/g, "\\'")}'); window.open('${site.url}', '_blank', 'noopener')">Watch Now</button>
+        <button class="${btnClass}" onclick="confirmOutboundLink('${site.name.replace(/'/g, "\\'")}', '${site.url}', '${status || ''}')">Watch Now</button>
         <button class="bookmark-btn" onclick="toggleDirFav(event, '${site.name.replace(/'/g, "\\'")}'); renderHomeSourcesPreview();"><svg viewBox="0 0 24 24" fill="${isFav ? 'var(--accent)' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg></button>
       </div>`;
+  }
+
+  // ===== HOME TRENDING NOW =====
+  // Was static hardcoded markup with no click handlers and no real posters
+  // (just CSS gradients) — nothing here ever opened a title. Now fetches
+  // real poster art from TMDB and routes taps through selectSuggestion(),
+  // the same path search-dropdown picks use, so it opens the real title.
+  const HOME_TRENDING = [
+    { title: 'Queen of Tears', rating: '8.7' },
+    { title: 'The Glory', rating: '8.6' },
+    { title: 'Crash Landing on You', rating: '8.9' }
+  ];
+  const homeTrendingPosterCache = new Map();
+
+  function renderHomeTrending() {
+    const row = document.getElementById('home-trending-row');
+    if (!row) return;
+    row.innerHTML = HOME_TRENDING.map((t, i) => `
+      <div class="trending-card" onclick="selectSuggestion('${escapeAttr(t.title)}')" style="cursor:pointer;">
+        <div class="trending-poster" id="home-trending-poster-${i}" style="background-image:linear-gradient(160deg,#2a2a3a,#0d0d12);">
+          <span class="rank-badge">${i + 1}</span>
+          <span class="poster-rating-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${t.rating}</span>
+          <span class="poster-play-overlay"><span><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg></span></span>
+        </div>
+        <div class="trending-title">${escapeAttr(t.title)}</div>
+        <div class="trending-rating"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg> ${t.rating}</div>
+      </div>
+    `).join('');
+
+    HOME_TRENDING.forEach((t, i) => {
+      if (homeTrendingPosterCache.has(t.title)) {
+        applyHomeTrendingPoster(i, homeTrendingPosterCache.get(t.title));
+        return;
+      }
+      fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(t.title)}`)
+        .then(r => r.json())
+        .then(tmdb => {
+          const match = (tmdb.results || []).find(m => m.poster_path);
+          const poster = match ? `https://image.tmdb.org/t/p/w300${match.poster_path}` : null;
+          homeTrendingPosterCache.set(t.title, poster);
+          applyHomeTrendingPoster(i, poster);
+        })
+        .catch(() => {});
+    });
+  }
+
+  function applyHomeTrendingPoster(i, poster) {
+    if (!poster) return;
+    const el = document.getElementById(`home-trending-poster-${i}`);
+    if (el) el.style.backgroundImage = `url('${poster}')`;
   }
 
   function renderHomeSourcesPreview() {
@@ -8206,6 +9122,76 @@ async function testLink() {
   });
 
   renderHomeSourcesPreview();
+  renderHomeTrending();
+  applyStoredProfileIdentity();
+
+  // ===== PULL-TO-REFRESH (home screen) =====
+  (function setupPullToRefresh() {
+    const indicator = document.getElementById('ptr-indicator');
+    if (!indicator) return;
+    const icon = indicator.querySelector('svg');
+    let startY = 0, pulling = false, refreshing = false;
+
+    function atTop() {
+      return (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+    }
+    function homeActive() {
+      const home = document.getElementById('screen-home');
+      return home && home.classList.contains('active');
+    }
+
+    document.addEventListener('touchstart', (e) => {
+      if (refreshing || !homeActive() || !atTop()) return;
+      startY = e.touches[0].clientY;
+      pulling = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!pulling || refreshing) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy <= 0) { indicator.style.opacity = '0'; return; }
+      const dist = Math.min(dy * 0.45, 64);
+      indicator.dataset.dist = String(dist);
+      indicator.style.opacity = String(Math.min(dist / 40, 1));
+      indicator.style.transform = `translate(-50%, ${dist}px)`;
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+      if (!pulling || refreshing) { pulling = false; return; }
+      pulling = false;
+      const dist = parseFloat(indicator.dataset.dist || '0');
+      if (dist >= 40) {
+        refreshing = true;
+        indicator.style.transform = 'translate(-50%, 40px)';
+        indicator.style.opacity = '1';
+        icon.classList.add('spin');
+        // Real recheck: pulls the latest committed status.json (forceFresh),
+        // then re-renders home sections against the refreshed data — same
+        // path as the manual refresh button (refreshSiteStatus), not a fake
+        // spin-then-redraw of unchanged data.
+        Promise.all([loadSiteStatus(true), new Promise(r => setTimeout(r, 700))]).then(() => {
+          renderHomeTrending();
+          renderHomeSourcesPreview();
+          icon.classList.remove('spin');
+          indicator.style.opacity = '0';
+          indicator.style.transform = 'translate(-50%, 0)';
+          refreshing = false;
+        });
+      } else {
+        indicator.style.opacity = '0';
+        indicator.style.transform = 'translate(-50%, 0)';
+      }
+    }, { passive: true });
+  })();
+
+  // ===== WATCH NOW RIPPLE PULSE =====
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.watch-btn');
+    if (!btn) return;
+    btn.classList.remove('pulse');
+    void btn.offsetWidth;
+    btn.classList.add('pulse');
+  }, true);
 </script>
 
 </body>
