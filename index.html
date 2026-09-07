@@ -1605,7 +1605,12 @@
   .fav-btn.favorited svg { fill: currentColor; }
 
   #sites-section { padding: var(--space-xl); }
-  .section-label { font-size: .95rem; font-weight: 800; color: var(--text); margin-bottom: var(--space-md); }
+  .section-label {
+    font-size: var(--fs-xs); font-weight: 800; color: var(--text-muted);
+    margin-bottom: var(--space-md); text-transform: uppercase; letter-spacing: .8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-label svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--accent); }
   /* Was referenced in the results header + section labels with no rule
      defined anywhere, so it rendered as plain unstyled browser text
      (no bold, no size bump) instead of a heading. */
@@ -1619,13 +1624,10 @@
      so it applied even on the narrowest phones. Widens back to 2 columns
      only once there's actually enough room for it. */
   .sites-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-lg); }
-  @media (min-width: 480px) {
-    .sites-grid { grid-template-columns: repeat(2, 1fr); }
-  }
   .site-card {
-    display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md);
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    border-left: 3px solid var(--site-card-accent, var(--border));
+    display: flex; align-items: center; gap: var(--space-md); padding: var(--space-lg);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    border-left: 4px solid var(--site-card-accent, var(--border));
     box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 10px rgba(0,0,0,.06);
     text-decoration: none; color: var(--text); position: relative; cursor: pointer;
     transition: transform .15s ease, box-shadow .15s ease;
@@ -1633,8 +1635,9 @@
   .site-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.09), 0 2px 6px rgba(0,0,0,.06); }
   .site-card:active { transform: translateY(0) scale(.99); }
   .site-logo-box {
-    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; overflow: hidden;
+    border: 1px solid var(--border);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 1px 3px rgba(0,0,0,.18);
   }
   .site-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -1683,6 +1686,17 @@
     transition: background .15s ease, color .15s ease;
   }
   .copy-link-btn:hover { background: var(--accent-dim); color: var(--accent); }
+  .site-open-arrow {
+    width: 24px; height: 24px; flex-shrink: 0; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #back-to-top-btn {
+    display: none; position: fixed; left: 50%; bottom: 100px; z-index: 60;
+    transform: translateX(129px);
+    width: 46px; height: 46px; border-radius: 50%; border: none;
+    background: var(--accent); color: #fff; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: var(--shadow-float);
+  }
   .tips-box {
     margin-top: var(--space-lg); padding: var(--space-md) var(--space-md); background: var(--surface);
     border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -1898,6 +1912,7 @@
 <body>
 
 <div class="device">
+  <button id="back-to-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
 
   <!-- HOME SCREEN -->
   <div class="screen active" id="screen-home">
@@ -2049,9 +2064,8 @@
 
     <div class="detail-body">
       <div class="sources-banner">
-        <button class="watch-now-cta-btn" onclick="goToScreen('screen-sources')">
-          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg>
-          <span id="detail-sources-label">Watch now &middot; 10 sources</span>
+        <button class="watch-now-cta-btn" onclick="scrollToSites()">
+          <span id="detail-sources-label">Free streaming sites ↓</span>
         </button>
         <button class="watchlist-icon-btn" id="detail-watchlist-btn" onclick="toggleDetailWatchlist(event)" aria-label="Add to watchlist" aria-pressed="false" title="Add to watchlist">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg>
@@ -5427,7 +5441,7 @@ function renderResult(data, query) {
   const sourcesLabelEl = document.getElementById('detail-sources-label');
   if (sourcesLabelEl) {
     sourcesLabelEl.textContent = otherSites.length > 0
-      ? `Watch now \u00b7 ${otherSites.length} source${otherSites.length === 1 ? '' : 's'}`
+      ? 'Free streaming sites ↓'
       : 'No sources found yet';
   }
   const detailWatchlistBtn = document.getElementById('detail-watchlist-btn');
@@ -5483,6 +5497,7 @@ function renderResult(data, query) {
       <div class="site-actions">
         <button class="copy-link-btn report-icon" onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(linkInfo.url)}')" title="Report broken" aria-label="Report ${escapeAttr(s.name)} as broken"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4h13l-2 4.5L17 13H4"/></svg></button>
         <button class="copy-link-btn" onclick="copySiteLink(event, '${escapeAttr(linkInfo.url)}', this)" title="Copy link" aria-label="Copy link to ${escapeAttr(s.name)}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button>
+        <span class="site-open-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
       </div>
     </a>`;
   };
@@ -5500,27 +5515,14 @@ function renderResult(data, query) {
 
   area.innerHTML = `
     <div class="movie-header">
-      <div class="movie-poster${data.poster ? ' poster-loading' : ''}" id="poster-box">
-        ${data.poster
-          ? `<img class="poster-img" src="${data.poster}" alt="${escapeAttr(data.title || query)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.parentElement.innerHTML='${data.type === 'series' ? '📺' : '🎬'}'">`
-          : (data.type === 'series' ? '📺' : '🎬')}
-        <button class="fav-btn ${isFavorited ? 'favorited' : ''}" onclick="toggleFavorite(event)" title="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-label="${isFavorited ? 'Remove from favorites' : 'Add to favorites'}" aria-pressed="${isFavorited}"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7-5.4-4.8 7.1-.7z"/></svg></button>
-      </div>
       <div class="movie-info">
-        <div class="movie-title">${data.title || query}</div>
-        <div class="movie-meta">
-          ${data.year ? `<span class="badge badge-year">${data.year}</span>` : ''}
-          ${data.rating ? `<span class="badge badge-rating">⭐ ${data.rating}</span>` : ''}
-          <span class="badge" style="background:rgba(255,255,255,.05);color:var(--muted)">${data.type === 'series' ? '📺 Series' : '🎬 Movie'}</span>
-        </div>
-        <button class="pop-chip" onclick="scrollToSites()" style="margin-top:10px; background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;">See free streaming sites ↓</button>
         <p class="movie-desc" id="movie-desc" onclick="toggleDescription()">${escapeAttr(data.description || '')}</p>
         <button class="movie-desc-toggle" id="movie-desc-toggle" onclick="toggleDescription()" style="display:none;">Show more</button>
       </div>
     </div>
 
     <div id="sites-section">
-      <div class="section-label">Free streaming sites</div>
+      <div class="section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>Free streaming sites</div>
       <div class="sites-grid">${siteCards}</div>
       ${data.tip ? `<div class="tips-box"><span style="display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--gold);" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.5.36.8.94.8 1.55V16h5.4v-.55c0-.6.3-1.2.8-1.55A6 6 0 0 0 12 3Z"/></svg></span><strong>Tip:</strong> ${data.tip}</div>` : ''}
     </div>
