@@ -516,21 +516,35 @@
     content: "";
     position: absolute;
     left: 0; right: 0; bottom: 0;
-    height: 55%;
-    background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+    height: 60%;
+    background: linear-gradient(to top, rgba(0,0,0,0.88), transparent);
+  }
+  .poster-title-overlay {
+    position: absolute;
+    z-index: 2;
+    left: 10px; right: 10px; bottom: 8px;
+    color: #fff;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    line-height: 1.3;
+    text-shadow: 0 1px 3px rgba(0,0,0,.4);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .rank-badge { z-index: 2; }
   .rank-badge {
     position: absolute;
     top: 8px; left: 8px;
-    background: rgba(0,0,0,0.7);
+    background: var(--accent);
     color: #fff;
     font-size:var(--fs-xs);
     font-weight: 800;
-    width: 20px; height: 20px;
+    width: 22px; height: 22px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.85);
+    box-shadow: 0 2px 6px rgba(0,0,0,.3);
   }
   .poster-rating-badge {
     position: absolute;
@@ -571,18 +585,7 @@
     box-shadow: 0 4px 12px rgba(0,0,0,.35);
   }
   .poster-play-overlay svg { width: 13px; height: 13px; color: #16161a; margin-left: 2px; }
-  .trending-title {
-    font-size:var(--fs-sm);
-    font-weight: 600;
-    line-height: 1.3;
-    margin-bottom: 3px;
-  }
-  .trending-rating {
-    font-size:var(--fs-xs);
-    color: var(--gold);
-    display: flex; align-items: center; gap: 3px;
-  }
-  .trending-rating svg { width: 11px; height: 11px; }
+
 
   /* ---------- Search screen ---------- */
   .search-header {
@@ -1613,12 +1616,13 @@
   .movie-title { font-size: 1.15rem; font-weight: 800; color: var(--text); line-height: 1.25; }
   .movie-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
   .movie-desc {
-    font-size: .82rem; color: var(--muted); margin-top: var(--space-sm); line-height: 1.45;
+    font-size: .92rem; color: var(--text); margin-top: var(--space-sm); line-height: 1.55;
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     overflow: hidden; cursor: pointer;
   }
   .movie-desc.expanded { -webkit-line-clamp: unset; }
-  .movie-desc-toggle { background: none; border: none; color: var(--accent); font-size: .78rem; font-weight: 700; cursor: pointer; padding: 2px 0; }
+  .movie-desc-toggle { background: none; border: none; color: var(--accent); font-size: .85rem; font-weight: 700; cursor: pointer; padding: 6px 0 0; }
+  .synopsis-heading { font-size: 1.15rem; font-weight: 800; color: var(--text); margin-top: var(--space-lg); }
   .badge {
     font-size:var(--fs-xs); font-weight: 700; padding: 3px var(--space-sm); border-radius: 20px;
     background: var(--surface); border: 1px solid var(--border); color: var(--text);
@@ -1802,49 +1806,9 @@
     aspect-ratio: 2/3;
   }
   .results-grid .result-info { padding-top: var(--space-sm); }
-  /* "You might also like" — 2-column grid. Each card is a grid fraction
-     (not a fixed px width), capped with max-width so it can't blow up on
-     wider screens, giving posters a normal, readable size instead of the
-     tiny-thumbnail rail or the earlier full-bleed cards. */
-  .similar-rail {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-md);
-    padding: 0 var(--space-xl);
-  }
-  .similar-rail .result-card {
-    display: block;
-    padding: 0; border-bottom: none;
-    min-width: 0;
-    position: relative;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .similar-rail .result-poster {
-    width: 100%; height: auto; aspect-ratio: 2/3; flex-shrink: 0;
-    position: relative;
-  }
-  .similar-rail .result-info {
-    position: absolute; left: 0; right: 0; bottom: 0;
-    padding: 20px var(--space-sm) var(--space-sm);
-    background: linear-gradient(to top, rgba(0,0,0,.85) 20%, rgba(0,0,0,0) 100%);
-    text-align: right;
-    min-width: 0; padding-top: 0;
-  }
-  .similar-rail .result-title {
-    font-size: var(--fs-sm); -webkit-line-clamp: 2; margin-bottom: 4px;
-    color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6);
-  }
-  .similar-rail .result-meta {
-    font-size: 10px; margin-bottom: 0;
-    display: flex; align-items: center; justify-content: flex-end; gap: 4px; flex-wrap: nowrap;
-    overflow: hidden;
-  }
-  .similar-rail .result-meta .badge {
-    font-size: 9px; padding: 2px 6px; white-space: nowrap;
-    background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.3); color: #fff;
-    backdrop-filter: blur(2px);
-  }
-  .similar-rail .result-rating-row { gap: 4px; margin-bottom: 0; }
-  .similar-show-more-btn {
+  /* "You might also like" now reuses .trending-row / .trending-card /
+     .trending-poster (see above) so it renders with identical size,
+     spacing, and card design to the Home "Trending Now" section. */
     display: block; margin: var(--space-md) auto 0; padding: 8px 20px;
     border-radius: 20px; border: 1px solid var(--border); background: var(--surface);
     color: var(--text); font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
@@ -5075,7 +5039,7 @@ function toggleDescription() {
   const toggleBtn = document.getElementById('movie-desc-toggle');
   if (!desc) return;
   const isExpanded = desc.classList.toggle('expanded');
-  if (toggleBtn) toggleBtn.textContent = isExpanded ? 'Show less' : 'Show more';
+  if (toggleBtn) toggleBtn.innerHTML = isExpanded ? 'Show less &#9652;' : 'Read more &#9662;';
 }
 
 // Runs after renderResult paints the description — checks whether the text
@@ -5641,7 +5605,9 @@ function renderResult(data, query) {
   area.innerHTML = `
     <div class="movie-header">
       <div class="movie-info">
-        <p class="movie-desc" id="movie-desc">${escapeAttr(data.description || '')}</p>
+        <div class="synopsis-heading">Synopsis</div>
+        <p class="movie-desc" id="movie-desc" onclick="toggleDescription()">${escapeAttr(data.description || '')}</p>
+        <button class="movie-desc-toggle" id="movie-desc-toggle" onclick="toggleDescription()" style="display:none;">Read more &#9662;</button>
       </div>
     </div>
 
@@ -5653,8 +5619,8 @@ function renderResult(data, query) {
 
     ${data.id ? `
       <div class="section-label" style="margin-top:32px;">You might also like</div>
-      <div class="similar-rail" id="similar-grid" aria-hidden="true">
-        ${Array(6).fill('<div class="poster-shimmer" style="aspect-ratio:2/3; border-radius:12px;"></div>').join('')}
+      <div class="trending-row" id="similar-grid" aria-hidden="true">
+        ${Array(6).fill('<div class="poster-shimmer" style="aspect-ratio:2/3; border-radius:var(--radius);"></div>').join('')}
       </div>` : ''}
   `;
 
@@ -5780,16 +5746,11 @@ function renderSimilarCards(showAll) {
   if (!grid) return;
   const visible = showAll ? similarResults : similarResults.slice(0, SIMILAR_VISIBLE_INITIAL);
   const cardsHtml = visible.map((m, i) => `
-    <div class="result-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="animation-delay:${i * 0.05}s">
-      <div class="result-poster${m.poster ? ' poster-loading' : ''}">
-        ${m.poster ? `<img class="poster-img" src="${m.poster}" alt="${m.title}" loading="lazy" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.outerHTML='<span class=\'poster-fallback\'>${m.type === 'series' ? '📺' : '🎬'}</span>'">` : (m.type === 'series' ? '📺' : '🎬')}
-        <div class="result-info">
-          <div class="result-title">${m.title}</div>
-          <div class="result-meta">
-            ${m.year ? `<span class="badge badge-year">${m.year}</span>` : ''}
-            ${m.rating ? `<span class="badge badge-rating">⭐ ${m.rating}</span>` : ''}
-          </div>
-        </div>
+    <div class="trending-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="cursor:pointer; animation-delay:${i * 0.05}s">
+      <div class="trending-poster" style="${m.poster ? `background-image:url('${m.poster}');` : ''}">
+        ${!m.poster ? `<span class="poster-fallback" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:28px;">${m.type === 'series' ? '📺' : '🎬'}</span>` : ''}
+        ${m.rating ? `<span class="poster-rating-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${m.rating}</span>` : ''}
+        <span class="poster-title-overlay">${escapeAttr(m.title)}${m.year ? ` <span style="opacity:.75; font-weight:400;">· ${m.year}</span>` : ''}</span>
       </div>
     </div>`).join('');
   grid.innerHTML = cardsHtml;
@@ -9240,8 +9201,8 @@ async function testLink() {
           <span class="rank-badge">${i + 1}</span>
           <span class="poster-rating-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${t.rating}</span>
           <span class="poster-play-overlay"><span><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg></span></span>
+          <span class="poster-title-overlay">${escapeAttr(t.title)}</span>
         </div>
-        <div class="trending-title">${escapeAttr(t.title)}</div>
       </div>
     `).join('');
 
