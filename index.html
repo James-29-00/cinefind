@@ -1662,6 +1662,17 @@
     text-decoration: none; color: var(--text); position: relative; cursor: pointer;
     transition: transform .15s ease, box-shadow .15s ease;
   }
+  /* .site-card's own left/right margin above exists for the Search screen,
+     where #result-area carries no padding of its own (see comment near
+     dir-heading-label) — the card's margin IS that screen's only source
+     of horizontal inset. But on the Detail screen, .site-card sits inside
+     .detail-body, which ALREADY pads both sides by var(--space-xl) — so
+     without this override, Detail-screen cards were getting that padding
+     PLUS the card's own margin stacked on top (effectively double the
+     inset of the Synopsis/Cast text above them on the same page), while
+     Search-screen cards correctly got just the one. This scopes the
+     cancellation to Detail only, leaving Search's spacing untouched. */
+  .detail-body .site-card { margin-left: 0; margin-right: 0; }
   .site-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.09), 0 2px 6px rgba(0,0,0,.06); }
   .site-card:active { transform: translateY(0) scale(.99); }
   .site-logo-box {
@@ -2174,23 +2185,6 @@
         <button class="watchlist-icon-btn" id="detail-watchlist-btn" onclick="toggleDetailWatchlist(event)" aria-label="Add to watchlist" aria-pressed="false" title="Add to watchlist">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg>
         </button>
-      </div>
-
-      <div class="detail-section-title">Synopsis</div>
-      <p class="synopsis-text" id="detail-synopsis">A ruthless demon becomes powerless after an unexpected encounter with a cold-hearted heiress. To regain his abilities, he must protect her, but love is the last thing he expected.</p>
-      <span class="read-more" onclick="toggleSynopsis(this)">Read more &#9662;</span>
-
-      <!-- Cast section left as static mockup placeholder — TMDB search results
-           don't include cast/credits data (parseTmdbItem has no cast field),
-           now wired to real TMDB credits via mode=credits on cinefind-proxy. -->
-      <div class="detail-section-head">
-        <div class="detail-section-title" style="margin:0;">Cast</div>
-        <span class="see-all">See all</span>
-      </div>
-      <div class="cast-row" id="detail-cast-row">
-        <div class="cast-item"><div class="cast-avatar" style="background:linear-gradient(160deg,#333,#111);"></div></div>
-        <div class="cast-item"><div class="cast-avatar" style="background:linear-gradient(160deg,#3a2a30,#151015);"></div></div>
-        <div class="cast-item"><div class="cast-avatar" style="background:linear-gradient(160deg,#2a2a3a,#101015);"></div></div>
       </div>
 
     <!-- Real renderResult() output lands here: movie-header/sites-grid,
@@ -9189,19 +9183,18 @@ async function testLink() {
   // Sources), which expands the row in place instead of leaving the Home
   // screen. Grid is always a fixed 2 columns, so the collapsed count is a
   // multiple of 2 (2 full rows) and "Show more" reveals the rest.
-  const HOME_TRENDING = [
-    { title: 'Queen of Tears', rating: '8.7' },
-    { title: 'The Glory', rating: '8.6' },
-    { title: 'Crash Landing on You', rating: '8.9' },
-    { title: 'Reborn Rich', rating: '8.5' },
-    { title: 'Hospital Playlist', rating: '9.0' },
-    { title: 'Vincenzo', rating: '8.6' },
-    { title: 'It\'s Okay to Not Be Okay', rating: '8.7' },
-    { title: 'My Name', rating: '8.3' }
-  ];
+  // Real trending titles now come from the Worker's mode=trending endpoint,
+  // which is backed by a 24h SHARED cache in KV (see worker.js) — the
+  // first visitor after the cache expires triggers one TMDB call for
+  // everyone; every other visitor for the next 24h reads that same
+  // cached result. TMDB's trending payload already includes a poster
+  // path and rating per item, so there's no need for a separate
+  // per-title search call anymore (that was the old, expensive approach:
+  // one full TMDB search PER TITLE, PER VISITOR, cached only in that
+  // visitor's own browser tab and wiped on every reload).
   const HOME_TRENDING_COLLAPSED_COUNT = 4; // 2 rows x 2 columns
   let homeTrendingExpanded = false;
-  const homeTrendingPosterCache = new Map();
+  let homeTrendingData = null; // populated once per page load from the shared cache
 
   function toggleHomeTrendingExpanded() {
     homeTrendingExpanded = !homeTrendingExpanded;
@@ -9211,46 +9204,52 @@ async function testLink() {
   function renderHomeTrending() {
     const row = document.getElementById('home-trending-row');
     if (!row) return;
-    const list = homeTrendingExpanded ? HOME_TRENDING : HOME_TRENDING.slice(0, HOME_TRENDING_COLLAPSED_COUNT);
+
+    if (!homeTrendingData) {
+      // First call this page load: fetch once from the shared cache, then
+      // render. Subsequent calls (e.g. toggling "Show more") reuse
+      // homeTrendingData instead of fetching again.
+      fetch(`${TMDB_PROXY_URL}?mode=trending`, { signal: AbortSignal.timeout(8000) })
+        .then(r => r.json())
+        .then(tmdb => {
+          homeTrendingData = (tmdb.results || [])
+            .filter(item => (item.media_type === 'movie' || item.media_type === 'tv') && item.poster_path)
+            .slice(0, 8)
+            .map(item => ({
+              id: item.id,
+              mediaType: item.media_type,
+              title: item.title || item.name || 'Untitled',
+              rating: (item.vote_average || 0).toFixed(1),
+              poster: `https://image.tmdb.org/t/p/w300${item.poster_path}`,
+            }));
+          renderHomeTrending();
+        })
+        .catch(() => {
+          // Leave the section empty on failure rather than showing stale
+          // hardcoded titles that don't reflect anything real.
+          homeTrendingData = [];
+          renderHomeTrending();
+        });
+      return;
+    }
+
+    const list = homeTrendingExpanded ? homeTrendingData : homeTrendingData.slice(0, HOME_TRENDING_COLLAPSED_COUNT);
     row.innerHTML = list.map((t, i) => `
       <div class="trending-card" onclick="selectSuggestion('${escapeAttr(t.title)}')" style="cursor:pointer;">
-        <div class="trending-poster" id="home-trending-poster-${i}" style="background-image:linear-gradient(160deg,#2a2a3a,#0d0d12);">
+        <div class="trending-poster" style="background-image:url('${t.poster}');">
           <span class="rank-badge">${i + 1}</span>
           <span class="poster-rating-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${t.rating}</span>
           <span class="poster-play-overlay"><span><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg></span></span>
         </div>
         <div class="trending-title">${escapeAttr(t.title)}</div>
-        <div class="trending-rating"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg> ${t.rating}</div>
       </div>
     `).join('');
 
     const showMoreBtn = document.getElementById('home-trending-showmore');
     if (showMoreBtn) {
       showMoreBtn.textContent = homeTrendingExpanded ? 'Show less' : 'Show more';
-      showMoreBtn.style.display = HOME_TRENDING.length > HOME_TRENDING_COLLAPSED_COUNT ? 'block' : 'none';
+      showMoreBtn.style.display = homeTrendingData.length > HOME_TRENDING_COLLAPSED_COUNT ? 'block' : 'none';
     }
-
-    list.forEach((t, i) => {
-      if (homeTrendingPosterCache.has(t.title)) {
-        applyHomeTrendingPoster(i, homeTrendingPosterCache.get(t.title));
-        return;
-      }
-      fetch(`${TMDB_PROXY_URL}?query=${encodeURIComponent(t.title)}`)
-        .then(r => r.json())
-        .then(tmdb => {
-          const match = (tmdb.results || []).find(m => m.poster_path);
-          const poster = match ? `https://image.tmdb.org/t/p/w300${match.poster_path}` : null;
-          homeTrendingPosterCache.set(t.title, poster);
-          applyHomeTrendingPoster(i, poster);
-        })
-        .catch(() => {});
-    });
-  }
-
-  function applyHomeTrendingPoster(i, poster) {
-    if (!poster) return;
-    const el = document.getElementById(`home-trending-poster-${i}`);
-    if (el) el.style.backgroundImage = `url('${poster}')`;
   }
 
   function renderHomeSourcesPreview() {
