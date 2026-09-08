@@ -203,6 +203,8 @@
   .theme-toggle-btn .icon-moon { display: none; }
   body.dark .theme-toggle-btn .icon-sun { display: none; }
   body.dark .theme-toggle-btn .icon-moon { display: block; }
+  .cinefind-empty-logo { mix-blend-mode: multiply; }
+  body.dark .cinefind-empty-logo { mix-blend-mode: screen; }
   .home-tagline {
     margin: 2px 0 var(--space-lg);
     padding: 0 var(--space-xl);
@@ -6941,7 +6943,7 @@ function renderSearchEmptyState() {
   hideFiltersBar();
   document.getElementById('result-area').innerHTML = `
     <div class="cinefind-empty-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:32px 28px 0; color:var(--muted); min-height:460px; box-sizing:border-box;">
-      <img src="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-light="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-dark="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-dark.png" alt="CineFind fox detective logo" style="display:block; width:min(112px,32vw); height:auto; max-height:112px; object-fit:contain; margin:0 auto 18px; filter:drop-shadow(0 8px 18px rgba(0,0,0,.28));">
+      <img src="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-light="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-dark="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-dark.png" alt="CineFind fox detective logo" class="cinefind-empty-logo" style="display:block; width:min(112px,32vw); height:auto; max-height:112px; object-fit:contain; margin:0 auto 18px;">
       <div style="font-size:1.2rem; line-height:1.35; font-weight:700; color:var(--text); max-width:270px; margin:0 auto; letter-spacing:-0.01em;">You haven't searched for anything <span style="color:#e8394a;">yet.</span></div>
       <div style="font-size:0.92rem; line-height:1.45; font-weight:500; color:var(--muted); max-width:260px; margin:10px auto 0;">Try a movie, drama, or actor above.</div>
     </div>`;
