@@ -60,7 +60,7 @@
     --card: var(--surface);
     --muted: var(--text-muted);
     --green: #06d6a0;
-    --accent2: #c81e29;
+    --accent2: #d84315;
     --status-green: var(--green);
     --status-gold: var(--gold);
     --bg-glow-rgb: 226, 36, 47;
@@ -86,7 +86,7 @@
     --accent: #ff3b44;
     --accent-dim: #3a1418;
     --gold: #e8b23d;
-    --accent2: #ff6b6b;
+    --accent2: #ff7a4a;
     --bg-glow-rgb: 255, 59, 68;
     --info-highlight: #8f9dff;
     --shadow-card: 0 1px 1px rgba(0,0,0,.3), 0 3px 6px rgba(0,0,0,.28), 0 10px 24px rgba(0,0,0,.32);
@@ -263,7 +263,7 @@
     text-overflow: ellipsis;
   }
   .search-bar input::placeholder {
-    color: #46516e;
+    color: var(--text-muted);
     opacity: 1;
     font-weight: 500;
   }
@@ -425,7 +425,7 @@
   .source-info .name { font-size:var(--fs-md); font-weight: 700; margin-bottom: 2px; }
   .source-info .status-line {
     font-size:var(--fs-xs);
-    color: #3ecf5f;
+    color: var(--green);
     font-weight: 600;
     display: flex; align-items: center; gap: 5px;
     margin-bottom: 1px;
@@ -447,7 +447,7 @@
   .status-dot {
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: #3ecf5f;
+    background: var(--green);
     display: inline-block;
   }
   .watch-btn {
@@ -482,7 +482,8 @@
   .trending-row {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-lg);
+    row-gap: var(--space-xl);
+    column-gap: var(--space-lg);
     padding: 6px 6px 12px;
   }
   .trending-card {
@@ -495,7 +496,6 @@
     background-size: cover;
     background-position: center;
     position: relative;
-    margin-bottom: var(--space-sm);
     overflow: hidden;
     transition: transform .18s ease, box-shadow .18s ease;
   }
@@ -526,7 +526,8 @@
     color: #fff;
     font-size: var(--fs-sm);
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.25;
+    max-height: calc(1.25em * 2);
     text-shadow: 0 1px 3px rgba(0,0,0,.4);
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -826,7 +827,7 @@
     border-radius: 20px;
     line-height: 1.4;
   }
-  body.dark .sources-pill { color: #3ecf5f; }
+  body.dark .sources-pill { color: var(--green); }
   .result-tags { display: flex; gap: 6px; flex-wrap: wrap; }
   .result-tag {
     font-size:var(--fs-xs);
@@ -1134,7 +1135,7 @@
     margin: 0 var(--space-xl) var(--space-sm);
     font-size:var(--fs-xs);
     font-weight: 700;
-    color: #1a9e4a;
+    color: var(--green);
     letter-spacing: 0.3px;
   }
 
@@ -1161,7 +1162,7 @@
     flex-shrink: 0;
   }
   .src-detail-name { font-size:var(--fs-2xl); font-weight: 800; }
-  .src-detail-status { font-size:var(--fs-sm); color: #1a9e4a; font-weight: 600; margin: 2px 0; display: flex; align-items: center; gap: 5px; }
+  .src-detail-status { font-size:var(--fs-sm); color: var(--green); font-weight: 600; margin: 2px 0; display: flex; align-items: center; gap: 5px; }
   .src-detail-cats { font-size:var(--fs-sm); color: var(--text-muted); }
 
   .watch-cta-btn {
@@ -1227,7 +1228,7 @@
   .stat-box .stat-label { font-size:var(--fs-2xs); color: var(--text-muted); margin-bottom: 4px; }
   .stat-box .stat-value { font-size:var(--fs-base); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 3px; }
   .stat-box .stat-value svg { width: 12px; height: 12px; }
-  .stat-value.green { color: #1a9e4a; }
+  .stat-value.green { color: var(--green); }
   .stat-bar-track {
     margin-top: 6px;
     height: 4px;
@@ -1604,7 +1605,7 @@
      in this design — the site-card links ended up with no real layout,
      which is why they weren't clickable in practice. Styled here to
      match this design's existing tokens/spacing (--card/--border/--radius). */
-  .movie-header { display: flex; gap: var(--space-lg); padding: var(--space-lg) var(--space-xl) 0; }
+  .movie-header { display: flex; gap: var(--space-lg); padding: var(--space-md) var(--space-xl) var(--space-sm); }
   .movie-poster {
     width: 96px; height: 138px; flex-shrink: 0; border-radius: var(--radius-sm);
     background: var(--surface); position: relative; overflow: hidden;
@@ -1616,13 +1617,16 @@
   .movie-title { font-size: 1.15rem; font-weight: 800; color: var(--text); line-height: 1.25; }
   .movie-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
   .movie-desc {
-    font-size: .92rem; color: var(--text); margin-top: var(--space-sm); line-height: 1.55;
+    font-size: .94rem; color: var(--text); margin-top: var(--space-sm); line-height: 1.6;
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     overflow: hidden; cursor: pointer;
   }
   .movie-desc.expanded { -webkit-line-clamp: unset; }
-  .movie-desc-toggle { background: none; border: none; color: var(--accent); font-size: .85rem; font-weight: 700; cursor: pointer; padding: 6px 0 0; }
-  .synopsis-heading { font-size: 1.15rem; font-weight: 800; color: var(--text); margin-top: var(--space-lg); }
+  .movie-desc-toggle { background: none; border: none; color: var(--accent); font-size: .85rem; font-weight: 700; cursor: pointer; padding: 10px 0 0; }
+  .synopsis-heading {
+    font-size: 1.05rem; font-weight: 800; color: var(--text);
+    letter-spacing: -.2px; margin-top: 0; margin-bottom: 2px;
+  }
   .badge {
     font-size:var(--fs-xs); font-weight: 700; padding: 3px var(--space-sm); border-radius: 20px;
     background: var(--surface); border: 1px solid var(--border); color: var(--text);
@@ -1930,7 +1934,7 @@
   /* Final home-search sizing: clean, premium app proportions */
   #screen-home .search-bar {
     height: 58px;
-    border-radius: 20px;
+    border-radius: 18px;
     border-color: #dcdce0;
     box-shadow: 0 4px 14px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.06);
   }
@@ -1949,7 +1953,7 @@
     padding: 0 !important;
     background: var(--surface-2) !important;
     border: 1px solid #dfe0e4;
-    border-radius: 50%;
+    border-radius: 10px;
     color: #68728c;
   }
   #screen-home .search-bar .mic-btn:active { background: var(--border); }
@@ -2327,14 +2331,14 @@
       </div>
     </div>
 
-    <div class="promo-banner">
+    <div class="promo-banner" id="cinefind-promo-banner">
       <span class="emoji">🎬</span>
       <div>
         <div class="t">Love CineFind?</div>
         <div class="s">Help us grow by sharing with your friends!</div>
-        <button class="promo-share-btn">Share Now →</button>
+        <button class="promo-share-btn" onclick="shareCineFindApp()">Share Now →</button>
       </div>
-      <button class="promo-close">✕</button>
+      <button class="promo-close" onclick="dismissCineFindPromo()" aria-label="Dismiss">✕</button>
     </div>
   </div>
 
@@ -5310,7 +5314,7 @@ function renderSourceDetailScreen() {
     if (typeof rawMs === 'number') {
       const pct = Math.max(4, Math.min(100, 100 - ((rawMs - 500) / (4000 - 500)) * 100));
       loadBarEl.style.width = `${pct}%`;
-      loadBarEl.style.background = speed === 'fast' ? '#1a9e4a' : speed === 'slow' ? 'var(--gold)' : 'var(--text-muted)';
+      loadBarEl.style.background = speed === 'fast' ? 'var(--green)' : speed === 'slow' ? 'var(--gold)' : 'var(--text-muted)';
     } else {
       loadBarEl.style.width = '0%';
     }
@@ -5897,18 +5901,31 @@ function confirmOutboundLink(siteName, url, status) {
   const statusColor = statusDotColor(status) || 'var(--text-muted)';
   const statusLabel = statusShortLabel(status) || 'Status unknown';
 
+  // Same site lookup as the row templates — gives this modal the site's
+  // own brand mark/color instead of one generic icon for every site, so
+  // it visually confirms *which* site you're about to land on, not just
+  // that you're leaving CineFind.
+  const normName = normalizeSiteName(siteName);
+  const dirMatch = SITES_DIRECTORY.find(d => normalizeSiteName(d.name) === normName)
+    || SITES_DIRECTORY.find(d => normName.includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normName));
+  const siteAccent = dirMatch ? getSourceAccentColor(dirMatch) : '#e2242f';
+  const siteGlow = glowRgba(siteAccent, 0.35);
+  const iconHtml = dirMatch
+    ? sourceRowLogoHtml(dirMatch)
+    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>`;
+
   const overlay = document.createElement('div');
   overlay.id = 'outbound-modal-overlay';
   overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px;';
   overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
   overlay.innerHTML = `
-    <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; max-width:320px; width:100%;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; max-width:320px; width:100%; box-shadow:var(--shadow-float);">
       <div style="display:flex; justify-content:center; margin-bottom:14px;">
-        <div style="width:44px;height:44px;border-radius:12px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+        <div style="width:52px;height:52px;border-radius:14px;background:${siteAccent};display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 4px 14px ${siteGlow};">
+          ${iconHtml}
         </div>
       </div>
-      <div style="text-align:center; font-weight:800; font-size:var(--fs-lg); margin-bottom:4px;">Leaving CineFind</div>
+      <div style="text-align:center; font-weight:800; font-size:var(--fs-xl); margin-bottom:4px;">Leaving CineFind</div>
       <div style="text-align:center; font-size:var(--fs-base); color:var(--text-muted); line-height:1.6; margin-bottom:14px;">You're about to open <strong style="color:var(--text);">${escapeAttr(siteName)}</strong>${movieTitle ? ` to watch <strong style="color:var(--text);">${escapeAttr(movieTitle)}</strong>` : ''}.</div>
       <div style="background:var(--surface-2); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:8px; margin-bottom:14px;">
         <span style="width:8px;height:8px;border-radius:50%;background:${statusColor};flex-shrink:0;"></span>
@@ -5916,7 +5933,7 @@ function confirmOutboundLink(siteName, url, status) {
       </div>
       <div style="font-size:var(--fs-2xs); color:var(--text-muted); line-height:1.6; margin-bottom:18px;">CineFind does not host or control this content. We only help you find where to watch.</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <button style="width:100%; background:var(--accent); color:#fff; border:none; border-radius:10px; padding:12px; font-size:var(--fs-md); font-weight:700; cursor:pointer;" onclick="proceedOutboundLink('${escapeAttr(siteName)}', '${escapeAttr(url)}')">Continue to ${escapeAttr(siteName)}</button>
+        <button style="width:100%; background:var(--accent); color:#fff; border:none; border-radius:10px; padding:12px; font-size:var(--fs-md); font-weight:700; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,.18);" onclick="proceedOutboundLink('${escapeAttr(siteName)}', '${escapeAttr(url)}')">Continue to ${escapeAttr(siteName)}</button>
         <button style="width:100%; background:none; border:1px solid var(--border); border-radius:10px; padding:12px; font-size:var(--fs-md); font-weight:700; color:var(--text-muted); cursor:pointer;" onclick="document.getElementById('outbound-modal-overlay').remove()">Cancel</button>
       </div>
       <label style="display:flex; align-items:center; justify-content:center; gap:6px; margin-top:14px; font-size:var(--fs-2xs); color:var(--text-muted); cursor:pointer;">
@@ -5956,6 +5973,36 @@ function shareTitle() {
     const btn = event?.currentTarget;
     if (btn) { const old = btn.title; btn.title = 'Link copied!'; setTimeout(() => btn.title = old, 1500); }
   }).catch(() => {});
+}
+
+// "Love CineFind?" promo banner on the Profile screen — same
+// share-with-fallback pattern as shareTitle(), and the same
+// dismiss-and-remember pattern as the iOS install banner above.
+function shareCineFindApp() {
+  const shareData = { title: 'CineFind', text: 'Find where to watch anything, instantly — check out CineFind!', url: location.origin + location.pathname };
+  if (navigator.share) { navigator.share(shareData).catch(() => {}); return; }
+  navigator.clipboard?.writeText(shareData.url).then(() => {
+    const btn = event?.currentTarget;
+    if (!btn) return;
+    const old = btn.textContent;
+    btn.textContent = 'Link copied!';
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  }).catch(() => {});
+}
+
+function dismissCineFindPromo() {
+  localStorage.setItem('cinefind-promo-dismissed', '1');
+  const el = document.getElementById('cinefind-promo-banner');
+  if (el) el.remove();
+}
+
+// Called once on startup — the banner is static markup (unlike the
+// iOS install banner, which is only ever created via JS), so a prior
+// dismissal needs to remove it after the fact rather than skip creating it.
+function hideCineFindPromoIfDismissed() {
+  if (!localStorage.getItem('cinefind-promo-dismissed')) return;
+  const el = document.getElementById('cinefind-promo-banner');
+  if (el) el.remove();
 }
 
 function openRequestSourceModal() {
@@ -6749,7 +6796,7 @@ function renderSitesDirectory() {
       const logo = sourceRowLogoHtml(s);
       return `
       <div class="source-row" data-site-name="${escapeAttr(s.name)}">
-        <div class="source-logo" style="padding:0;overflow:hidden;">${logo}</div>
+        <div class="source-logo" role="button" tabindex="0" aria-label="Open ${escapeAttr(s.name)}" style="padding:0;overflow:hidden;cursor:pointer;" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '${status || ''}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">${logo}</div>
         <div class="source-info">
           <div class="name">${s.name}</div>
           <div class="status-line" title="${escapeAttr(statusDotLabel(status) || '')}">${statusIconSvg(status)}<span style="color:${statusColor};">${statusLabel}</span></div>
@@ -7076,6 +7123,7 @@ window.addEventListener('load', () => {
   checkAdminAccess();
   showOnboardingIfNeeded();
   showIosInstallBannerIfNeeded();
+  hideCineFindPromoIfDismissed();
   updateOfflineBanner();
   const yearEl = document.getElementById('footer-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
@@ -8937,7 +8985,7 @@ async function testLink() {
       const fallbackBg = site ? '' : 'background:#555;';
       const lastUsed = getSiteLastUsed(name);
       const lastUsedLabel = lastUsed ? `Used ${formatRelativeTimeBare(lastUsed)}` : 'Not used yet';
-      return `<div class="profile-fav-item"><div class="profile-fav-logo" style="${fallbackBg}">${logoInner}</div><div class="lbl">${escapeAttr(name)}</div><div class="last-used">${escapeAttr(lastUsedLabel)}</div></div>`;
+      return `<div class="profile-fav-item"><div class="profile-fav-logo" role="button" tabindex="0" aria-label="Open ${escapeAttr(name)}" style="${fallbackBg}${site ? 'cursor:pointer;' : ''}" ${site ? `onclick="confirmOutboundLink('${escapeAttr(name).replace(/'/g, "\\'")}', '${escapeAttr(site.url)}', '')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}"` : ''}>${logoInner}</div><div class="lbl">${escapeAttr(name)}</div><div class="last-used">${escapeAttr(lastUsedLabel)}</div></div>`;
     }).join('');
   }
 
@@ -9123,7 +9171,7 @@ async function testLink() {
     const btnClass = idx === 0 ? 'watch-btn' : 'watch-btn watch-btn-secondary';
     return `
       <div class="source-row">
-        <div class="source-logo" style="width:56px;height:56px;padding:0;overflow:hidden;box-shadow:0 3px 10px ${glow}, 0 1px 3px rgba(0,0,0,.10);">${logo}</div>
+        <div class="source-logo" role="button" tabindex="0" aria-label="Open ${escapeAttr(site.name)}" style="width:56px;height:56px;padding:0;overflow:hidden;box-shadow:0 3px 10px ${glow}, 0 1px 3px rgba(0,0,0,.10);cursor:pointer;" onclick="confirmOutboundLink('${site.name.replace(/'/g, "\\'")}', '${site.url}', '${status || ''}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">${logo}</div>
         <div class="source-info">
           <div class="name">${site.name}</div>
           <div class="status-line" title="${escapeAttr(statusDotLabel(status) || '')}">${statusIconSvg(status)}<span style="color:${statusColor};">${statusLabel}</span></div>
