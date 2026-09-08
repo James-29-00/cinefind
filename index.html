@@ -221,8 +221,7 @@
   .theme-toggle-btn .icon-moon { display: none; }
   body.dark .theme-toggle-btn .icon-sun { display: none; }
   body.dark .theme-toggle-btn .icon-moon { display: block; }
-  .cinefind-empty-logo { mix-blend-mode: multiply; }
-  body.dark .cinefind-empty-logo { mix-blend-mode: screen; }
+  .cinefind-empty-logo { display: block; width: min(112px,32vw); height: auto; max-height: 112px; object-fit: contain; margin: 0 auto 18px; }
   .home-tagline {
     margin: 2px 0 var(--space-lg);
     padding: 0 var(--space-xl);
@@ -565,12 +564,12 @@
     width: 22px; height: 22px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,.3);
+    box-shadow: 0 2px 6px rgba(0,0,0,.3), 0 0 0 2px rgba(255,255,255,.18);
   }
   .poster-rating-badge {
     position: absolute;
     z-index: 2;
-    top: 8px; right: 8px;
+    top: 11px; right: 8px;
     display: flex; align-items: center; gap: 3px;
     background: rgba(20,20,22,0.55);
     backdrop-filter: blur(6px);
@@ -604,6 +603,12 @@
     background: rgba(255,255,255,0.92);
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 4px 12px rgba(0,0,0,.35);
+    transform: scale(.85);
+    transition: transform .18s ease;
+  }
+  .trending-card:hover .poster-play-overlay span,
+  .trending-card:active .poster-play-overlay span {
+    transform: scale(1);
   }
   .poster-play-overlay svg { width: 13px; height: 13px; color: #16161a; margin-left: 2px; }
 
@@ -1836,7 +1841,20 @@
     aspect-ratio: 2/3;
   }
   .results-grid .result-info { padding-top: var(--space-sm); }
-  #similar-grid.results-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Matches .trending-row's own padding (6px 6px 12px) and gap
+     (column: --space-lg, row: --space-xl) exactly, rather than inheriting
+     .detail-body's larger 20px side padding + .results-grid's smaller
+     --space-md gap — those two different padding/gap recipes were
+     producing cards ~12px narrower here than in Trending Now despite both
+     being 2-column grids. Negative margin cancels out .detail-body's
+     padding so this grid's own padding is the only one that applies. */
+  #similar-grid.results-grid {
+    grid-template-columns: repeat(2, 1fr);
+    margin-left: calc(-1 * var(--space-xl));
+    margin-right: calc(-1 * var(--space-xl));
+    padding: 6px 6px 12px;
+    gap: var(--space-xl) var(--space-lg);
+  }
   /* "You might also like" uses this same .results-grid / .result-card
      (stacked info below poster) as search results — better legibility
      across arbitrary poster art than the overlay style, which is now
@@ -6978,10 +6996,15 @@ function renderSearchEmptyState() {
   hideFiltersBar();
   document.getElementById('result-area').innerHTML = `
     <div class="cinefind-empty-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:32px 28px 0; color:var(--muted); min-height:460px; box-sizing:border-box;">
-      <img src="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-light="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-dark="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-dark.png" alt="CineFind fox detective logo" class="cinefind-empty-logo" style="display:block; width:min(112px,32vw); height:auto; max-height:112px; object-fit:contain; margin:0 auto 18px;">
+      <img src="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-light="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-dark="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-dark.png" alt="CineFind fox detective logo" class="cinefind-empty-logo">
       <div style="font-size:1.2rem; line-height:1.35; font-weight:700; color:var(--text); max-width:270px; margin:0 auto; letter-spacing:-0.01em;">You haven't searched for anything <span style="color:#e8394a;">yet.</span></div>
       <div style="font-size:0.92rem; line-height:1.45; font-weight:500; color:var(--muted); max-width:260px; margin:10px auto 0;">Try a movie, drama, or actor above.</div>
     </div>`;
+  // Every call here (Search/Explore reopened, tab switches, etc.) rebuilds
+  // this markup from scratch, which resets the <img> to its light-mode
+  // src= — re-sync immediately after so it reflects the theme that's
+  // actually active right now instead of only matching on first load.
+  if (typeof syncEmptyStateLogo === 'function') syncEmptyStateLogo();
 }
 
 function renderHomepage() {
@@ -9314,7 +9337,7 @@ async function testLink() {
           <span class="rank-badge">${i + 1}</span>
           <span class="poster-rating-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${t.rating}</span>
           <span class="poster-play-overlay"><span><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg></span></span>
-          <span class="poster-title-overlay">${escapeAttr(t.title)}</span>
+          <span class="poster-title-overlay">${escapeAttr(t.title)} <span style="opacity:.75; font-weight:400;">· ${t.mediaType === 'tv' ? 'TV Series' : 'Movie'}</span></span>
         </div>
       </div>
     `).join('');
