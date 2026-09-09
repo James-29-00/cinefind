@@ -394,7 +394,7 @@
   .search-bar .mic-btn svg { width: 19px; height: 19px; }
   .search-go {
     align-self: center;
-    background: #ed0b14;
+    background: var(--accent);
     border: none;
     width: 72px;
     height: 72px;
@@ -673,7 +673,11 @@
     border-radius: var(--radius);
     box-shadow: var(--shadow-float);
     background-size: cover;
-    background-position: center;
+    /* Biased toward the upper half rather than dead-center — poster
+       subjects/faces are usually framed in the top ~60% of the art, so a
+       true center crop was cutting through faces on tightly-composed
+       posters (e.g. character close-ups). */
+    background-position: center 25%;
     position: relative;
     overflow: hidden;
     transition: transform .18s ease, box-shadow .18s ease;
@@ -688,15 +692,20 @@
     inset: 0;
     background-image: inherit;
     background-size: cover;
-    background-position: center;
+    background-position: center 25%;
     filter: saturate(1.3) brightness(0.85);
   }
+  /* Two-stop gradient (vs. the old single black->transparent) holds a
+     legible floor of darkness across the whole lower third instead of
+     fading out linearly — on a bright poster (e.g. a mostly-white/pale
+     background) the old gradient thinned out enough by mid-height that
+     white title text nearly disappeared into it. */
   .trending-poster::after {
     content: "";
     position: absolute;
     left: 0; right: 0; bottom: 0;
-    height: 60%;
-    background: linear-gradient(to top, rgba(0,0,0,0.88), transparent);
+    height: 68%;
+    background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.92) 18%, rgba(0,0,0,0.55) 45%, transparent 100%);
   }
   .poster-title-overlay {
     position: absolute;
@@ -707,7 +716,7 @@
     font-weight: 600;
     line-height: 1.25;
     max-height: calc(1.25em * 2);
-    text-shadow: 0 1px 3px rgba(0,0,0,.4);
+    text-shadow: 0 1px 3px rgba(0,0,0,.6), 0 1px 6px rgba(0,0,0,.5);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -716,7 +725,7 @@
   .rank-badge { z-index: 2; }
   .rank-badge {
     position: absolute;
-    top: 8px; left: 8px;
+    top: 10px; left: 10px;
     background: var(--accent);
     color: #fff;
     font-size:var(--fs-xs);
@@ -724,14 +733,18 @@
     width: 22px; height: 22px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,.3), 0 0 0 2px rgba(255,255,255,.18);
+    /* Ring bumped from rgba(255,255,255,.18) to .55 — against a dark or
+       similarly-hued poster (e.g. a dark green background) the old ring
+       was nearly invisible, so the badge edge blended into the art
+       instead of reading as a distinct control. */
+    box-shadow: 0 2px 6px rgba(0,0,0,.35), 0 0 0 2px rgba(255,255,255,.55);
   }
   .poster-rating-badge {
     position: absolute;
     z-index: 2;
-    top: 11px; right: 8px;
+    top: 10px; right: 10px;
     display: flex; align-items: center; gap: 3px;
-    background: rgba(20,20,22,0.55);
+    background: rgba(20,20,22,0.7);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     color: #fff;
@@ -2017,10 +2030,26 @@
     display: flex; align-items: center; justify-content: center;
   }
   #back-to-top-btn {
-    display: none; position: fixed; right: 20px; bottom: 100px; z-index: 60;
+    display: flex; position: fixed; right: 20px; bottom: 100px; z-index: 60;
     width: 46px; height: 46px; border-radius: 50%; border: none;
     background: var(--accent); color: #fff; align-items: center; justify-content: center;
     cursor: pointer; box-shadow: var(--shadow-float);
+    /* Fades and steps out of the tap path instead of the old hard
+       display:none/flex toggle — that snapped in/out abruptly and stayed
+       fully opaque even when it was sitting on top of the last row of
+       cards near the bottom of a page. */
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  #back-to-top-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  #back-to-top-btn.near-bottom {
+    opacity: .35;
   }
   .tips-box {
     margin-top: var(--space-lg); padding: 11px var(--space-md);
@@ -2134,23 +2163,32 @@
     aspect-ratio: 2/3;
   }
   .results-grid .result-info { padding-top: var(--space-sm); }
-  /* Matches .trending-row's own padding (6px 6px 12px) and gap
-     (column: --space-lg, row: --space-xl) exactly, rather than inheriting
-     .detail-body's larger 20px side padding + .results-grid's smaller
-     --space-md gap — those two different padding/gap recipes were
-     producing cards ~12px narrower here than in Trending Now despite both
-     being 2-column grids. Negative margin cancels out .detail-body's
-     padding so this grid's own padding is the only one that applies. */
-  #similar-grid.trending-row {
-    margin-left: calc(-1 * var(--space-xl));
-    margin-right: calc(-1 * var(--space-xl));
-  }
+  /* #similar-grid already uses the plain .trending-row class (same as
+     Home's "Trending Now" row), so it inherits the exact same padding
+     (6px 6px 12px) and gap recipe on its own — no extra override needed.
+     A stale negative-margin hack used to live here, left from when this
+     grid used a different class; it canceled out .detail-body's 20px
+     side padding entirely, leaving cards with only ~6px of inset instead
+     of the ~26px (.detail-body's 20px + trending-row's own 6px) that
+     Home's cards sit at — making "You might also like" cards visibly
+     wider and shifted left compared to Trending Now. Removed so both
+     rows now share the same margins, position, and card size. */
   /* "You might also like" now shares Trending Now's overlay-card style
      (.trending-card/.trending-poster) — unified card language across
      both sections, no rank badge here since these aren't ranked. */
   .trending-poster { aspect-ratio: 2/3; }
+  /* Shared pill style for every "Show more" control in the app (Trending
+     Now, Where to Watch, You might also like). Previously only the
+     similar-titles grid used this pill — Home's two "Show more" buttons
+     were plain text links with no visible affordance and a sub-44px tap
+     target. .similar-show-more-btn is kept as an alias so existing call
+     sites (renderSimilarCards) don't need to change. */
+  .show-more-pill,
   .similar-show-more-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
     margin: 4px auto 4px;
     padding: 10px 24px;
     border-radius: 20px;
@@ -2164,7 +2202,9 @@
     text-align: center;
     transition: background .15s ease, transform .1s ease;
   }
+  .show-more-pill:hover,
   .similar-show-more-btn:hover { background: var(--surface-2); }
+  .show-more-pill:active,
   .similar-show-more-btn:active { background: var(--surface-2); transform: scale(0.98); }
   .poster-shimmer {
     background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
@@ -2317,7 +2357,7 @@
   #screen-home .search-go {
     width: 42px; height: 42px; min-width: 42px; flex: 0 0 42px;
     border-radius: 14px; margin: 0 8px 0 0;
-    box-shadow: 0 2px 4px rgba(180,10,17,.30);
+    box-shadow: 0 2px 4px rgba(var(--bg-glow-rgb),.35);
   }
   #screen-home .search-go svg { width: 17px; height: 17px; }
 
@@ -2407,15 +2447,20 @@
            be 5 hardcoded rows (KissKH/MovieBox/Dulo/Miuro/DramaCool) with no
            href/onclick at all, so nothing here ever actually opened a site. -->
       <div id="home-sources-list"></div>
-      <button id="home-sources-showmore" style="cursor:pointer; display:block; margin:10px auto 0; background:none; border:none; font-size:var(--fs-sm); color:var(--text-muted); font-family:inherit;">Show more</button>
+      <button id="home-sources-showmore" class="show-more-pill" style="margin-top:14px;">Show more</button>
     </div>
 
     <div class="section">
       <div class="section-head">
         <div><span class="section-eyebrow">Popular</span><h2>Trending Now</h2></div>
       </div>
-      <div class="trending-row" id="home-trending-row"></div>
-      <button id="home-trending-showmore" onclick="toggleHomeTrendingExpanded()" style="cursor:pointer; display:block; margin:10px auto 0; background:none; border:none; font-size:var(--fs-sm); color:var(--text-muted); font-family:inherit;">Show more</button>
+      <div class="trending-row" id="home-trending-row" aria-hidden="true">
+        <div class="poster-shimmer" style="aspect-ratio:108/150; border-radius:var(--radius);"></div>
+        <div class="poster-shimmer" style="aspect-ratio:108/150; border-radius:var(--radius);"></div>
+        <div class="poster-shimmer" style="aspect-ratio:108/150; border-radius:var(--radius);"></div>
+        <div class="poster-shimmer" style="aspect-ratio:108/150; border-radius:var(--radius);"></div>
+      </div>
+      <button id="home-trending-showmore" class="show-more-pill" style="margin-top:6px;" onclick="toggleHomeTrendingExpanded()">Show more</button>
     </div>
 
   </div>
@@ -4662,8 +4707,21 @@ function startVoiceSearch() {
     input.value = transcript;
     searchMovie();
   };
-  recognition.onerror = () => {
+  recognition.onerror = (event) => {
     if (micBtn) { micBtn.style.color = ''; micBtn.setAttribute('aria-label', 'Search by voice'); }
+    // Different failures need different messages — "permission denied" is
+    // an actionable fix (check phone/browser mic settings), while every
+    // other case (no speech heard, network drop, browser/context doesn't
+    // actually support it despite the button showing) just needs to tell
+    // the person to type instead rather than leave them guessing why
+    // nothing happened.
+    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      showToast('Mic access blocked — check your browser/site permissions');
+    } else if (event.error === 'no-speech') {
+      showToast("Didn't catch that — try again or type instead");
+    } else {
+      showToast('Voice search unavailable — try typing instead');
+    }
   };
   recognition.onend = () => {
     if (micBtn) { micBtn.style.color = ''; micBtn.setAttribute('aria-label', 'Search by voice'); }
@@ -4671,6 +4729,7 @@ function startVoiceSearch() {
 
   try { recognition.start(); } catch (e) {
     if (micBtn) { micBtn.style.color = ''; }
+    showToast('Voice search unavailable — try typing instead');
   }
 }
 
@@ -5878,7 +5937,9 @@ function renderResult(data, query) {
     </div>
 
     ${data.id ? `
-      <div class="section-label" style="margin-top:var(--space-lg);">You might also like</div>
+      <div class="section-head" style="margin-top:var(--space-lg);">
+        <div><span class="section-eyebrow">Recommended</span><h2>You might also like</h2></div>
+      </div>
       <div class="trending-row" id="similar-grid" aria-hidden="true">
         ${Array(6).fill('<div class="poster-shimmer" style="aspect-ratio:2/3; border-radius:var(--radius);"></div>').join('')}
       </div>` : ''}
@@ -5983,6 +6044,7 @@ function loadSimilar(movie) {
       similarResults = results;
       const grid = document.getElementById('similar-grid');
       if (!grid) return; // user may have navigated away already
+      grid.removeAttribute('aria-hidden');
 
       if (results.length === 0) {
         grid.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">No recommendations found for this title.</p>`;
@@ -5993,7 +6055,10 @@ function loadSimilar(movie) {
     })
     .catch(() => {
       const grid = document.getElementById('similar-grid');
-      if (grid) grid.innerHTML = `<p class="inline-error" style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">Couldn't load recommendations right now.</p>`;
+      if (grid) {
+        grid.removeAttribute('aria-hidden');
+        grid.innerHTML = `<p class="inline-error" style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">Couldn't load recommendations right now.</p>`;
+      }
     });
 }
 
@@ -6009,8 +6074,8 @@ function renderSimilarCards(showAll) {
     <div class="trending-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="cursor:pointer; animation-delay:${i * 0.05}s">
       <div class="trending-poster" style="${m.poster ? `background-image:url('${m.poster}');` : ''}">
         ${!m.poster ? `<span class="poster-fallback" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:28px;">${m.type === 'series' ? '📺' : '🎬'}</span>` : ''}
-        ${m.rating ? `<span class="poster-rating-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${m.rating}</span>` : ''}
-        <span class="poster-title-overlay">${escapeAttr(m.title)} <span style="opacity:.75; font-weight:400;">· ${m.type === 'series' ? 'TV Series' : 'Movie'}</span></span>
+        ${m.rating ? `<span class="poster-rating-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${m.rating}</span>` : ''}
+        <span class="poster-title-overlay" aria-hidden="true">${escapeAttr(m.title)} <span style="opacity:.75; font-weight:400;">· ${m.type === 'series' ? 'TV Series' : 'Movie'}</span></span>
       </div>
     </div>`).join('');
   grid.innerHTML = cardsHtml;
@@ -7420,7 +7485,14 @@ window.addEventListener('scroll', () => {
   backToTopTicking = true;
   requestAnimationFrame(() => {
     const btn = document.getElementById('back-to-top-btn');
-    if (btn) btn.style.display = window.scrollY > 600 ? 'flex' : 'none';
+    if (btn) {
+      btn.classList.toggle('visible', window.scrollY > 600);
+      // Within ~180px of the bottom of the page — roughly where a
+      // section's final row of cards sits — recede the button rather
+      // than let it float at full opacity over that content.
+      const distanceFromBottom = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+      btn.classList.toggle('near-bottom', distanceFromBottom < 180);
+    }
     backToTopTicking = false;
   });
 }, { passive: true });
@@ -9502,14 +9574,26 @@ async function testLink() {
       return;
     }
 
+    row.removeAttribute('aria-hidden');
+
+    if (homeTrendingData.length === 0) {
+      // Explicit empty state rather than leaving the shimmer skeleton (or a
+      // blank grid) up indefinitely if the trending fetch came back with
+      // nothing usable.
+      row.innerHTML = `<p class="inline-error" style="grid-column:1/-1; color:var(--text-muted); font-size:var(--fs-sm); padding:8px 0;">Couldn't load trending titles right now.</p>`;
+      const showMoreBtnEmpty = document.getElementById('home-trending-showmore');
+      if (showMoreBtnEmpty) showMoreBtnEmpty.style.display = 'none';
+      return;
+    }
+
     const list = homeTrendingExpanded ? homeTrendingData : homeTrendingData.slice(0, HOME_TRENDING_COLLAPSED_COUNT);
     row.innerHTML = list.map((t, i) => `
-      <div class="trending-card" onclick="selectSuggestion('${escapeAttr(t.title)}')" style="cursor:pointer;">
+      <div class="trending-card" role="button" tabindex="0" aria-label="Ranked number ${i + 1}, ${escapeAttr(t.title)}, rated ${t.rating} out of 10" onclick="selectSuggestion('${escapeAttr(t.title)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSuggestion('${escapeAttr(t.title)}')}" style="cursor:pointer;">
         <div class="trending-poster" style="background-image:url('${t.poster}');">
-          <span class="rank-badge">${i + 1}</span>
-          <span class="poster-rating-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${t.rating}</span>
+          <span class="rank-badge" aria-hidden="true">${i + 1}</span>
+          <span class="poster-rating-badge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${t.rating}</span>
           <span class="poster-play-overlay"><span><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg></span></span>
-          <span class="poster-title-overlay">${escapeAttr(t.title)} <span style="opacity:.75; font-weight:400;">· ${t.mediaType === 'tv' ? 'TV Series' : 'Movie'}</span></span>
+          <span class="poster-title-overlay" aria-hidden="true">${escapeAttr(t.title)} <span style="opacity:.75; font-weight:400;">· ${t.mediaType === 'tv' ? 'TV Series' : 'Movie'}</span></span>
         </div>
       </div>
     `).join('');
@@ -9517,7 +9601,7 @@ async function testLink() {
     const showMoreBtn = document.getElementById('home-trending-showmore');
     if (showMoreBtn) {
       showMoreBtn.textContent = homeTrendingExpanded ? 'Show less' : 'Show more';
-      showMoreBtn.style.display = homeTrendingData.length > HOME_TRENDING_COLLAPSED_COUNT ? 'block' : 'none';
+      showMoreBtn.style.display = homeTrendingData.length > HOME_TRENDING_COLLAPSED_COUNT ? 'flex' : 'none';
     }
   }
 
@@ -9553,7 +9637,7 @@ async function testLink() {
         if (allSites.length <= HOME_SOURCES_VISIBLE) {
           showMoreBtn.style.display = 'none';
         } else {
-          showMoreBtn.style.display = 'block';
+          showMoreBtn.style.display = 'flex';
           showMoreBtn.textContent = homeSourcesExpanded ? 'Show less' : 'Show more';
         }
       }
