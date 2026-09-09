@@ -11,8 +11,8 @@
 <meta property="og:site_name" content="CineFind">
 <meta property="og:title" content="CineFind — Movie & Show Search">
 <meta property="og:description" content="Find where to watch any movie, drama, or anime across streaming platforms.">
-<meta property="og:url" content="https://james-29-00.github.io/cinefind/">
-<meta property="og:image" content="https://james-29-00.github.io/cinefind/og-image.png">
+<meta property="og:url" content="https://mycinefind.vercel.app/">
+<meta property="og:image" content="https://mycinefind.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 
@@ -20,7 +20,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="CineFind — Movie & Show Search">
 <meta name="twitter:description" content="Find where to watch any movie, drama, or anime across streaming platforms.">
-<meta name="twitter:image" content="https://james-29-00.github.io/cinefind/og-image.png">
+<meta name="twitter:image" content="https://mycinefind.vercel.app/og-image.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6300,7 +6300,7 @@ function shareTitle() {
 // share-with-fallback pattern as shareTitle(), and the same
 // dismiss-and-remember pattern as the iOS install banner above.
 function shareCineFindApp() {
-  const shareData = { title: 'CineFind', text: 'Find where to watch anything, instantly — check out CineFind!', url: location.origin + location.pathname };
+  const shareData = { title: 'CineFind', text: 'check out CineFind 🎬', url: location.origin + location.pathname };
   if (navigator.share) { navigator.share(shareData).catch(() => {}); return; }
   navigator.clipboard?.writeText(shareData.url).then(() => {
     const btn = event?.currentTarget;
