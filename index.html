@@ -6300,7 +6300,7 @@ function shareTitle() {
 // share-with-fallback pattern as shareTitle(), and the same
 // dismiss-and-remember pattern as the iOS install banner above.
 function shareCineFindApp() {
-  const shareData = { title: 'CineFind', text: 'check out CineFind 🎬', url: location.origin + location.pathname };
+  const shareData = { url: 'https://mycinefind.vercel.app/' };
   if (navigator.share) { navigator.share(shareData).catch(() => {}); return; }
   navigator.clipboard?.writeText(shareData.url).then(() => {
     const btn = event?.currentTarget;
