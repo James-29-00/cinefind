@@ -37,6 +37,15 @@
     --accent: #e2242f;
     --accent-dim: #fbe0e1;
     --gold: #d99a00;
+    /* Semantic state colors — destructive/success actions were borrowing
+       --accent (brand red) or one-off inline hex values (e.g. #e63946 on
+       the Favorites "Remove" button), so a delete action looked no
+       different from any other red UI element, and successful/positive
+       states had no color of their own at all. */
+    --danger: #d92d3f;
+    --danger-dim: #fce4e6;
+    --success: #06d6a0;
+    --success-dim: #e1faf3;
     --radius: 14px;
     --radius-sm: 10px;
     --shadow-card: 0 1px 1px rgba(0,0,0,.04), 0 3px 6px rgba(0,0,0,.05), 0 10px 20px rgba(0,0,0,.05);
@@ -46,10 +55,16 @@
 
     /* Type scale: consolidates the old ad-hoc .5px sizes (11.5, 12.5, 13.5,
        14.5, 15.5px etc) into a fixed set of steps so text sizes are always
-       intentional, never one-off. Body copy sits on the 13/14px pair. */
-    --fs-2xs: 10px;
+       intentional, never one-off. Body copy sits on the 13/14px pair.
+       --fs-2xs/--fs-xs and --fs-sm/--fs-base were originally 4 separate
+       1px-apart values (10/11/12/13) that were nearly indistinguishable
+       from each other in practice — barely a perceptible size difference,
+       so text meant to look "smaller" often didn't read as smaller at
+       all. Collapsed to 2 real steps; token names are unchanged so every
+       existing var(--fs-*) call site updates automatically. */
+    --fs-2xs: 11px;
     --fs-xs: 11px;
-    --fs-sm: 12px;
+    --fs-sm: 13px;
     --fs-base: 13px;
     --fs-md: 14px;
     --fs-lg: 16px;
@@ -104,6 +119,10 @@
     --accent: #ff3b44;
     --accent-dim: #3a1418;
     --gold: #e8b23d;
+    --danger: #ff4d5e;
+    --danger-dim: #3a161a;
+    --success: #06d6a0;
+    --success-dim: #0f2a20;
     --accent2: #ff7a4a;
     --bg-glow-rgb: 255, 59, 68;
     --info-highlight: #8f9dff;
@@ -113,6 +132,62 @@
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  /* Baseline press feedback for every button/tappable element. Needed
+     because -webkit-tap-highlight-color above kills the native tap
+     flash, and most buttons in this file (watch-now-cta-btn, delete/
+     remove actions, theme-toggle, chips, tab bar, etc.) never defined
+     their own :active state — without this they give zero visual
+     response to a tap. Scoped to button, [role="button"] and .btn-like
+     custom elements rather than `a` globally, so plain text links don't
+     get an unwanted press-scale. Elements with their own more specific
+     :active rule (site-card, pin-icon, search-go, etc.) override this
+     automatically since a class selector beats a bare element selector. */
+  button:not(:disabled),
+  [role="button"] {
+    transition: transform .1s ease, filter .1s ease, opacity .1s ease;
+  }
+  button:not(:disabled):active,
+  [role="button"]:active {
+    transform: scale(.96);
+    filter: brightness(.94);
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+    /* Loading spinners communicate real state (a fetch is in progress),
+       not decoration — freezing them at 0.001ms would look like the app
+       hung rather than respecting the user's motion preference, so let
+       these keep spinning. */
+    .spin, .shimmer, [class*="shimmer"] {
+      animation-duration: .8s !important;
+      animation-iteration-count: infinite !important;
+    }
+  }
+
+  /* Keyboard/assistive-tech focus indicator. Covers native interactive
+     elements plus the custom role="button"/tabindex="0" cards used
+     throughout (trending-card, result-card, chip, pop-chip, etc.) since
+     those don't get a native outline at all without this. Only shows for
+     keyboard focus (:focus-visible), not mouse/touch taps, so it doesn't
+     add a ring on every card press. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
 
   body {
     margin: 0;
@@ -222,6 +297,15 @@
   body.dark .theme-toggle-btn .icon-sun { display: none; }
   body.dark .theme-toggle-btn .icon-moon { display: block; }
   .cinefind-empty-logo { display: block; width: min(112px,32vw); height: auto; max-height: 112px; object-fit: contain; margin: 0 auto 18px; }
+  /* The Search tab's blank "you haven't searched yet" landing (rendered by
+     renderSearchEmptyState()) had no motion of its own — it only looked
+     animated when reached via a tab switch, because .screen.active's
+     screenFadeIn happens to cover whatever's inside it. Calls that
+     re-render this state without a screen transition (e.g. clearing a
+     search while already on this screen) had it pop in instantly. Gives
+     it the same subtle treatment as .empty/.dir-grid cards, just faster
+     since this is a low-key landing state, not a result appearing. */
+  .cinefind-empty-state { animation: screenFadeIn .18s ease backwards; }
   .home-tagline {
     margin: 2px 0 var(--space-lg);
     padding: 0 var(--space-xl);
@@ -253,6 +337,18 @@
     border-color: var(--surface-2);
     box-shadow: none;
     border-radius: 12px;
+  }
+  /* The Home screen's search bar (#screen-home .search-bar:focus-within,
+     below) already gets a clear accent ring on keyboard/tap focus — this
+     is the Search tab's own search bar, which had no matching rule, so
+     typing into arguably the most-used input in the app gave zero visible
+     focus feedback (the plain input's own outline is intentionally
+     suppressed below in favor of styling the whole pill instead). Already
+     built entirely from --surface-2/--accent tokens, so one rule adapts
+     to both themes without a separate body.dark override. */
+  .search-header .search-bar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
   }
   .search-bar > svg.search-lead-icon {
     width: 20px;
@@ -411,9 +507,58 @@
     border: 1px solid var(--border);
     white-space: nowrap;
     cursor: pointer;
-    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
+    transition: transform .25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
   }
   .chip.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 2px 6px rgba(var(--bg-glow-rgb),.35);
+    transform: translateY(-1px) scale(1.04);
+  }
+
+  /* ===== Free Websites category filter chips (.pill-scroll-wrap /
+     .pill-container / .genre-pill / .dual-gradient-pill) =====
+     Same bug as .dir-grid/.popular-label/.safety-tip elsewhere in this
+     file: buildCard's sibling markup (renderHomepage's dir-filter-chips)
+     references these classes with zero matching CSS anywhere, so "All /
+     Movie / Asian Drama / Anime / Pinoy" rendered as bare unstyled
+     <button> elements. Same label set and single-select radio behavior
+     as the Home screen's .chip-row/.chip, so this reuses that exact
+     pattern rather than guessing at a gradient for "dual-gradient-pill" —
+     nothing else in the file gives any evidence of what that gradient
+     was meant to look like. */
+  .pill-scroll-wrap {
+    display: flex;
+    overflow-x: auto;
+    padding: 6px 6px 8px;
+    margin: -6px -6px 0;
+    scrollbar-width: none;
+  }
+  .pill-scroll-wrap::-webkit-scrollbar { display: none; }
+  .pill-container {
+    display: flex;
+    gap: var(--space-sm);
+  }
+  .genre-pill {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: 20px;
+    font-size: var(--fs-base);
+    font-weight: 500;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform .25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
+  }
+  .genre-pill.active {
     background: var(--accent);
     color: #fff;
     border-color: var(--accent);
@@ -429,6 +574,16 @@
     border-bottom: 1px solid var(--border);
   }
   .source-row:last-child { border-bottom: none; }
+  /* Home screen's "Where to Watch" list has no motion at all when
+     switching category chips (Movies/Anime/Asian Drama) — the whole
+     list just swaps cold. Reuses the same staggered fadeInUp pattern
+     as .result-card elsewhere in this file so the rows settle in one
+     after another instead of popping in all at once. Scoped to
+     #home-sources-list so it doesn't touch source-row usage on other
+     screens (e.g. #sources-list-container) that weren't asked for. */
+  #home-sources-list .source-row {
+    animation: fadeInUp .3s ease backwards;
+  }
   #sources-list-container { padding: 0 var(--space-xl); }
   .source-logo {
     width: 48px; height: 48px;
@@ -507,6 +662,11 @@
   }
   .trending-card {
     position: relative;
+    /* Multiple call sites (similar-titles grid, home trending row) set an
+       inline animation-delay for staggering, expecting a fade-in — but
+       no animation was ever defined here, so that delay did nothing and
+       cards just appeared instantly regardless of the stagger math. */
+    animation: fadeInUp .3s ease backwards;
   }
   .trending-poster {
     width: 100%; aspect-ratio: 108 / 150;
@@ -655,6 +815,7 @@
     white-space: nowrap;
     padding-bottom: 6px;
     position: relative;
+    transition: color .18s ease;
   }
   .filter-tab { background:none; border:none; cursor:pointer; font-family:inherit; }
   .filter-tab.active { color: var(--accent); font-weight: 700; }
@@ -665,6 +826,11 @@
     height: 2px;
     background: var(--accent);
     border-radius: 2px;
+    animation: filterTabUnderlineIn .18s ease;
+  }
+  @keyframes filterTabUnderlineIn {
+    from { transform: scaleX(0); opacity: 0; }
+    to { transform: scaleX(1); opacity: 1; }
   }
 
   .results-meta {
@@ -786,6 +952,13 @@
     animation: fadeInUp .35s ease backwards;
   }
   @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  /* Small inline error/empty messages (cast row, similar-titles grid,
+     home sources list) swap in via a raw innerHTML replace over a
+     shimmer skeleton with zero transition — a plain fade (no slide,
+     unlike fadeInUp) suits a small in-place text swap better than the
+     bigger movement .empty uses for a full-section failure. */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .inline-error { animation: fadeIn .25s ease; }
   .results-list .result-card:last-child { border-bottom: none; }
   .result-card:active { background: var(--surface-2); }
   .result-poster {
@@ -941,6 +1114,35 @@
     border-radius: 20px;
     color: #fff;
   }
+
+  /* Item 10 — Genres tab reuses .genre-chip outside the Detail-screen
+     poster-overlay context above, so it needs its own surface-colored
+     look instead of the dark rgba(0,0,0,.4) pill meant to sit on an image. */
+  .genre-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+  .genre-grid .genre-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    cursor: pointer;
+  }
+  .genre-grid .genre-chip .icon { display: flex; color: var(--text-muted); }
+  .genre-grid .genre-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .genre-grid .genre-chip.active .icon { color: #fff; }
 
   .sources-banner {
     display: flex;
@@ -1098,6 +1300,8 @@
     border: 1px solid var(--border);
     color: var(--text-muted);
     white-space: nowrap;
+    cursor: pointer;
+    transition: background .18s ease, color .18s ease, border-color .18s ease;
   }
   .source-tab.active {
     background: var(--accent);
@@ -1111,7 +1315,15 @@
     gap: var(--space-md);
     padding: var(--space-md) var(--space-xl);
     border-bottom: 1px solid var(--border);
+    /* Sources screen (per-title "Where to watch" list) had zero motion —
+       rows just appeared cold on every render, including the "See More"
+       reveal. Same fadeInUp pattern used elsewhere; transition/:active
+       give this clickable row (onclick="openSourceDetail(...)") the
+       same press feedback its neighbors (.source-row, .result-card) have. */
+    animation: fadeInUp .3s ease backwards;
+    transition: background-color .12s ease;
   }
+  .source-list-row:active { background: var(--surface-2) !important; }
   .source-list-row .source-logo { width: 40px; height: 40px; font-size:var(--fs-md); }
   .source-list-info { flex: 1; min-width: 0; }
   .source-list-info .name { font-size:var(--fs-base); font-weight: 700; }
@@ -1281,7 +1493,13 @@
     gap: var(--space-md);
     padding: var(--space-md) var(--space-xl);
     border-bottom: 1px solid var(--border);
+    /* No motion at all previously — the whole Watchlist/Recently Watched
+       list would appear cold on render. Same staggered fadeInUp as
+       .result-card/.source-row/.movie-header elsewhere in this file. */
+    animation: fadeInUp .3s ease backwards;
+    transition: background-color .12s ease;
   }
+  .watchlist-card:active { background: var(--surface-2); }
   .watchlist-poster {
     width: 64px; height: 92px;
     border-radius: var(--radius-sm);
@@ -1307,8 +1525,15 @@
     border: none;
     color: var(--text-muted);
     width: 18px; height: 18px;
+    transition: color .15s ease;
   }
   .watchlist-remove-btn svg { width: 18px; height: 18px; }
+  /* Destructive icon now reads as destructive on interaction, instead of
+     looking identical to any neutral icon button at rest and on tap. */
+  .watchlist-remove-btn:hover,
+  .watchlist-remove-btn:active {
+    color: var(--danger);
+  }
 
   .empty-cta {
     margin: var(--space-lg) var(--space-xl);
@@ -1497,10 +1722,16 @@
     transform: translateX(-50%) translateY(0);
   }
 
-  #report-modal-overlay, #about-modal-overlay, #outbound-modal-overlay { opacity: 0; transition: opacity .18s ease; }
-  #report-modal-overlay > div, #about-modal-overlay > div, #outbound-modal-overlay > div { transform: scale(.95); transition: transform .18s ease; }
-  #report-modal-overlay.modal-in, #about-modal-overlay.modal-in, #outbound-modal-overlay.modal-in { opacity: 1; }
-  #report-modal-overlay.modal-in > div, #about-modal-overlay.modal-in > div, #outbound-modal-overlay.modal-in > div { transform: scale(1); }
+  /* request-modal-overlay and edit-profile-modal-overlay added here —
+     both already call classList.add('modal-in') expecting this same
+     fade+scale-in (openRequestSourceModal() line ~6219, the profile
+     editor line ~9158), but were left out of this selector list, so
+     that class did nothing and both modals appeared instantly with
+     zero transition. */
+  #report-modal-overlay, #about-modal-overlay, #outbound-modal-overlay, #request-modal-overlay, #edit-profile-modal-overlay { opacity: 0; transition: opacity .18s ease; }
+  #report-modal-overlay > div, #about-modal-overlay > div, #outbound-modal-overlay > div, #request-modal-overlay > div, #edit-profile-modal-overlay > div { transform: scale(.95); transition: transform .18s ease; }
+  #report-modal-overlay.modal-in, #about-modal-overlay.modal-in, #outbound-modal-overlay.modal-in, #request-modal-overlay.modal-in, #edit-profile-modal-overlay.modal-in { opacity: 1; }
+  #report-modal-overlay.modal-in > div, #about-modal-overlay.modal-in > div, #outbound-modal-overlay.modal-in > div, #request-modal-overlay.modal-in > div, #edit-profile-modal-overlay.modal-in > div { transform: scale(1); }
 
   .suggestions-box {
     opacity: 0;
@@ -1630,7 +1861,14 @@
      in this design — the site-card links ended up with no real layout,
      which is why they weren't clickable in practice. Styled here to
      match this design's existing tokens/spacing (--card/--border/--radius). */
-  .movie-header { display: flex; gap: var(--space-lg); padding: var(--space-md) var(--space-xl) var(--space-sm); }
+  .movie-header {
+    display: flex; gap: var(--space-lg); padding: var(--space-md) var(--space-xl) var(--space-sm);
+    /* Had no motion at all — Favorites list and the movie-detail screen
+       both build these via raw string concatenation with zero animation
+       class, so cards used to just appear cold. Matches the same
+       fadeInUp used by .result-card/.source-row elsewhere. */
+    animation: fadeInUp .3s ease backwards;
+  }
   .movie-poster {
     width: 96px; height: 138px; flex-shrink: 0; border-radius: var(--radius-sm);
     background: var(--surface); position: relative; overflow: hidden;
@@ -1694,6 +1932,11 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.05); border-radius: var(--radius);
     text-decoration: none; color: var(--text); position: relative; cursor: pointer;
     transition: transform .15s ease, box-shadow .15s ease;
+    /* Detail screen's site-cards list sets an inline animation-delay per
+       card (renderResult(), ~0.07s stagger) expecting a fade-in — same
+       bug as .trending-card had: no animation property existed here, so
+       every card popped in instantly regardless of the delay math. */
+    animation: fadeInUp .3s ease backwards;
   }
   /* .site-card's own left/right margin above exists for the Search screen,
      where #result-area carries no padding of its own (see comment near
@@ -1815,6 +2058,56 @@
     background: var(--surface); border: 1px solid var(--border); color: var(--text);
     padding: var(--space-sm) var(--space-lg); border-radius: 20px; font-size: .8rem; font-weight: 600; cursor: pointer;
   }
+  /* Item 10 — other .pop-chip rows space their buttons with per-button
+     inline margin-right/margin-top; the Popular Searches row skipped
+     that, so give the wrapper its own gap/wrap instead of touching every
+     call site. */
+  .popular-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  /* Item 10 — Sites/Genres tab bar. Indicator geometry (width, gap) is
+     load-bearing: switchHomeTab() in JS drives the slide with
+     translateX(calc(100% + 3px)), which only lands correctly if the
+     indicator is exactly one slot wide and the bar's gap is 3px. */
+  .home-tab-bar {
+    position: relative;
+    display: flex;
+    gap: 3px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    margin-bottom: var(--space-lg);
+  }
+  .home-tab {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: calc(var(--radius-sm) - 3px);
+    cursor: pointer;
+    transition: color .2s ease;
+  }
+  .home-tab.active { color: var(--text); }
+  .home-tab-indicator {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: calc(50% - 4.5px);
+    height: calc(100% - 6px);
+    background: var(--surface);
+    border-radius: calc(var(--radius-sm) - 3px);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    transition: transform .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
   .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); padding: 0 var(--space-xl); }
   /* Search-results list (full-width rows) — distinct from .results-grid
      above, which is a 3-column poster grid used for genre/similar rails.
@@ -1848,17 +2141,14 @@
      producing cards ~12px narrower here than in Trending Now despite both
      being 2-column grids. Negative margin cancels out .detail-body's
      padding so this grid's own padding is the only one that applies. */
-  #similar-grid.results-grid {
-    grid-template-columns: repeat(2, 1fr);
+  #similar-grid.trending-row {
     margin-left: calc(-1 * var(--space-xl));
     margin-right: calc(-1 * var(--space-xl));
-    padding: 6px 6px 12px;
-    gap: var(--space-xl) var(--space-lg);
   }
-  /* "You might also like" uses this same .results-grid / .result-card
-     (stacked info below poster) as search results — better legibility
-     across arbitrary poster art than the overlay style, which is now
-     reserved for the ranked Home "Trending Now" section only. */
+  /* "You might also like" now shares Trending Now's overlay-card style
+     (.trending-card/.trending-poster) — unified card language across
+     both sections, no rank badge here since these aren't ranked. */
+  .trending-poster { aspect-ratio: 2/3; }
   .similar-show-more-btn {
     display: block;
     margin: 4px auto 4px;
@@ -1885,8 +2175,16 @@
   /* ===== Search screen site directory (.dir-grid cards) =====
      buildCard()/buildFavSiteCard() in script.js already emit these classes,
      but nothing here ever styled them — the directory rendered as bare
-     underlined links (browser default <a> styling) stacked in a column. */
-  .dir-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+     underlined links (browser default <a> styling) stacked in a column.
+     #result-area (this grid's direct parent) carries no padding of its
+     own — unlike .trending-row (sits in .section, which pads 20px) and
+     .results-grid (pads var(--space-xl) itself) — so without an inset
+     here, "Free Websites" cards ran flush to the screen edge while every
+     other card grid in the app keeps the same ~20px gutter. Matches
+     .results-grid's exact recipe (same gap token, side-only padding)
+     since both are grids of cards sitting directly in #result-area with
+     nothing else to supply the inset. */
+  .dir-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); padding: 0 var(--space-xl); }
 
   .gradient-card-wrapper {
     position: relative;
@@ -1997,8 +2295,8 @@
     box-shadow: 0 4px 14px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.06);
   }
   #screen-home .search-bar:focus-within {
-    border-color: #cfd0d6;
-    box-shadow: 0 6px 18px rgba(0,0,0,.11), 0 1px 3px rgba(0,0,0,.06);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim), 0 6px 18px rgba(0,0,0,.11), 0 1px 3px rgba(0,0,0,.06);
   }
 
   #screen-home .search-bar > .search-lead-icon { display: none; }
@@ -2032,8 +2330,8 @@
     box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.3);
   }
   body.dark #screen-home .search-bar:focus-within {
-    border-color: #3a3a40;
-    box-shadow: 0 6px 18px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.3);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim), 0 6px 18px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.3);
   }
   body.dark #screen-home .search-bar input {
     color: var(--text);
@@ -2235,11 +2533,14 @@
 
     <div class="sources-count-line"><strong>Where to watch</strong> — <span id="sources-count-num">10</span> sources available</div>
 
-    <div class="source-tabs">
-      <span class="source-tab active">Fastest</span>
-      <span class="source-tab">Best Quality</span>
-      <span class="source-tab">Few Ads</span>
-      <span class="source-tab">All ▾</span>
+    <!-- "Best Quality" and "Few Ads" removed — no data anywhere backs a
+         quality or ad-count metric per source, so those tabs could only
+         ever be decorative. Fastest/All are real: Fastest sorts by the
+         actual measured response time (siteSpeedMap), All is just the
+         unsorted default order. -->
+    <div class="source-tabs" id="source-tabs">
+      <span class="source-tab active" data-sort="fastest" onclick="setSourcesSortTab('fastest')">Fastest</span>
+      <span class="source-tab" data-sort="all" onclick="setSourcesSortTab('all')">All</span>
     </div>
 
     <div id="sources-list-container">
@@ -2460,12 +2761,12 @@
 // Chrome/Edge/Android fire this event once the site meets installability
 // criteria (manifest.json + icons + served over https). We intercept it and
 // stash it instead of letting the browser show its own mini-infobar. The
-// "Install app" action itself lives inside the theme dropdown menu now
-// (folded in alongside Help, see toggleThemeDropdown) rather than its own
-// header button — deferredInstallPrompt being non-null is what the dropdown
-// checks to decide whether to show that row at all. iOS Safari never fires
-// this event (no such API there), so the row simply never appears there —
-// iOS users still add via native Share -> "Add to Home Screen", unchanged.
+// "Install app" action itself lives in the Settings panel (see
+// openSettingsPanel) — deferredInstallPrompt being non-null is what that
+// panel checks to decide whether to show the row at all. iOS Safari never
+// fires this event (no such API there), so the row simply never appears
+// there — iOS users still add via native Share -> "Add to Home Screen",
+// unchanged.
 let deferredInstallPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -2533,138 +2834,6 @@ function dismissIosInstallBanner() {
   localStorage.setItem('cinefind-ios-install-dismissed', '1');
   const el = document.getElementById('ios-install-banner');
   if (el) el.remove();
-}
-
-// ========== THEME TOGGLE (Crimson Dark -> Crimson Light -> Cyber -> Galaxy, via moon button) ==========
-// Cyber and Galaxy are purpose-built dark/neon aesthetics (their glow effects
-// need a near-black background to read correctly), so only Crimson gets a
-// light variant. Light mode lives inside the same single-button cycle rather
-// than a separate control, per how this site's UI is laid out.
-function initTheme() {
-  loadColorTheme();
-}
-
-const THEME_KEY = 'cinefind-theme-mode';
-const THEME_CYCLE = [
-  { theme: 'theme-crimson', mode: 'dark-mode', label: 'Crimson', swatch: '#e63946' },
-  { theme: 'theme-crimson', mode: 'light-mode', label: 'Light Mode', swatch: '#ffffff' },
-  { theme: 'theme-cyber', mode: 'dark-mode', label: 'Cyber', swatch: '#22e5e5' },
-  { theme: 'theme-galaxy', mode: 'dark-mode', label: 'Galaxy', swatch: '#ff5fa2' },
-];
-const THEME_CLASSES = THEME_CYCLE.map(s => s.theme).filter((v, i, a) => a.indexOf(v) === i);
-const MODE_CLASSES = ['dark-mode', 'light-mode'];
-
-function findThemeIndex() {
-  const i = THEME_CYCLE.findIndex(s =>
-    document.body.classList.contains(s.theme) && document.body.classList.contains(s.mode)
-  );
-  return i === -1 ? 0 : i;
-}
-
-function cycleTheme() {
-  const next = THEME_CYCLE[(findThemeIndex() + 1) % THEME_CYCLE.length];
-  applyTheme(next, true);
-}
-
-// ========== THEME DROPDOWN (pick directly instead of cycling one-by-one) ==========
-function toggleThemeDropdown(event) {
-  event.stopPropagation();
-  const menu = document.getElementById('theme-dropdown-menu');
-  if (!menu) return;
-  const isOpen = menu.style.display === 'block';
-  if (isOpen) {
-    menu.style.display = 'none';
-    return;
-  }
-  const activeIndex = findThemeIndex();
-  // Color swatch dot per option — previously plain text labels only, so
-  // you had to actually pick a theme to see what it looked like. The dot
-  // uses each theme's real accent color as a preview before switching.
-  // Light Mode's swatch is white (not a red shade) so it reads as
-  // distinctly different from Crimson at a glance in the dropdown — same
-  // problem the two would otherwise share if both used red dots. White
-  // needs a darker border to stay visible against the menu's own
-  // background (the pale border everything else uses would nearly
-  // disappear against a white dot), so it gets its own border color.
-  menu.innerHTML = THEME_CYCLE.map((s, i) => `
-    <button onclick="selectThemeFromDropdown(${i})" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:${i === activeIndex ? 'rgba(255,255,255,.08)' : 'none'}; border:none; color:var(--text); font-size:.82rem; font-weight:${i === activeIndex ? '700' : '500'}; padding:8px 10px; border-radius:6px; cursor:pointer;">
-      <span style="width:12px; height:12px; border-radius:50%; background:${s.swatch}; border:1px solid ${s.swatch === '#ffffff' ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.25)'}; flex-shrink:0; box-shadow:0 0 6px ${s.swatch}99;"></span>
-      <span>${i === activeIndex ? '✓ ' : ''}${s.label}</span>
-    </button>
-  `).join('')
-  // Help lives in the hamburger menu (see hamburger-menu markup), not
-  // here — this dropdown stays theme-options-only.
-  + (deferredInstallPrompt
-    ? `<div style="height:1px; background:var(--border); margin:5px 2px;"></div>
-       <button onclick="closeThemeDropdownOnOutsideClick(); triggerInstallPrompt();" style="display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:none; border:none; color:var(--text); font-size:.82rem; font-weight:500; padding:8px 10px; border-radius:6px; cursor:pointer;">
-      <span style="width:12px; text-align:center; flex-shrink:0;">📲</span>
-      <span>Install app</span>
-    </button>`
-    : '');
-  menu.style.display = 'block';
-  menu.style.animation = 'dropdownIn .16s ease';
-  menu.style.transformOrigin = 'top right';
-  document.addEventListener('click', closeThemeDropdownOnOutsideClick, { once: true });
-}
-
-function selectThemeFromDropdown(index) {
-  applyTheme(THEME_CYCLE[index], true);
-  const menu = document.getElementById('theme-dropdown-menu');
-  if (menu) menu.style.display = 'none';
-}
-
-function closeThemeDropdownOnOutsideClick() {
-  const menu = document.getElementById('theme-dropdown-menu');
-  if (menu) menu.style.display = 'none';
-}
-
-function applyTheme(state, announce) {
-  document.body.classList.remove(...THEME_CLASSES, ...MODE_CLASSES);
-  document.body.classList.add(state.theme, state.mode);
-  try {
-    localStorage.setItem(THEME_KEY, JSON.stringify({ theme: state.theme, mode: state.mode }));
-  } catch (e) { /* storage unavailable — theme still applied to DOM */ }
-  // No JS-driven color logic needed for the button itself — it reads
-  // var(--accent), which the theme-* CSS classes already set, so the
-  // icon color/glow follows automatically.
-  const labelEl = document.getElementById('theme-name-label');
-  if (labelEl) labelEl.textContent = state.label;
-  const btn = document.getElementById('theme-picker-btn');
-  if (btn) btn.setAttribute('aria-label', `Change theme — currently ${state.label}`);
-  // Moon = "tap to go dark", sun = "tap to go light" — standard convention.
-  // The button used to show a moon icon even while already in Light Mode,
-  // which reads backwards (looks like "currently dark", not "tap for dark").
-  const iconEl = document.getElementById('theme-toggle-icon');
-  if (iconEl) {
-    // Sun icon redrawn with evenly-spaced rays (45° apart) and a slightly
-    // heavier stroke (2 vs the earlier 1.8) — the original hand-placed
-    // coordinates had uneven gaps between rays that read as slightly
-    // lopsided at 20px, especially next to the clean, symmetric moon fill.
-    iconEl.innerHTML = state.mode === 'light-mode'
-      ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>'
-      : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-  }
-  if (announce) showToast(`Switched to ${state.label} theme`);
-}
-
-function loadColorTheme() {
-  try {
-    const raw = localStorage.getItem(THEME_KEY);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      const match = THEME_CYCLE.find(s => s.theme === saved.theme && s.mode === saved.mode);
-      if (match) { applyTheme(match, false); return; }
-    }
-  } catch (e) { /* fall through to OS-preference default below */ }
-
-  // No saved choice yet (first visit) — default to the OS-level light/dark
-  // preference instead of always starting dark. Still just a starting
-  // point: the very next manual toggle overrides it via localStorage above.
-  let prefersLight = false;
-  try {
-    prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-  } catch (e) { /* matchMedia unsupported — fall back to dark default */ }
-  applyTheme(prefersLight ? THEME_CYCLE[1] : THEME_CYCLE[0], false);
 }
 
 // ========== HAMBURGER MENU ==========
@@ -2936,9 +3105,9 @@ function showFavorites(sortBy, siteSortBy) {
       default: return (b.dateAdded || 0) - (a.dateAdded || 0);
     }
   });
-  sorted.forEach(movie => {
+  sorted.forEach((movie, i) => {
     html += `
-      <div class="movie-header" style="margin-bottom:16px;">
+      <div class="movie-header" style="margin-bottom:16px; animation-delay:${i * 0.05}s">
         <div class="movie-poster${movie.poster ? ' poster-loading' : ''}" id="poster-${movie.title}">
           ${movie.poster ? `<img class="poster-img" src="${movie.poster}" alt="${escapeAttr(movie.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onload="this.style.opacity=1; this.parentElement.classList.remove('poster-loading')" onerror="this.parentElement.classList.remove('poster-loading'); this.outerHTML='<span class=\'poster-fallback\'>${movie.type === 'series' ? '📺' : '🎬'}</span>'">` : (movie.type === 'series' ? '📺' : '🎬')}
         </div>
@@ -2951,7 +3120,7 @@ function showFavorites(sortBy, siteSortBy) {
           <p class="movie-desc">${movie.description || ''}</p>
           <div style="display:flex; gap:8px; margin-top:8px;">
             <button class="pop-chip" onclick='renderResult(${escapeAttr(JSON.stringify(movie))}, "${escapeAttr(movie.title)}")'>▶️ View</button>
-            <button class="pop-chip" onclick="removeFavorite('${escapeAttr(movie.title)}'); showFavorites('${sortBy}');" style="color:#e63946;">🗑️ Remove</button>
+            <button class="pop-chip" onclick="removeFavorite('${escapeAttr(movie.title)}'); showFavorites('${sortBy}');" style="color:var(--danger); border-color:var(--danger-dim);">🗑️ Remove</button>
           </div>
         </div>
       </div>`;
@@ -5195,18 +5364,47 @@ function loadDetailCast(data) {
           <div class="cast-role">${c.character ? `as ${c.character}` : ''}</div>
         </div>`).join('');
     })
-    .catch(() => { castRow.innerHTML = '<p style="color:var(--muted);font-size:.85rem;">Cast unavailable.</p>'; });
+    .catch(() => { castRow.innerHTML = '<p class="inline-error" style="color:var(--muted);font-size:.85rem;">Cast unavailable.</p>'; });
 }
 
 // Populates the Sources screen (#sources-list-container) from the real
 // per-title site list stored on window.currentSites by renderResult().
 // Replaces what used to be 5 hardcoded rows (KissKH/MovieBox/Dulo/Miuro/
 // DramaCool) regardless of which title was open.
+// Sources screen sort tab — 'fastest' sorts by real measured response
+// time (siteSpeedMap, same data src-detail's Load Time stat already
+// uses); 'all' is the untouched default order. Persists across
+// re-renders of this screen (e.g. after favoriting a source) until the
+// person taps the other tab or leaves the screen.
+let sourcesSortTab = 'fastest';
+function setSourcesSortTab(tab) {
+  sourcesSortTab = tab;
+  document.querySelectorAll('#source-tabs .source-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.sort === tab);
+  });
+  renderSourcesScreen();
+}
+
 function renderSourcesScreen() {
   const container = document.getElementById('sources-list-container');
   if (!container) return;
   const movie = window.currentMovie;
-  const sites = window.currentSites || [];
+  let sites = window.currentSites || [];
+
+  // Fastest: sites with a real measured time sort ascending (quickest
+  // first); sites with no measurement yet fall to the end rather than
+  // being treated as instant — same "unknown ≠ fast" reasoning already
+  // used for status ranking elsewhere in this file.
+  if (sourcesSortTab === 'fastest') {
+    sites = [...sites].sort((a, b) => {
+      const msA = siteSpeedMap ? siteSpeedMap[normalizeSiteName(a.name)] : undefined;
+      const msB = siteSpeedMap ? siteSpeedMap[normalizeSiteName(b.name)] : undefined;
+      if (typeof msA !== 'number' && typeof msB !== 'number') return 0;
+      if (typeof msA !== 'number') return 1;
+      if (typeof msB !== 'number') return -1;
+      return msA - msB;
+    });
+  }
 
   // Header (title/meta/thumb) — same data already shown on the Detail screen.
   const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
@@ -5224,12 +5422,12 @@ function renderSourcesScreen() {
   setText('sources-count-num', String(sites.length));
 
   if (!sites.length) {
-    container.innerHTML = `<p style="margin:20px; color:var(--muted); font-size:.85rem;">No sources found for this title yet.</p>`;
+    container.innerHTML = `<p class="inline-error" style="margin:20px; color:var(--muted); font-size:.85rem;">No sources found for this title yet.</p>`;
     return;
   }
 
   const dirFavs = getDirFavs();
-  const buildRow = (s) => {
+  const buildRow = (s, i) => {
     const normS = normalizeSiteName(s.name);
     let dirMatch = SITES_DIRECTORY.find(d => normalizeSiteName(d.name) === normS);
     if (!dirMatch) dirMatch = SITES_DIRECTORY.find(d => normS.includes(normalizeSiteName(d.name)) || normalizeSiteName(d.name).includes(normS));
@@ -5239,7 +5437,7 @@ function renderSourcesScreen() {
     const statusLabel = statusShortLabel(status) || 'Unknown';
     const isFav = dirFavs.includes(dirMatch ? dirMatch.name : s.name);
     return `
-    <div class="source-list-row" onclick="openSourceDetail('${escapeAttr(dirMatch ? dirMatch.name : s.name)}')" style="cursor:pointer; background:${dirMatch && dirMatch.accent ? dirMatch.accent : '#333'};">
+    <div class="source-list-row" onclick="openSourceDetail('${escapeAttr(dirMatch ? dirMatch.name : s.name)}')" style="cursor:pointer; background:${dirMatch && dirMatch.accent ? dirMatch.accent : '#333'}; animation-delay:${(i || 0) * 0.05}s">
       <div class="source-logo">${logoInner}</div>
       <div class="source-list-info">
         <div class="name">${s.name}</div>
@@ -5256,7 +5454,7 @@ function renderSourcesScreen() {
   container.innerHTML = visible.map(buildRow).join('')
     + (hidden.length > 0
         ? `<div id="more-sources-group" style="display:none;">${hidden.map(buildRow).join('')}</div>
-           <button id="see-more-sources-btn" onclick="document.getElementById('more-sources-group').style.display='block'; this.style.display='none';" style="margin:4px 20px 12px; width:calc(100% - 40px); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:11px; font-size:var(--fs-base); font-weight:600; color:var(--text);">See More Sources (${hidden.length}) ▾</button>`
+           <button id="see-more-sources-btn" onclick="const g=document.getElementById('more-sources-group'); g.style.display='block'; g.querySelectorAll('.source-list-row').forEach((r,i)=>{r.style.animation='none'; void r.offsetWidth; r.style.animationDelay=(i*0.05)+'s'; r.style.animation='fadeInUp .3s ease backwards';}); this.style.display='none';" style="margin:4px 20px 12px; width:calc(100% - 40px); background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:11px; font-size:var(--fs-base); font-weight:600; color:var(--text);">See More Sources (${hidden.length}) ▾</button>`
         : '');
 }
 
@@ -5681,7 +5879,7 @@ function renderResult(data, query) {
 
     ${data.id ? `
       <div class="section-label" style="margin-top:var(--space-lg);">You might also like</div>
-      <div class="results-grid" id="similar-grid" aria-hidden="true">
+      <div class="trending-row" id="similar-grid" aria-hidden="true">
         ${Array(6).fill('<div class="poster-shimmer" style="aspect-ratio:2/3; border-radius:var(--radius);"></div>').join('')}
       </div>` : ''}
   `;
@@ -5795,7 +5993,7 @@ function loadSimilar(movie) {
     })
     .catch(() => {
       const grid = document.getElementById('similar-grid');
-      if (grid) grid.innerHTML = `<p style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">Couldn't load recommendations right now.</p>`;
+      if (grid) grid.innerHTML = `<p class="inline-error" style="grid-column:1/-1; color:var(--muted); font-size:.85rem;">Couldn't load recommendations right now.</p>`;
     });
 }
 
@@ -5808,14 +6006,11 @@ function renderSimilarCards(showAll) {
   if (!grid) return;
   const visible = showAll ? similarResults : similarResults.slice(0, SIMILAR_VISIBLE_INITIAL);
   const cardsHtml = visible.map((m, i) => `
-    <div class="result-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="cursor:pointer; animation-delay:${i * 0.05}s">
-      <div class="result-poster" style="${m.poster ? `background-image:url('${m.poster}'); background-size:cover; background-position:center;` : ''}">
-        ${!m.poster ? `<span class="poster-fallback">${m.type === 'series' ? '📺' : '🎬'}</span>` : ''}
-      </div>
-      <div class="result-info">
-        <div class="result-title">${escapeAttr(m.title)}</div>
-        <div class="result-meta">${m.year || ''}</div>
-        ${m.rating ? `<div class="result-rating-row"><span class="result-rating"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg> ${m.rating}</span></div>` : ''}
+    <div class="trending-card" role="button" tabindex="0" aria-label="${escapeAttr(m.title)}${m.year ? ', ' + m.year : ''}" onclick="selectSimilar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); selectSimilar(${i})}" style="cursor:pointer; animation-delay:${i * 0.05}s">
+      <div class="trending-poster" style="${m.poster ? `background-image:url('${m.poster}');` : ''}">
+        ${!m.poster ? `<span class="poster-fallback" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:28px;">${m.type === 'series' ? '📺' : '🎬'}</span>` : ''}
+        ${m.rating ? `<span class="poster-rating-badge"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9"/></svg>${m.rating}</span>` : ''}
+        <span class="poster-title-overlay">${escapeAttr(m.title)} <span style="opacity:.75; font-weight:400;">· ${m.type === 'series' ? 'TV Series' : 'Movie'}</span></span>
       </div>
     </div>`).join('');
   grid.innerHTML = cardsHtml;
@@ -6853,87 +7048,61 @@ function renderSitesDirectory() {
   // just the color alone — that fails colorblind users), so both are driven
   // by the same isHotSite() check with no separate display cap.
 
-  // My Bookmarks renders as a simple row list (icon, name, status, Watch
-  // Now, unpin) instead of the gradient card grid — same row style/classes
-  // as Home's "Where to Watch" list, since a short trusted list of pinned
-  // sites reads better as a list than as a grid of big hero cards.
-  if (isPinnedView) {
-    wrap.classList.remove('dir-grid');
-    wrap.style.display = 'block';
-    wrap.style.padding = '0 20px';
-    const buildRow = (s) => {
-      const liveUrl = getOverriddenUrl(s.name, s.url);
-      const status = getSiteStatus(s.name); // null | 'up' | 'down' | 'blocked'
-      const statusLabel = statusShortLabel(status) || 'Unknown';
-      const statusColor = statusDotColor(status) || 'var(--text-muted)';
-      const logo = sourceRowLogoHtml(s);
-      return `
-      <div class="source-row" data-site-name="${escapeAttr(s.name)}">
-        <div class="source-logo" role="button" tabindex="0" aria-label="Open ${escapeAttr(s.name)}" style="padding:0;overflow:hidden;cursor:pointer;" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '${status || ''}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">${logo}</div>
-        <div class="source-info">
-          <div class="name">${s.name}</div>
-          <div class="status-line" title="${escapeAttr(statusDotLabel(status) || '')}">${statusIconSvg(status)}<span style="color:${statusColor};">${statusLabel}</span></div>
-          ${s.categories && s.categories.length ? `<span class="cat-tag">${s.categories.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ')}</span>` : ''}
-        </div>
-        <button class="watch-btn" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '${status || ''}')">Watch Now</button>
-        <button class="bookmark-btn" style="margin-left:4px;" onclick="toggleDirFav(event, '${escapeAttr(s.name).replace(/'/g, "\\'")}')" aria-label="Remove from bookmarks"><svg viewBox="0 0 24 24" width="18" height="18" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg></button>
-      </div>`;
-    };
-    wrap.innerHTML = filtered.map(buildRow).join('');
-    return;
-  }
-  wrap.classList.add('dir-grid');
-  wrap.style.display = '';
-  wrap.style.padding = '';
+  // Row layout everywhere now — logo left, name/status stacked beside it —
+  // same pattern as Home's "Where to Watch" and the old Bookmarks-only list.
+  // A short trusted list read better as rows than a grid of hero cards, and
+  // that reasoning applies just as well to the full directory: it's still a
+  // list of trusted sites, just longer.
+  wrap.classList.remove('dir-grid');
+  wrap.style.display = 'block';
+  wrap.style.padding = '0 20px';
 
   // Hand-picked "best experience per category" sites (speed, ad-load,
-  // library freshness) — a quiet gold ring, not a resize, so a couple of
-  // sites get a nod without reintroducing the oversized "featured" card.
+  // library freshness) — a quiet ★ tag next to the category chip so a
+  // couple of sites get a nod without reintroducing the oversized
+  // "featured" card the grid version used a gold ring for.
   const EDITOR_PICKS = new Set(['KissKH', 'Miruro', 'Dulo']);
 
-  const buildCard = (s, i) => {
+  const buildRow = (s, i) => {
     const isFav = favs.includes(s.name);
     const isHot = isHotSite(s.name);
     const isEditorPick = EDITOR_PICKS.has(s.name);
-    // Uniform sizing — no card gets a wider/taller "hero" treatment anymore,
-    // since with several sites often marked hot at once, whichever sorted
-    // first was blowing up into a banner while equally-"hot" sites lower
-    // down stayed small. The 🔥 badge alone signals hot status now.
     const liveUrl = getOverriddenUrl(s.name, s.url);
-    const pinIcon = isFav
-      ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`
-      : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
-    const pastelClass = ['card-pastel-blue', 'card-pastel-gold', 'card-pastel-rose'][i % 3];
+    const status = getSiteStatus(s.name); // null | 'up' | 'down' | 'blocked'
+    const statusLabel = statusShortLabel(status) || 'Unknown';
+    const statusColor = statusDotColor(status) || 'var(--text-muted)';
+    const logo = sourceRowLogoHtml(s);
     return `
-    <div class="gradient-card-wrapper${isHot ? ' is-hot' : ''}${isEditorPick ? ' editor-pick' : ''}" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s; --card-accent:${s.accent || 'var(--accent)'};">
-      <div role="button" tabindex="0" class="card-content ${pastelClass}" aria-label="${s.name}" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
-        <span class="status-label-mini status-loading" data-status-label>
-          <span class="status-dot-mini" data-status-dot></span>
-          <span class="status-text-mini" data-status-text></span>
-          <span class="speed-badge-mini" data-speed-badge></span>
-          <button class="report-icon" data-report-btn onclick="event.preventDefault(); event.stopPropagation(); openReportModal('${escapeAttr(s.name)}', '${escapeAttr(liveUrl)}')" aria-label="Report this site" title="Report broken" style="opacity:.35; display:none;">⋯</button>
-        </span>
-        <button class="pin-icon${isFav ? ' faved' : ''}" style="position:absolute; top:8px; right:8px; z-index:2;" onclick="event.preventDefault(); event.stopPropagation(); toggleDirFav(event, '${escapeAttr(s.name)}')" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${pinIcon}</button>
-        ${isHot ? `<span class="hot-label-mini" title="Trending"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff8f1f"/><stop offset="100%" stop-color="#ffd23f"/></linearGradient></defs><path fill="url(#flameGrad)" d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/><path fill="#1a1a2e" fill-opacity=".35" d="M12 21a3.3 3.3 0 0 1-3.3-3.3c0-1.6 1-2.5 1.9-3.3-.1.7.2 1.3.8 1.3.7 0 1-.6 1-1.3.7.9 1.2 1.8 1.2 3.1A2.6 2.6 0 0 1 12 21Z"/></svg></span>` : ''}
-        <div class="card-logo">${dirCardLogoHtml(s)}</div>
+    <div class="source-row" data-site-name="${escapeAttr(s.name)}" style="animation-delay:${(i % 6) * 0.04}s;">
+      <div class="source-logo" role="button" tabindex="0" aria-label="Open ${escapeAttr(s.name)}" style="padding:0;overflow:hidden;cursor:pointer;" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '${status || ''}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">${logo}</div>
+      <div class="source-info">
+        <div class="name">${s.name}${isHot ? ' <span title="Trending" style="display:inline-block;width:13px;height:13px;vertical-align:-2px;"><svg viewBox="0 0 24 24" width="13" height="13" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad${i}" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff3d00"/><stop offset="55%" stop-color="#ff8f1f"/><stop offset="100%" stop-color="#ffd23f"/></linearGradient></defs><path fill="url(#flameGrad${i})" d="M12.5 2c.6 2.6-.3 4.2-1.7 5.7C9.2 9.4 7.5 11 7.5 13.8a4.5 4.5 0 0 0 9 0c0-1.2-.4-2-.9-2.8-.3.9-.9 1.6-1.6 1.6-.9 0-1.4-.7-1.2-1.6.4-1.7 1.7-2.8 1.7-5C14.5 4.4 13.7 3 12.5 2Z"/></svg></span>' : ''}</div>
+        <div class="status-line" title="${escapeAttr(statusDotLabel(status) || '')}">${statusIconSvg(status)}<span style="color:${statusColor};">${statusLabel}</span></div>
+        ${isEditorPick ? `<span class="cat-tag" style="color:var(--gold);">★ Editor's Pick</span>` : (s.categories && s.categories.length ? `<span class="cat-tag">${s.categories.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ')}</span>` : '')}
       </div>
+      <button class="watch-btn" onclick="confirmOutboundLink('${escapeAttr(s.name).replace(/'/g, "\\'")}', '${escapeAttr(liveUrl)}', '${status || ''}')">Watch Now</button>
+      <button class="bookmark-btn" style="margin-left:4px;" onclick="toggleDirFav(event, '${escapeAttr(s.name).replace(/'/g, "\\'")}')" aria-label="${isFav ? 'Remove from bookmarks' : 'Add to bookmarks'}"><svg viewBox="0 0 24 24" width="18" height="18" fill="${isFav ? 'var(--accent)' : 'none'}" stroke="var(--accent)" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg></button>
     </div>`;
   };
 
-  // Homepage directory can grow long as more sites get added — same
-  // "show more" pattern already used for per-movie search results, so the
-  // homepage doesn't dump the entire list on first load.
+  if (isPinnedView) {
+    wrap.innerHTML = filtered.map(buildRow).join('');
+    return;
+  }
+
+  // Directory can grow long as more sites get added — same "show more"
+  // pattern already used for per-movie search results, so the homepage
+  // doesn't dump the entire list on first load.
   const DIR_VISIBLE_INITIAL = 6;
   const visible = filtered.slice(0, DIR_VISIBLE_INITIAL);
   const hidden = filtered.slice(DIR_VISIBLE_INITIAL);
 
-  wrap.innerHTML = visible.map(buildCard).join('') + (
+  wrap.innerHTML = visible.map(buildRow).join('') + (
     hidden.length > 0
-      ? `<div id="hidden-dir-sites" style="display:none;">${hidden.map((s, i) => buildCard(s, i + DIR_VISIBLE_INITIAL)).join('')}</div>
-         <button class="pop-chip" id="show-more-dir-sites-btn" onclick="showMoreDirSites()" style="width:100%; margin-top:4px; grid-column:1/-1;">Show ${hidden.length} more sites ↓</button>`
+      ? `<div id="hidden-dir-sites" style="display:none;">${hidden.map((s, i) => buildRow(s, i + DIR_VISIBLE_INITIAL)).join('')}</div>
+         <button class="pop-chip" id="show-more-dir-sites-btn" onclick="showMoreDirSites()" style="width:100%; margin-top:8px;">Show ${hidden.length} more sites ↓</button>`
       : ''
   );
-  applyStatusDots();
 }
 
 function showMoreDirSites() {
@@ -6996,7 +7165,12 @@ function renderSearchEmptyState() {
   hideFiltersBar();
   document.getElementById('result-area').innerHTML = `
     <div class="cinefind-empty-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:32px 28px 0; color:var(--muted); min-height:460px; box-sizing:border-box;">
-      <img src="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-light="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-light.png" data-logo-dark="https://raw.githubusercontent.com/James-29-00/cinefind/main/assets/logo-dark.png" alt="CineFind fox detective logo" class="cinefind-empty-logo">
+      <svg class="cinefind-empty-logo" viewBox="0 0 112 112" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CineFind placeholder logo">
+        <rect x="1" y="1" width="110" height="110" rx="16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 6"/>
+        <circle cx="48" cy="48" r="24" fill="none" stroke="var(--muted)" stroke-width="4"/>
+        <line x1="65" y1="65" x2="86" y2="86" stroke="var(--muted)" stroke-width="6" stroke-linecap="round"/>
+        <text x="56" y="102" text-anchor="middle" font-size="11" font-weight="700" fill="var(--muted)" font-family="inherit">LOGO</text>
+      </svg>
       <div style="font-size:1.2rem; line-height:1.35; font-weight:700; color:var(--text); max-width:270px; margin:0 auto; letter-spacing:-0.01em;">You haven't searched for anything <span style="color:#e8394a;">yet.</span></div>
       <div style="font-size:0.92rem; line-height:1.45; font-weight:500; color:var(--muted); max-width:260px; margin:10px auto 0;">Try a movie, drama, or actor above.</div>
     </div>`;
@@ -7191,7 +7365,6 @@ function browseGenre(genreId, label, el) {
 
 // Initialize on load
 window.addEventListener('load', () => {
-  initTheme();
   updateFavCount();
   renderSearchEmptyState();
   trackVisit();
@@ -8873,9 +9046,9 @@ async function testLink() {
   // and dir-favs (favorite websites). Per the plan's own recommendation
   // (simplified first pass, no per-episode progress), Watchlist reuses
   // getFavorites() directly rather than inventing a second data model.
-  function buildWatchlistCardHtml(movie, showRecentBadge) {
+  function buildWatchlistCardHtml(movie, showRecentBadge, idx) {
     return `
-      <div class="watchlist-card">
+      <div class="watchlist-card" style="animation-delay:${(idx || 0) * 0.05}s">
         <div class="watchlist-poster${movie.poster ? '' : ''}" style="${movie.poster ? `background-image:url('${movie.poster}');background-size:cover;background-position:center;` : 'background:linear-gradient(160deg,#2a2a3a,#0d0d12);'}"></div>
         <div class="watchlist-info">
           <div class="title">${movie.title}</div>
@@ -8892,7 +9065,7 @@ async function testLink() {
     if (!sub || !content) return;
     sub.textContent = `${favs.length} title${favs.length === 1 ? '' : 's'} saved`;
     content.innerHTML = favs.length
-      ? favs.map(m => buildWatchlistCardHtml(m)).join('')
+      ? favs.map((m, i) => buildWatchlistCardHtml(m, undefined, i)).join('')
       : '';
   }
 
@@ -8904,7 +9077,7 @@ async function testLink() {
     if (!sub || !content) return;
     sub.textContent = `${recent.length} recently watched`;
     content.innerHTML = recent.length
-      ? recent.map(m => buildWatchlistCardHtml(m)).join('')
+      ? recent.map((m, i) => buildWatchlistCardHtml(m, undefined, i)).join('')
       : '';
   }
 
@@ -9068,13 +9241,12 @@ async function testLink() {
     }).join('');
   }
 
-  // Phase 5: simple light/dark toggle only (decision: keep the mockup's
-  // existing single toggle rather than wiring script.js's real 4-theme
-  // cycle/dropdown — that whole system, THEME_CYCLE/applyTheme/
-  // toggleThemeDropdown, stays unused here by design, per plan). Adds just
-  // the one thing the bare inline toggle was missing: persistence across
-  // reloads and reachability from the Profile screen (mockup's toggle
-  // button only exists in the Home screen header).
+  // Simple light/dark toggle — this is the only theme system in the app.
+  // (An earlier 4-theme Crimson/Cyber/Galaxy cycle+dropdown existed here
+  // but was fully inert — no CSS ever keyed off its classes and no UI
+  // element opened its dropdown — so it was removed rather than kept
+  // around unused.) This adds persistence across reloads and reachability
+  // from the Profile screen on top of the toggle itself.
   const DARK_MODE_KEY = 'cinefind-dark-mode';
 
   function syncEmptyStateLogo() {
@@ -9142,6 +9314,11 @@ async function testLink() {
           <div class="settings-row-label">About &amp; Disclaimer</div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
         </div>
+        ${deferredInstallPrompt ? `
+        <div class="settings-row" style="cursor:pointer;" onclick="triggerInstallPrompt()">
+          <div class="settings-row-label">Install app</div>
+          <span style="font-size:1.1rem;">📲</span>
+        </div>` : ''}
       </div>`;
     document.body.appendChild(overlay);
   }
@@ -9258,7 +9435,7 @@ async function testLink() {
     // shouting "Watch Now" at equal weight.
     const btnClass = idx === 0 ? 'watch-btn' : 'watch-btn watch-btn-secondary';
     return `
-      <div class="source-row">
+      <div class="source-row" style="animation-delay:${idx * 0.05}s">
         <div class="source-logo" role="button" tabindex="0" aria-label="Open ${escapeAttr(site.name)}" style="width:56px;height:56px;padding:0;overflow:hidden;box-shadow:0 3px 10px ${glow}, 0 1px 3px rgba(0,0,0,.10);cursor:pointer;" onclick="confirmOutboundLink('${site.name.replace(/'/g, "\\'")}', '${site.url}', '${status || ''}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">${logo}</div>
         <div class="source-info">
           <div class="name">${site.name}</div>
@@ -9357,7 +9534,7 @@ async function testLink() {
       // on its own, without script.js sitting in the same folder — the
       // <script src="script.js"> tag can't find it). Surfacing this
       // instead of a silent blank box so it's obvious what to fix.
-      list.innerHTML = `<p style="color:var(--text-muted); font-size:var(--fs-sm); padding:8px 0;">Couldn't load site list — try reloading the page.</p>`;
+      list.innerHTML = `<p class="inline-error" style="color:var(--text-muted); font-size:var(--fs-sm); padding:8px 0;">Couldn't load site list — try reloading the page.</p>`;
       return;
     }
     try {
@@ -9374,7 +9551,7 @@ async function testLink() {
       const sites = homeSourcesExpanded ? allSites : allSites.slice(0, HOME_SOURCES_VISIBLE);
       list.innerHTML = sites.length
         ? sites.map(buildHomeSourceRow).join('')
-        : `<p style="color:var(--text-muted); font-size:var(--fs-sm); padding:8px 0;">No sites found for this category yet.</p>`;
+        : `<p class="inline-error" style="color:var(--text-muted); font-size:var(--fs-sm); padding:8px 0;">No sites found for this category yet.</p>`;
 
       const showMoreBtn = document.getElementById('home-sources-showmore');
       if (showMoreBtn) {
@@ -9386,7 +9563,7 @@ async function testLink() {
         }
       }
     } catch (err) {
-      list.innerHTML = `<p style="color:var(--text-muted); font-size:var(--fs-sm); padding:8px 0;">Site list failed to render (${err.message}).</p>`;
+      list.innerHTML = `<p class="inline-error" style="color:var(--text-muted); font-size:var(--fs-sm); padding:8px 0;">Site list failed to render (${err.message}).</p>`;
     }
   }
 
