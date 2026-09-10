@@ -1615,7 +1615,7 @@
   }
   .profile-stat:first-child::before { display: none; }
   .profile-stat .num { font-size:var(--fs-2xl); font-weight: 800; }
-  .profile-stat .lbl { font-size:var(--fs-xs); color: var(--text-muted); }
+  .profile-stat .lbl { font-size:var(--fs-xs); color: var(--text-muted); white-space: nowrap; }
 
   .profile-section {
     padding: var(--space-lg) var(--space-xl) 4px;
@@ -2697,7 +2697,7 @@
 
     <div class="profile-stats">
       <div class="profile-stat"><div class="num" id="stat-watchlist">0</div><div class="lbl">Watchlist</div></div>
-      <div class="profile-stat"><div class="num" id="stat-bookmarks">0</div><div class="lbl">Bookmarks</div></div>
+      <div class="profile-stat"><div class="num" id="stat-recent">0</div><div class="lbl">Recently Watched</div></div>
       <div class="profile-stat"><div class="num" id="stat-fav-sources">0</div><div class="lbl">Favorite Sources</div></div>
     </div>
 
@@ -2716,11 +2716,6 @@
       <div class="menu-row" onclick="goToScreen('screen-watchlist')" style="cursor:pointer;">
         <div class="menu-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4V3z"/></svg></div>
         <div class="menu-text-block"><div class="t">My Watchlist</div><div class="s">Movies and dramas you want to watch</div></div>
-        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
-      </div>
-      <div class="menu-row" onclick="goToSavedSources()" style="cursor:pointer;">
-        <div class="menu-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg></div>
-        <div class="menu-text-block"><div class="t">My Bookmarks</div><div class="s">Saved sources and links</div></div>
         <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
       </div>
       <div class="menu-row" onclick="showRecentlyWatched()" style="cursor:pointer;">
@@ -2783,8 +2778,11 @@
     // hero view reached by pushing from a result card, exited via its own
     // back button. Showing the nav here let taps jump to a tab with nothing
     // visibly "active", which read as broken. Hidden here, restored for
-    // every real tab screen.
-    document.querySelector('.bottom-nav').style.display = (id === 'screen-detail') ? 'none' : 'flex';
+    // every real tab screen. Favorite Sources (opened via Profile > See all)
+    // is the same situation — it borrows screen-search's directory grid but
+    // isn't really "the Explore tab", so it gets the same treatment.
+    const isFavoritesSubView = id === 'screen-search' && typeof activeDirFilters !== 'undefined' && activeDirFilters.includes('pinned');
+    document.querySelector('.bottom-nav').style.display = (id === 'screen-detail' || isFavoritesSubView) ? 'none' : 'flex';
   }
 
   document.querySelectorAll('.nav-item').forEach(btn => {
@@ -4548,7 +4546,7 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
   const SAFETY_TIMEOUT_MS = 97000; // fetchOmniRouteDirectLinks's own AbortSignal.timeout is 95000
   const resolveStuckBadges = () => {
     document.querySelectorAll('.omni-pending').forEach(badge => {
-      badge.outerHTML = siteBadgeHtml('search', 'Search inside site');
+      badge.outerHTML = siteBadgeHtml('search', 'Click to watch');
     });
   };
   const safetyTimer = setTimeout(resolveStuckBadges, SAFETY_TIMEOUT_MS);
@@ -4595,7 +4593,7 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
           if (!badge) return; // already a static-override direct link (.site-free), nothing to resolve
           if (!url) {
             // OmniRoute found nothing — stop showing "checking…", fall back to plain note.
-            badge.outerHTML = siteBadgeHtml('search', 'Search inside site');
+            badge.outerHTML = siteBadgeHtml('search', 'Click to watch');
             return;
           }
           card.setAttribute('href', url);
@@ -4608,7 +4606,7 @@ function upgradeCardsWithOmniRoute(title, siteNames, context = {}) {
           // before, instead of turning green like it used to).
           badge.outerHTML = isDirect
             ? siteBadgeHtml('direct', 'Direct link')
-            : siteBadgeHtml('search', 'Search inside site');
+            : siteBadgeHtml('search', 'Click to watch');
           // Keep the copy/report buttons in sync with the upgraded link
           const escapedUrl = url.replace(/'/g, "\\'");
           const copyBtn = card.querySelector('button.copy-link-btn:not(.report-icon)');
@@ -7066,7 +7064,11 @@ function renderSitesDirectory() {
   // gives an obvious way back out.
   const isPinnedView = activeDirFilters.includes('pinned');
   const headingEl = document.getElementById('dir-heading-label');
-  if (headingEl) headingEl.textContent = isPinnedView ? 'My Bookmarks' : 'Free Websites';
+  if (headingEl) headingEl.textContent = isPinnedView ? 'Favorite Sources' : 'Free Websites';
+  const backBtnEl = document.getElementById('dir-back-btn');
+  if (backBtnEl) backBtnEl.style.display = isPinnedView ? '' : 'none';
+  const searchHeaderEl = document.querySelector('#screen-search .search-header');
+  if (searchHeaderEl) searchHeaderEl.style.display = isPinnedView ? 'none' : '';
   // The heading row and the site list/grid both live directly in
   // #result-area, which carries no side padding of its own (the Explore
   // grid's cards/chips supply their own insets). The Bookmarks list is a
@@ -7091,6 +7093,13 @@ function renderSitesDirectory() {
   // directory, so it doesn't need to show here.
   const safetyTipEl = document.getElementById('dir-safety-tip');
   if (safetyTipEl) safetyTipEl.style.display = isPinnedView ? 'none' : '';
+  // Popular searches is a discovery aid for browsing the full directory —
+  // it doesn't belong on a personal saved-items list, so hide it in the
+  // Bookmarks view specifically while leaving it on Free Websites.
+  const popularSearchesHeadingEl = document.getElementById('popular-searches-chips')?.previousElementSibling;
+  if (popularSearchesHeadingEl) popularSearchesHeadingEl.style.display = isPinnedView ? 'none' : '';
+  const popularSearchesEl = document.getElementById('popular-searches-chips');
+  if (popularSearchesEl) popularSearchesEl.style.display = isPinnedView ? 'none' : '';
 
   if (filtered.length === 0) {
     if (isPinnedView) {
@@ -7255,19 +7264,9 @@ function renderHomepage() {
   let dirTipDismissed;
   try { dirTipDismissed = sessionStorage.getItem('cinefind-dir-tip-dismissed'); } catch (e) { dirTipDismissed = null; }
   document.getElementById('result-area').innerHTML = `
-    <div style="margin-bottom:var(--sp-6); display:flex; align-items:center; justify-content:space-between; gap:10px;" class="popular-label">
-      <span id="dir-heading-label">Free Websites</span>
-    </div>
-
-    <!-- Item 10: homepage was one long scroll (sites, then genres, then
-         popular searches) before you'd ever reach genre browsing. Both
-         sections' render functions/data are untouched — this just wraps
-         each in a show/hide container and adds a tab bar, so switching is
-         instant with no extra fetch/re-render. -->
-    <div class="home-tab-bar" role="tablist" aria-label="Browse by" id="home-tab-bar">
-      <span class="home-tab-indicator" id="home-tab-indicator"></span>
-      <button class="home-tab active" id="home-tab-btn-sites" role="tab" aria-selected="true" onclick="switchHomeTab('sites')">Sites</button>
-      <button class="home-tab" id="home-tab-btn-genres" role="tab" aria-selected="false" onclick="switchHomeTab('genres')">Genres</button>
+    <div style="margin-bottom:var(--sp-6); display:flex; align-items:center; gap:10px;" class="popular-label">
+      <button id="dir-back-btn" onclick="activeDirFilters=[]; goToScreen('screen-profile')" style="display:none; background:none; border:none; padding:4px; margin:0 2px 0 -4px; cursor:pointer; color:inherit; flex-shrink:0;" aria-label="Back to Profile"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span id="dir-heading-label" style="flex:1;">Free Websites</span>
     </div>
 
     <div id="home-tab-sites">
@@ -7280,28 +7279,7 @@ function renderHomepage() {
       <button class="genre-pill dual-gradient-pill" data-cat="pinoy" onclick="toggleDirFilter('pinoy', this)"><svg width="14" height="10" viewBox="0 0 24 16" style="vertical-align:-1px; margin-right:3px; border-radius:2px;"><rect width="24" height="8" y="0" fill="#0038A8"/><rect width="24" height="8" y="8" fill="#CE1126"/><path d="M0 0 L9 8 L0 16 Z" fill="#FFFFFF"/><g transform="translate(3,8)"><circle r="1.6" fill="#FCD116"/></g></svg>Pinoy</button>
     </div>
     </div>
-    ${dirTipDismissed ? '' : `
-    <div class="safety-tip" id="dir-safety-tip" style="max-width:none; margin:0 0 10px; justify-content:flex-start;">
-      <span class="tip-icon">🛡️</span>
-      <span>Use an ad-blocking browser like <strong>Brave</strong> and avoid pop-ups/"download" prompts. <a href="https://brave.com/download/" target="_blank" rel="noopener" class="brave-dl-link" style="color:var(--accent2); font-weight:600; text-decoration:underline;">Get Brave →</a></span>
-      <button class="tip-close" onclick="dismissDirTip()" aria-label="Dismiss tip">✕</button>
-    </div>
-    `}
     <div class="dir-grid" id="sites-directory-grid"></div>
-    </div>
-
-    <div id="home-tab-genres" style="display:none;">
-    <div style="margin:24px 0 12px" class="popular-label">🎭 Browse by Genre</div>
-    <div class="genre-grid" id="genre-grid">
-      <button class="genre-chip" data-genre="28" onclick="browseGenre(28, 'Action', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></span>Action</button>
-      <button class="genre-chip" data-genre="35" onclick="browseGenre(35, 'Comedy', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 13c1 1.5 2.5 2.3 4 2.3s3-.8 4-2.3"/><circle cx="9" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".6" fill="currentColor" stroke="none"/></svg></span>Comedy</button>
-      <button class="genre-chip" data-genre="18" onclick="browseGenre(18, 'Drama', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="6"/><path d="M5.5 14c1 1 2 1.3 2.5 1.3s1.5-.3 2.5-1.3"/><circle cx="16" cy="12" r="6"/><path d="M13.5 10c1-1 2-1.3 2.5-1.3s1.5.3 2.5 1.3"/></svg></span>Drama</button>
-      <button class="genre-chip" data-genre="27" onclick="browseGenre(27, 'Horror', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 00-7 7v4l1.5 2v2h2v-2h1v2h1v-2h2v2h1v-2h1v2h2v-2L19 14v-4a7 7 0 00-7-7z"/><circle cx="9.3" cy="10" r="1.2" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg></span>Horror</button>
-      <button class="genre-chip" data-genre="10749" onclick="browseGenre(10749, 'Romance', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-9.5-9C1 8 2 4.5 5.5 4 8 3.6 10 5 12 7c2-2 4-3.4 6.5-3 3.5.5 4.5 4 3 7-2.5 4.5-9.5 9-9.5 9z"/></svg></span>Romance</button>
-      <button class="genre-chip" data-genre="878" onclick="browseGenre(878, 'Sci-Fi', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 2 4.5 6 4 10l-4 4-4-4c-.5-4 1-8 4-10z"/><path d="M8.5 13.5 5 15l1-4"/><path d="M15.5 13.5 19 15l-1-4"/><path d="M10 21l1-3h2l1 3"/><circle cx="12" cy="9" r="1.3" fill="currentColor" stroke="none"/></svg></span>Sci-Fi</button>
-      <button class="genre-chip" data-genre="16" onclick="browseGenre(16, 'Animation', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.2 0 2-1 2-2 0-.6-.3-1-.6-1.4-.3-.4-.4-.8-.1-1.2.3-.4.9-.4 1.4-.4H16a4 4 0 004-4c0-5-3.6-9-8-9z"/><circle cx="7.5" cy="10.5" r="1" fill="currentColor" stroke="none"/><circle cx="9.5" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="7.5" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="11" r="1" fill="currentColor" stroke="none"/></svg></span>Animation</button>
-      <button class="genre-chip" data-genre="53" onclick="browseGenre(53, 'Thriller', this)"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span>Thriller</button>
-    </div>
 
     <div style="margin:24px 0 12px" class="popular-label">🔎 Popular searches</div>
     <div class="popular-chips" id="popular-searches-chips">
@@ -9150,13 +9128,10 @@ async function testLink() {
 
   function renderProfileScreen() {
     const watchlistEl = document.getElementById('stat-watchlist');
-    const bookmarksEl = document.getElementById('stat-bookmarks');
+    const recentEl = document.getElementById('stat-recent');
     const favSourcesEl = document.getElementById('stat-fav-sources');
     if (watchlistEl) watchlistEl.textContent = getFavorites().length;
-    // Was reading getFavorites() (the movie watchlist count) here — that's
-    // why this number never matched what "My Bookmarks" actually opened to
-    // (site pins via getDirFavs()), even though they're the same stat.
-    if (bookmarksEl) bookmarksEl.textContent = getDirFavs().length;
+    if (recentEl) recentEl.textContent = getRecentlyViewed().length;
     if (favSourcesEl) favSourcesEl.textContent = getDirFavs().length;
     renderProfileFavSourcesRow();
     applyStoredProfileIdentity();
@@ -9351,8 +9326,9 @@ async function testLink() {
   // existed in renderSitesDirectory() but had no UI ever setting it — this
   // is that missing trigger, not new filtering logic.
   function goToSavedSources() {
+    activeDirFilters = ['pinned']; // set first so goToScreen's nav-hiding check sees it
     goToScreen('screen-search');
-    renderHomepage();
+    renderHomepage(); // resets activeDirFilters internally, re-applied below
     switchHomeTab('sites');
     activeDirFilters = ['pinned'];
     syncDirFilterChipsUI();
@@ -9495,7 +9471,7 @@ async function testLink() {
     // edges) — falls back to a plain letter/glyph badge instead, same
     // treatment for every site so nothing looks cut off.
     const logo = sourceRowLogoHtml(site);
-    const glow = glowRgba(getSourceAccentColor(site), 0.32);
+    const glow = glowRgba(getSourceAccentColor(site), 0.14);
     // Only the top row (first result / current favorite pick) gets the
     // solid primary button — the rest use an outline secondary style so
     // one recommended source visually stands out instead of every row
@@ -9503,7 +9479,7 @@ async function testLink() {
     const btnClass = idx === 0 ? 'watch-btn' : 'watch-btn watch-btn-secondary';
     return `
       <div class="source-row" style="animation-delay:${idx * 0.05}s">
-        <div class="source-logo" role="button" tabindex="0" aria-label="Open ${escapeAttr(site.name)}" style="width:56px;height:56px;padding:0;overflow:hidden;box-shadow:0 3px 10px ${glow}, 0 1px 3px rgba(0,0,0,.10);cursor:pointer;" onclick="confirmOutboundLink('${site.name.replace(/'/g, "\\'")}', '${site.url}', '${status || ''}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">${logo}</div>
+        <div class="source-logo" role="button" tabindex="0" aria-label="Open ${escapeAttr(site.name)}" style="width:56px;height:56px;padding:0;overflow:hidden;box-shadow:0 6px 18px -2px ${glow}, 0 1px 3px rgba(0,0,0,.10);cursor:pointer;" onclick="confirmOutboundLink('${site.name.replace(/'/g, "\\'")}', '${site.url}', '${status || ''}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">${logo}</div>
         <div class="source-info">
           <div class="name">${site.name}</div>
           <div class="status-line" title="${escapeAttr(statusDotLabel(status) || '')}">${statusIconSvg(status)}<span style="color:${statusColor};">${statusLabel}</span></div>
