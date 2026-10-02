@@ -1,11 +1,11 @@
 {
   "healthy": false,
-  "lastRun": "2026-10-02T11:55:52.360Z",
+  "lastRun": "2026-10-02T12:00:41.382Z",
   "targetsAttempted": 2,
   "targetsOk": 0,
   "targetsFailed": 2,
   "failureRatio": 1,
   "budgetStopped": false,
-  "rotationProgress": "6/13",
+  "rotationProgress": "8/13",
   "reason": "2/2 targets failed this run — possible site redesign or new bot-protection. Check scraper_log for ng_state_not_found / unexpected_response_shape events."
 }
