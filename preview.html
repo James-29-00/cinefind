@@ -7,6 +7,9 @@
 <meta name="description" content="Cinefind is a directory of streaming websites. Search a title, then check each listed website yourself. Availability is not verified.">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Cinefind"><meta property="og:title" content="Cinefind: Find where to watch, free"><meta property="og:description" content="A directory of streaming websites. Search a title, then check each website yourself."><meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#0a0716">
+<link rel="manifest" href="./manifest.json"><link rel="apple-touch-icon" href="./icon-192.png">
+<meta property="og:image" content="https://mycinefind.vercel.app/og-image.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://mycinefind.vercel.app/og-image.png">
 <script>try{var t=localStorage.getItem('cf-theme');document.documentElement.dataset.t=/^(modern|ocean|space|sunset|noir|forest)$/.test(t)?t:'space'}catch(e){document.documentElement.dataset.t='space'}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%23a78bfa'/%3E%3Crect x='8.5' y='14' width='17' height='12' rx='3.2' fill='none' stroke='%23150d2e' stroke-width='2.4'/%3E%3Cpath d='M13.5 10.5V14M21.5 10.5V14M13.5 26v3.5M21.5 26v3.5' stroke='%23150d2e' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -371,9 +374,9 @@ function details(){const t=TITLES[S.tid],ws=SITES.filter(s=>s.c.includes(t.type)
 function favs(){const s=SITES.filter(x=>S.favs.has(x.n)).sort((a,b)=>S.sort==='az'?a.n.localeCompare(b.n):0);return `<button class="back" data-go="home">${ICON.back} Back to Home</button><h1>Favorites</h1>${s.length>1?`<select class="sel u-as" id="sort" aria-label="Sort favorites"><option value="def">Default order</option><option value="az"${S.sort==='az'?' selected':''}>Name A–Z</option></select>`:''}${s.length?`<div class="grid4 sm">${s.map((x,i)=>siteCard(x,i,true)).join('')}</div>`:'<div class="box col u-ai"><p class="mu">Nothing saved yet. Tap the <span style="display:inline-block;vertical-align:-4px">'+ICON.star+'</span> on any website to keep it here.</p><button class="btn" data-go="home">Browse websites</button></div>'}`}
 var VIS=null;
 async function getVisitors(){/* CONNECT YOUR COUNTER HERE: return a real number, e.g.
-  const r=await fetch('YOUR_COUNTER_URL');return (await r.json()).online; */try{const r=await fetch('https://cinefind-visits.manio-james-g-5588.workers.dev',{method:getVisitors.d?'GET':'POST'});getVisitors.d=1;return r.ok?(await r.json()).online:null}catch(e){return null}}
+  const r=await fetch('YOUR_COUNTER_URL');return (await r.json()).online; */if(getVisitors.v!==undefined)return getVisitors.v;try{const r=await fetch('https://cinefind-visits.manio-james-g-5588.workers.dev',{method:'POST'});const d=r.ok?await r.json():null;return getVisitors.v=d?d.online||1:null}catch(e){return null}}
 function visUpdate(){const c=$('#visCell'),n=$('#vis');if(!c)return;const ok=Number.isFinite(VIS)&&VIS>=1;c.hidden=!ok;if(ok)n.textContent=VIS.toLocaleString()}
-async function visPoll(){try{const v=await getVisitors();VIS=Number.isFinite(v)?v:null}catch(e){VIS=null}visUpdate()}
+async function visPoll(){try{const v=await getVisitors();if(Number.isFinite(v))VIS=v}catch(e){}visUpdate()}
 function navOn(){const h=S.view==='home';
  [['#bHome',h&&!S.rec],['#bFavs',S.view==='favs'],['#nHome',h&&!S.rec],['#nFavs',S.view==='favs']].forEach(([q,on])=>{const e=$(q);e.classList.toggle('on',on);on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')})}
 let io;function hdSearch(){io&&io.disconnect();const h=$('#hsf'),t=S.view==='home'&&$('#sf');if(!t){h.classList.toggle('off',S.view==='results');return}io=new IntersectionObserver(([en])=>h.classList.toggle('off',en.isIntersecting),{rootMargin:'-72px 0px 0px 0px'});io.observe(t)}
@@ -463,6 +466,7 @@ A(cu).forEach(c=>{if(!SITES.some(s=>k(s.n)===k(c.name)))SITES.push({n:c.name,c:A
 for(let i=SITES.length;i--;)R.has(k(SITES[i].n))&&SITES.splice(i,1);
 SITES.forEach(s=>{const n=k(s.n),v=m[n];s.d=o[n]?o[n].replace(/^https?:\/\//,'').replace(/\/$/,''):s.d||DM[n];if(v)s.online=v==='up';s.hot=H.includes(n)});
 SITES.sort((a,b)=>(b.hot|0)-(a.hot|0));S.view!=='results'&&render()})}
+'serviceWorker'in navigator&&navigator.serviceWorker.register('./sw.js').catch(()=>{});
 setTheme(pref);route();visPoll();setInterval(visPoll,45000);
 </script>
 <script>
