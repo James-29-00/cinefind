@@ -534,7 +534,7 @@ for(let i=SITES.length;i--;)R.has(k(SITES[i].n))&&SITES.splice(i,1);
 SITES.forEach(s=>{const n=k(s.n),z=m[n],v=z&&z.status;s.d=o[n]?o[n].replace(/^https?:\/\//,'').replace(/\/$/,''):s.d||DM[n];s.st=v==='up'?'up':v==='blocked'?'flag':v==='down'?'down':'unk';s.online=s.st==='up';s.ca=z&&Date.parse(z.checkedAt)||0;s.ms=z&&z.avgResponseMs||0;s.hot=H.includes(n)});
 SITES.sort((a,b)=>(b.hot|0)-(a.hot|0));S.view!=='results'&&render()})}
 'serviceWorker'in navigator&&navigator.serviceWorker.register('./sw.js').catch(()=>{});
-setTheme(pref);route();visPoll();setInterval(visPoll,45000);
+setTheme(pref);route();visPoll();setInterval(()=>{document.hidden||visPoll()},90000);
 </script>
 <script>
 /* FloatingLines (vanilla WebGL2 port of React Bits) */
