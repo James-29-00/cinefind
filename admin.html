@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Cinefind Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#0a0a0f}</style>
+</head>
+<body>
+<script>
+// ===== Helpers that used to live in the old index.html =====
+const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
+const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
+
+// Built-in sites (name/url/domain/categories/icon only). Used to show built-ins as
+// "pending" and to snapshot them when deleted/restored.
+const SITES_DIRECTORY = [
+  {
+    "name": "MyAsianTV",
+    "url": "https://myasiantv.com.lv/",
+    "domain": "myasiantv.com.lv",
+    "categories": [
+      "drama"
+    ],
+    "icon": "🏔️"
+  },
+  {
+    "name": "DramaCool",
+    "url": "https://dramacool.baby/",
+    "domain": "dramacool.baby",
+    "categories": [
+      "drama"
+    ],
+    "icon": "🎬"
+  },
+  {
+    "name": "KissKH",
+    "url": "https://kisskh.co/",
+    "domain": "kisskh.co",
+    "categories": [
+      "drama"
+    ]
+  },
+  {
+    "name": "Viki",
+    "url": "https://www.viki.com/",
+    "domain": "viki.com",
+    "categories": [
+      "drama"
+    ]
+  },
+  {
+    "name": "MovieBox",
+    "url": "https://movie-box.co/",
+    "domain": "movie-box.co",
+    "categories": [
+      "movie"
+    ]
+  },
+  {
+    "name": "FMovies",
+    "url": "https://fmoviess.org/",
+    "domain": "fmoviess.org",
+    "categories": [
+      "movie"
+    ]
+  },
+  {
+    "name": "ReAnime",
+    "url": "https://reanime.to/",
+    "domain": "reanime.to",
+    "categories": [
+      "anime"
+    ]
+  },
+  {
+    "name": "Miruro",
+    "url": "https://miruro.to/",
+    "domain": "miruro.to",
+    "categories": [
+      "anime"
+    ]
+  },
+  {
+    "name": "Enma",
+    "url": "https://enma.lol/",
+    "domain": "enma.lol",
+    "categories": [
+      "anime"
+    ]
+  },
+  {
+    "name": "TBA Studios",
+    "url": "https://www.youtube.com/@TBAStudios/",
+    "domain": "youtube.com",
+    "categories": [
+      "pinoy"
+    ]
+  },
+  {
+    "name": "CineWhale",
+    "url": "https://cinewhale.cc/",
+    "domain": "cinewhale.cc",
+    "categories": [
+      "movie"
+    ]
+  },
+  {
+    "name": "Dulo",
+    "url": "https://dulo.sx/",
+    "domain": "dulo.sx",
+    "categories": [
+      "movie"
+    ]
+  }
+];
+
+let siteStatusMap = null;
+let customSites = [];
+let removedSiteNames = [];
+let removedSitesData = [];
+let hotSiteNames = [];
+
+function normalizeSiteName(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function escapeAttr(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+async function fetchStatusJson() {
+  const res = await fetch('./status.json?t=' + Date.now());
+  if (!res.ok) throw new Error(`status.json returned HTTP ${res.status}`);
+  return res.json();
+}
+function isHotSite(name) {
+  return Array.isArray(hotSiteNames) && hotSiteNames.includes(normalizeSiteName(name));
+}
+async function loadHotSites() {
+  try {
+    const res = await fetch('./hot-sites.json?t=' + Date.now());
+    const parsed = res.ok ? await res.json() : [];
+    hotSiteNames = Array.isArray(parsed) ? parsed : [];
+  } catch (e) { hotSiteNames = []; }
+}
+// No public site cards on this page, so these two are no-ops for the shared code.
+function applyStatusDots() {}
+function renderSitesDirectory() {}
+
+// Pending-restore bookkeeping (survives the ~1 min GitHub Pages delay after a restore/delete).
+function getPendingRestores() {
+  try { return JSON.parse(localStorage.getItem('cinefind-pending-restores') || '{}'); }
+  catch (e) { return {}; }
+}
+function markPendingRestore(siteObj) {
+  const map = getPendingRestores();
+  map[normalizeSiteName(siteObj.name)] = siteObj;
+  try { localStorage.setItem('cinefind-pending-restores', JSON.stringify(map)); } catch (e) {}
+}
+function applyPendingRestores(customList, removedList) {
+  const pending = getPendingRestores();
+  let changed = false;
+  Object.keys(pending).forEach(key => {
+    const alreadyReal = customList.some(s => normalizeSiteName(s.name) === key) && !removedList.some(s => normalizeSiteName(s.name) === key);
+    if (alreadyReal) {
+      delete pending[key];
+      changed = true;
+    } else {
+      if (!customList.some(s => normalizeSiteName(s.name) === key)) {
+        if (pending[key].url) customList.push(pending[key]);
+      }
+      removedList = removedList.filter(s => normalizeSiteName(s.name) !== key);
+    }
+  });
+  if (changed) { try { localStorage.setItem('cinefind-pending-restores', JSON.stringify(pending)); } catch (e) {} }
+  return { customList, removedList };
+}
+
+// ========== HIDDEN ADMIN PANEL ==========
+// Access by visiting: yoursite.com/?admin=cf_x7k9m2
+// NOTE: this URL param only hides the panel from casual visitors (security
+// through obscurity) — it is NOT real auth, since anyone can view-source
+// this file and read the value. The actual security boundary is the admin
+// password login (adminLogin()) + the ADMIN_PROXY_URL worker, which is the
+// only thing that can write to GitHub. Even if someone finds this URL and
+// opens the panel, they still can't change anything without the password.
+const ADMIN_SECRET = 'cf_x7k9m2';
+
+function checkAdminAccess() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('admin') === ADMIN_SECRET) {
+    loadAdminPanel();
+  } else {
+    location.replace('./');
+  }
+}
+
+async function loadAdminPanel() {
+  // Inject admin panel styles
+  const style = document.createElement('style');
+  style.textContent = `
+    #admin-overlay {
+      position: fixed; inset: 0; background: #0a0a0f; z-index: 9999;
+      overflow-y: auto; padding: 24px 16px 60px; font-family: 'Space Grotesk', sans-serif;
+    }
+    #admin-overlay .admin-header { text-align: center; margin-bottom: 20px; }
+    #admin-overlay .admin-header h1 { color: #e63946; font-size: 1.6rem; margin-bottom: 4px; }
+    #admin-overlay .admin-header p { color: #9494b5; font-size: .8rem; }
+    #admin-overlay .admin-summary {
+      display: flex; gap: 10px; justify-content: center; margin: 16px 0 24px; flex-wrap: wrap;
+    }
+    #admin-overlay .admin-stat {
+      background: #16161f; border: 1px solid #ffffff0f; border-radius: 10px;
+      padding: 10px 18px; text-align: center;
+    }
+    #admin-overlay .admin-stat .num { font-size: 1.4rem; font-weight: 700; }
+    #admin-overlay .admin-stat .lbl { font-size: .7rem; color: #9494b5; text-transform: uppercase; }
+    #admin-overlay .site-row {
+      display: flex; align-items: center; gap: 12px; background: #16161f;
+      border: 1px solid #ffffff0f; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+    }
+    #admin-overlay .site-row.down { border-color: rgba(230,57,70,.4); background: rgba(230,57,70,.06); }
+    #admin-overlay .site-row.blocked { border-color: rgba(240,180,40,.4); background: rgba(240,180,40,.06); }
+    #admin-overlay .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    #admin-overlay .status-dot.up { background: #06d6a0; }
+    #admin-overlay .status-dot.down { background: #e63946; }
+    #admin-overlay .status-dot.blocked { background: #f0b428; }
+    #admin-overlay .status-dot.pending { background: #6c7086; }
+    #admin-overlay .quick-test-btn {
+      background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px;
+    }
+    #admin-overlay .delete-site-btn {
+      background: #2a1216; border: 1px solid #e6394666; color: #ff6b74;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px; margin-left: 6px;
+    }
+    #admin-overlay .delete-site-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .restore-site-btn {
+      background: #0f2a1c; border: 1px solid #06d6a066; color: #06d6a0;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px;
+    }
+    #admin-overlay .restore-site-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .delete-permanent-btn {
+      background: #16161f; border: 1px solid #ffffff1f; color: #9494b5;
+      border-radius: 6px; padding: 4px 10px; font-size: .72rem; cursor: pointer; margin-top: 6px; margin-left: 6px;
+    }
+    #admin-overlay .delete-permanent-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .site-name { font-weight: 600; color: #f0f0f5; flex: 1; }
+    #admin-overlay .site-meta { font-size: .72rem; color: #9494b5; }
+    #admin-overlay .replace-input {
+      width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 6px;
+      border: 1px solid #3A3448; background: #0a0a0f; color: #f0f0f5; font-size: .8rem;
+    }
+    #admin-overlay .close-admin {
+      position: fixed; top: 14px; right: 14px; background: #16161f; border: 1px solid #ffffff0f;
+      color: #f0f0f5; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 1rem;
+    }
+    #admin-overlay .refresh-note { text-align: center; color: #9494b5; font-size: .72rem; margin-top: 20px; }
+    #admin-overlay .test-link-box {
+      background: #16161f; border: 1px solid #ffffff0f; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 20px;
+    }
+    #admin-overlay .test-link-title { font-weight: 600; color: #f0f0f5; font-size: .85rem; margin-bottom: 10px; }
+    #admin-overlay .test-link-row { display: flex; gap: 8px; }
+    #admin-overlay .test-link-input {
+      flex: 1; min-width: 0; padding: 8px 10px; border-radius: 6px; border: 1px solid #3A3448;
+      background: #0a0a0f; color: #f0f0f5; font-size: .8rem; font-family: inherit;
+    }
+    #admin-overlay .test-link-btn {
+      background: #e63946; color: #fff; border: none; border-radius: 6px;
+      padding: 8px 16px; font-size: .8rem; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    }
+    #admin-overlay .test-link-btn:disabled { opacity: .5; cursor: default; }
+    #admin-overlay .test-link-result { margin-top: 10px; font-size: .8rem; display: none; }
+    #admin-overlay .test-link-result.show { display: block; }
+    #admin-overlay .test-link-status { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    #admin-overlay .test-link-note { color: #9494b5; font-size: .72rem; margin-bottom: 10px; line-height: 1.4; }
+    #admin-overlay .test-link-open-btn {
+      background: #16161f; border: 1px solid #ffffff1f; color: #f0f0f5;
+      border-radius: 6px; padding: 6px 14px; font-size: .75rem; cursor: pointer;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'admin-overlay';
+  const loggedIn = !!getAdminSession();
+  overlay.innerHTML = `
+    <button class="close-admin" onclick="location.href='./'">✕</button>
+    <div class="admin-header">
+      <h1>🔒 Site Status Admin</h1>
+      <p>Loading status.json...</p>
+    </div>
+    <div class="test-link-box" style="font-size:.72rem; color:#9494b5; line-height:1.5;">
+      <div class="test-link-title" style="margin-bottom:6px;">ℹ️ What the dots mean</div>
+      <div><span style="color:#06d6a0;">🟢 Up</span> — site responded normally.</div>
+      <div><span style="color:#f0b428;">🟡 Blocked</span> — GitHub's checker got a 403/429/503 or timed out. This is usually <strong>not</strong> the site being down — Cloudflare/DDoS-Guard etc. often flag GitHub Actions' datacenter IP as a bot, even when the site works fine for real visitors. Use "Test a Link" above or open the URL yourself to confirm before assuming it's broken.</div>
+      <div><span style="color:#e63946;">🔴 Down</span> — confirmed failure (DNS error, connection refused, or a real 4xx/5xx not tied to bot-protection).</div>
+      <div><span style="color:#6c7086;">⚪ Pending</span> — added recently, not checked yet.</div>
+      <div style="margin-top:6px;">Just updated a link and it's still yellow after reload? The re-check likely ran and got bot-blocked on this new URL too — see 🟡 above.</div>
+    </div>
+    <div class="test-link-box" id="gh-config-box">
+      <div class="test-link-title">🔐 Admin Login (needed for live link updates)</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" style="${loggedIn ? 'display:none;' : ''}">
+        <button class="test-link-btn" id="admin-login-btn" onclick="adminLogin()" style="width:100%;${loggedIn ? ' display:none;' : ''}">Log In</button>
+        <button class="test-link-btn" id="admin-logout-btn" onclick="adminLogout()" style="width:100%;${loggedIn ? '' : ' display:none;'}">Log Out</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${loggedIn ? '✅ Logged in — session active for a few hours.' : 'Not logged in — enter the admin password to enable live edits.'}</div>
+      </div>
+    </div>
+    <div class="test-link-box">
+      <div class="test-link-title">🔗 Test a Link</div>
+      <div class="test-link-row">
+        <input type="text" id="test-link-input" class="test-link-input" placeholder="Paste a URL to test..." onkeydown="if(event.key==='Enter') testLink()">
+        <button class="test-link-btn" onclick="testLink()">Test</button>
+      </div>
+      <div id="test-link-result" class="test-link-result"></div>
+    </div>
+    <div class="test-link-box" id="add-site-box">
+      <div class="test-link-title">➕ Add New Website</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://..." onkeydown="if(event.key==='Enter') addNewWebsite(this.closest('.test-link-box').querySelector('.test-link-btn'))">
+        <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-drama"> K-Drama</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-anime"> Anime</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> <svg width="14" height="10" viewBox="0 0 24 16" style="vertical-align:-1px; margin-right:3px; border-radius:2px;"><rect width="24" height="8" y="0" fill="#0038A8"/><rect width="24" height="8" y="8" fill="#CE1126"/><path d="M0 0 L9 8 L0 16 Z" fill="#FFFFFF"/><g transform="translate(3,8)"><circle r="1.6" fill="#FCD116"/></g></svg> Pinoy</label>
+        </div>
+        <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
+        <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  try {
+    const data = await fetchStatusJson();
+
+    // Fresh copies of removed-sites.json / custom-sites.json — status.json
+    // only refreshes every 6h via the GitHub Action, so a site deleted or
+    // restored just now can still be stale in data.results. Filter/merge
+    // here (same as renderSitesDirectory() does for the public homepage),
+    // with the pending-restore override applied so a just-restored site
+    // doesn't flash back to "deleted" while GitHub Pages catches up.
+    let freshCustomList = [];
+    try {
+      const removedRes = await fetch('./removed-sites.json?t=' + Date.now());
+      const removedRaw = removedRes.ok ? await removedRes.json() : [];
+      removedSitesData = removedRaw.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+      const customRes = await fetch('./custom-sites.json?t=' + Date.now());
+      const customParsed = customRes.ok ? await customRes.json() : [];
+      freshCustomList = Array.isArray(customParsed) ? customParsed : [];
+      const applied = applyPendingRestores(freshCustomList, removedSitesData);
+      freshCustomList = applied.customList;
+      removedSitesData = applied.removedList;
+      removedSiteNames = removedSitesData.map(s => normalizeSiteName(s.name));
+      customSites = freshCustomList;
+    } catch (removedErr) {
+      // Non-fatal — falls back to whatever removedSiteNames/removedSitesData already has.
+    }
+    data.results = (data.results || []).filter(
+      r => !removedSiteNames.includes(normalizeSiteName(r.name))
+    );
+
+    // Sites live in status.json only once sites.json (the checker's own
+    // list) includes them AND the checker has actually run. Two separate
+    // gaps land a site in limbo here: (a) newly-added/restored sites that
+    // are in custom-sites.json but not yet checked, and (b) built-in
+    // SITES_DIRECTORY sites that were never added to sites.json in the
+    // first place (so the checker never even attempts them — this is what
+    // was hiding KissKH/MyAsianTV here even though their cards work fine
+    // on the homepage). Show both as "pending" instead of just vanishing.
+    const checkedNames = new Set((data.results || []).map(r => normalizeSiteName(r.name)));
+    freshCustomList.forEach(s => {
+      if (!checkedNames.has(normalizeSiteName(s.name))) {
+        data.results.push({ name: s.name, url: s.url, status: 'pending' });
+        checkedNames.add(normalizeSiteName(s.name));
+      }
+    });
+    SITES_DIRECTORY.forEach(s => {
+      if (!checkedNames.has(normalizeSiteName(s.name))) {
+        data.results.push({ name: s.name, url: s.url, status: 'pending' });
+        checkedNames.add(normalizeSiteName(s.name));
+      }
+    });
+
+    renderAdminPanel(data);
+    
+    // Sync front-end status dots with the latest admin data
+    const map = {};
+    (data.results || []).forEach(r => { if (r.name) map[normalizeSiteName(r.name)] = r.status; });
+    siteStatusMap = map;
+    applyStatusDots();
+  } catch (err) {
+    console.error('Admin panel load error:', err);
+    overlay.querySelector('.admin-header p').textContent =
+      '⚠️ Error: ' + err.message + ' (check browser console for details)';
+  }
+}
+
+// Builds one row for the "🗑️ Recently Deleted" list — shared by the initial
+// admin panel render and by deleteWebsite()'s live-append (see below), so a
+// freshly-deleted site shows up immediately without needing to reopen the panel.
+function buildRemovedSiteRow(s) {
+  const safeName = s.name.replace(/'/g, "\\'");
+  const dirBackup = SITES_DIRECTORY.find(d => normalizeSiteName(d.name) === normalizeSiteName(s.name));
+  const hasSnapshot = !!s.url || !!dirBackup;
+  const urlLabel = s.url || (dirBackup ? dirBackup.url + ' (built-in, still in code)' : 'No saved URL (deleted before Restore existed)');
+  return `
+    <div class="site-row" style="background:#0f0f16;" data-removed-site="${normalizeSiteName(s.name)}">
+      <div style="flex:1;">
+        <div class="site-name">${s.name} ${s.icon || ''}</div>
+        <div class="site-meta">${urlLabel}${s.removedAt ? ' — deleted ' + new Date(s.removedAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) : ''}</div>
+        <button class="restore-site-btn" ${hasSnapshot ? '' : 'disabled'} onclick="restoreWebsite('${safeName}', this)">♻️ Restore</button>
+        <button class="delete-permanent-btn" onclick="confirmDeletePermanently('${safeName}', this)">🗑️ Delete Permanently</button>
+        <div class="restore-site-status site-meta" style="margin-top:4px;"></div>
+      </div>
+    </div>`;
+}
+
+function renderAdminPanel(data) {
+  const overlay = document.getElementById('admin-overlay');
+  const lastRun = new Date(data.lastRun).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
+
+  const rowsHtml = data.results.map(site => {
+    const icon = site.status === 'up' ? '🟢' : site.status === 'blocked' ? '🟡' : site.status === 'pending' ? '⚪' : '🔴';
+    const metaText = site.status === 'up'
+      ? 'HTTP ' + site.httpStatus
+      : site.status === 'pending'
+      ? 'Not checked yet — next automatic check within 6h'
+      : (site.httpStatus ? 'HTTP ' + site.httpStatus : (site.error || site.status));
+    const safeUrl = site.url.replace(/'/g, "\\'");
+    const safeName = site.name.replace(/'/g, "\\'");
+    const isHot = isHotSite(site.name);
+    return `
+    <div class="site-row ${site.status}">
+      <div class="status-dot ${site.status}"></div>
+      <div style="flex:1;">
+        <div class="site-name">${site.name} ${icon}</div>
+        <button class="quick-test-btn hot-toggle-btn" style="margin-top:4px; padding:2px 9px; font-size:.7rem; ${isHot ? 'background:#f0b428; color:#1a1a2e; border-color:#f0b428;' : ''}" onclick="toggleHotSite('${safeName}', this)">${isHot ? '🔥 Hot — tap to unhot' : '🔥 Mark as Hot'}</button>
+        <div class="site-meta">${site.url} — ${metaText}</div>
+        ${site.status === 'blocked' ? `
+          <div class="site-meta" style="margin-top:2px; color:#f0b428;">Might just be blocking this server's IP — verify from your own browser.</div>
+          <button class="quick-test-btn" onclick="document.getElementById('test-link-input').value='${safeUrl}'; testLink(); document.getElementById('test-link-input').scrollIntoView({behavior:'smooth', block:'center'});">🔗 Test This Link</button>
+        ` : ''}
+        ${site.status === 'down' ? `
+          <input class="replace-input" placeholder="Paste replacement URL here (for your notes only)..." 
+                 onchange="saveReplacementNote('${site.name.replace(/'/g, "\\'")}', this.value)"
+                 value="${getReplacementNote(site.name)}">
+        ` : ''}
+        ${(site.status === 'down' || site.status === 'blocked') ? `
+          <div class="live-update-wrap" style="margin-top:8px;">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <input class="replace-input live-update-input" style="margin-top:0; flex:1;" placeholder="Paste new working URL to go LIVE...">
+              <button class="quick-test-btn" style="margin-top:0; white-space:nowrap;" onclick="updateLiveLink('${site.name.replace(/'/g, "\\'")}', this)">Update Live Link</button>
+            </div>
+            <div class="live-update-status site-meta" style="margin-top:4px;"></div>
+          </div>
+        ` : ''}
+        <button class="delete-site-btn" onclick="confirmDeleteWebsite('${site.name.replace(/'/g, "\\'")}', this)">🗑️ Delete Website</button>
+        <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  const loggedIn = !!getAdminSession();
+  overlay.innerHTML = `
+    <button class="close-admin" onclick="location.href='./'">✕</button>
+    <div class="admin-header">
+      <h1>🔒 Site Status Admin</h1>
+      <p>Last checked: ${lastRun}</p>
+    </div>
+    <div class="test-link-box" id="gh-config-box">
+      <div class="test-link-title">🔐 Admin Login (needed for live link updates)</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="password" id="admin-password" class="test-link-input" placeholder="Admin password" style="${loggedIn ? 'display:none;' : ''}">
+        <button class="test-link-btn" id="admin-login-btn" onclick="adminLogin()" style="width:100%;${loggedIn ? ' display:none;' : ''}">Log In</button>
+        <button class="test-link-btn" id="admin-logout-btn" onclick="adminLogout()" style="width:100%;${loggedIn ? '' : ' display:none;'}">Log Out</button>
+        <div id="gh-config-status" style="font-size:.72rem; color:#9494b5;">${loggedIn ? '✅ Logged in — session active for a few hours.' : 'Not logged in — enter the admin password to enable live edits.'}</div>
+      </div>
+    </div>
+    <div class="test-link-box">
+      <div class="test-link-title">🔗 Test a Link</div>
+      <div class="test-link-row">
+        <input type="text" id="test-link-input" class="test-link-input" placeholder="Paste a URL to test..." onkeydown="if(event.key==='Enter') testLink()">
+        <button class="test-link-btn" onclick="testLink()">Test</button>
+      </div>
+      <div id="test-link-result" class="test-link-result"></div>
+    </div>
+    <div class="test-link-box" id="add-site-box">
+      <div class="test-link-title">➕ Add New Website</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="new-site-name" class="test-link-input" placeholder="Site name (e.g. Kickassanime)">
+        <input type="text" id="new-site-url" class="test-link-input" placeholder="https://..." onkeydown="if(event.key==='Enter') addNewWebsite(this.closest('.test-link-box').querySelector('.test-link-btn'))">
+        <input type="text" id="new-site-icon" class="test-link-input" placeholder="Emoji icon (optional — e.g. 🎬)">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; font-size:.8rem; color:#f0f0f5; padding:2px 0;">
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-movie" checked> Movie</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-drama"> K-Drama</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-anime"> Anime</label>
+          <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="new-site-cat-pinoy"> <svg width="14" height="10" viewBox="0 0 24 16" style="vertical-align:-1px; margin-right:3px; border-radius:2px;"><rect width="24" height="8" y="0" fill="#0038A8"/><rect width="24" height="8" y="8" fill="#CE1126"/><path d="M0 0 L9 8 L0 16 Z" fill="#FFFFFF"/><g transform="translate(3,8)"><circle r="1.6" fill="#FCD116"/></g></svg> Pinoy</label>
+        </div>
+        <button class="test-link-btn" style="width:100%;" onclick="addNewWebsite(this)">Add Website (goes live)</button>
+        <div id="add-site-status" style="font-size:.72rem; color:#9494b5;"></div>
+      </div>
+    </div>
+    <div class="test-link-box" id="removed-sites-box">
+      <div class="test-link-title">🗑️ Recently Deleted <span id="removed-sites-count" style="font-size:.7rem; color:#9494b5;">(${removedSitesData.length})</span></div>
+      <div id="removed-sites-list">
+        ${removedSitesData.length === 0 ? `<p style="font-size:.75rem; color:#9494b5; margin:0;">Wala pang deleted sites.</p>` : removedSitesData.map(buildRemovedSiteRow).join('')}
+      </div>
+    </div>
+    <!-- "Wala pang deleted sites" placeholder, kept as a template to swap back in
+         if the list ever empties out again (e.g. after Delete Permanently) -->
+    <template id="removed-sites-empty-msg"><p style="font-size:.75rem; color:#9494b5; margin:0;">Wala pang deleted sites.</p></template>
+    <div class="admin-summary">
+      <div class="admin-stat"><div class="num" style="color:#06d6a0;">${window.__adminOnlineCount || 1}</div><div class="lbl">Online Now</div></div>
+      <div class="admin-stat"><div class="num" style="color:#06d6a0;">${data.upCount}</div><div class="lbl">Up</div></div>
+      <div class="admin-stat"><div class="num" style="color:#f0b428;">${data.blockedCount || 0}</div><div class="lbl">Blocked</div></div>
+      <div class="admin-stat"><div class="num" style="color:#e63946;">${data.downCount}</div><div class="lbl">Down</div></div>
+      <div class="admin-stat"><div class="num">${data.totalSites}</div><div class="lbl">Total</div></div>
+    </div>
+    <div class="test-link-box" style="margin-bottom:16px;">
+      <div class="test-link-title">📊 Search Analytics <span style="font-size:.7rem; color:#9494b5; font-weight:400;">— what visitors actually search for</span></div>
+      <div id="search-analytics-body"><p style="font-size:.75rem; color:#9494b5;">Loading...</p></div>
+    </div>
+    <div class="test-link-box" style="margin-bottom:16px;">
+      <div class="test-link-title">🌐 Top Websites <span style="font-size:.7rem; color:#9494b5; font-weight:400;">— which site cards visitors actually click</span></div>
+      <div id="top-sites-body"><p style="font-size:.75rem; color:#9494b5;">Loading...</p></div>
+    </div>
+    <div class="test-link-box" style="margin-bottom:16px;">
+      <div class="test-link-title">🚩 User Reports <span id="reports-count-badge" style="font-size:.7rem; color:#9494b5;"></span></div>
+      <div id="admin-reports-list"><p style="font-size:.75rem; color:#9494b5;">Loading reports...</p></div>
+    </div>
+    <div id="admin-site-rows">
+    ${rowsHtml}
+    </div>
+    <p class="refresh-note">Checked automatically every day. Replacement notes are saved only on this device — update SITES_DIRECTORY in the code when ready.</p>
+  `;
+  loadReportsIntoAdmin();
+  loadSearchAnalytics();
+  loadTopSites();
+}
+
+// Renders two simple ranked lists (top titles, top genres) from the search
+// analytics Worker's aggregate counts — see search-analytics-worker.js.
+// Purely informational for the admin (which sites to prioritize verifying/
+// hot-tagging); it doesn't feed back into the site anywhere automatically.
+async function loadSearchAnalytics() {
+  const body = document.getElementById('search-analytics-body');
+  if (!body) return;
+  try {
+    const res = await fetch(`${VISIT_WORKER_URL}/top-searches?t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) throw new Error(`Worker returned HTTP ${res.status}`);
+    const data = await res.json();
+    const titles = data.topTitles || [];
+    const genres = data.topGenres || [];
+
+    if (titles.length === 0 && genres.length === 0) {
+      body.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">No search data yet — this fills in as visitors search.</p>`;
+      return;
+    }
+
+    const renderRankedList = (items) => items.map((item, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:.78rem;">
+        <span style="color:#f0f0f5;">${i + 1}. ${escapeAttr(item.name)}</span>
+        <span style="color:#9494b5;">${item.count}×</span>
+      </div>
+    `).join('');
+
+    body.innerHTML = `
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px;">
+          <div style="font-size:.72rem; color:#9494b5; margin-bottom:4px; text-transform:uppercase; letter-spacing:.03em;">Top Searched Titles</div>
+          ${titles.length ? renderRankedList(titles.slice(0, 10)) : `<p style="font-size:.75rem; color:#9494b5;">No data yet.</p>`}
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <div style="font-size:.72rem; color:#9494b5; margin-bottom:4px; text-transform:uppercase; letter-spacing:.03em;">Top Genres</div>
+          ${genres.length ? renderRankedList(genres.slice(0, 10)) : `<p style="font-size:.75rem; color:#9494b5;">No data yet.</p>`}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load search analytics: ${err.message}</p>`;
+  }
+}
+
+// Same aggregate-counter pattern as loadSearchAnalytics above, but reads
+// the /top-sites route (site-click: KV prefix) instead of search-title:/
+// search-genre: — shows which streaming site cards actually get tapped,
+// which is a more direct signal than search terms for deciding which
+// sites are worth keeping "Hot" or prioritizing for uptime checks.
+async function loadTopSites() {
+  const body = document.getElementById('top-sites-body');
+  if (!body) return;
+  try {
+    const res = await fetch(`${VISIT_WORKER_URL}/top-sites?t=${Date.now()}`, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) throw new Error(`Worker returned HTTP ${res.status}`);
+    const data = await res.json();
+    const sites = data.topSites || [];
+
+    if (sites.length === 0) {
+      body.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">No click data yet — this fills in as visitors tap site cards.</p>`;
+      return;
+    }
+
+    body.innerHTML = sites.slice(0, 10).map((item, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:.78rem;">
+        <span style="color:#f0f0f5;">${i + 1}. ${escapeAttr(item.name)}</span>
+        <span style="color:#9494b5;">${item.count}×</span>
+      </div>
+    `).join('');
+  } catch (err) {
+    body.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load top websites: ${err.message}</p>`;
+  }
+}
+
+// Replacement notes are stored locally so only you (on your device) see them —
+// they don't publish anywhere or affect the live site automatically.
+function getReplacementNote(siteName) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('cinefind-admin-notes') || '{}');
+    return notes[siteName] || '';
+  } catch (e) { return ''; }
+}
+
+function saveReplacementNote(siteName, value) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('cinefind-admin-notes') || '{}');
+    notes[siteName] = value;
+    localStorage.setItem('cinefind-admin-notes', JSON.stringify(notes));
+  } catch (e) { /* ignore */ }
+}
+
+// ========== USER REPORTS (submitted via the report-broken-site Worker, ==========
+// stored in reports.json in the repo — read here with a plain fetch since
+// it's a public file; dismissing uses the admin's own GitHub token, same
+// commit pattern as toggleHotSite(), so no extra Worker endpoint is needed
+// for that half.
+async function loadReportsIntoAdmin() {
+  const list = document.getElementById('admin-reports-list');
+  const badge = document.getElementById('reports-count-badge');
+  if (!list) return;
+  try {
+    const res = await fetch('./reports.json?t=' + Date.now());
+    const reports = res.ok ? await res.json() : [];
+    if (badge) badge.textContent = reports.length ? `(${reports.length})` : '';
+    if (reports.length === 0) {
+      list.innerHTML = `<p style="font-size:.75rem; color:#9494b5;">No reports right now. 🎉</p>`;
+      return;
+    }
+    list.innerHTML = reports.map((r, i) => `
+      <div class="site-row" style="flex-direction:column; align-items:flex-start; gap:4px;">
+        <div style="display:flex; justify-content:space-between; width:100%; gap:8px;">
+          <strong style="color:#f0f0f5;">${escapeAttr(r.siteName || 'Unknown site')}</strong>
+          <button class="quick-test-btn" onclick="dismissReport(${i}, this)">✕ Dismiss</button>
+        </div>
+        <div class="site-meta">${escapeAttr(r.reason || 'No reason given')}${r.movieTitle ? ' — while watching "' + escapeAttr(r.movieTitle) + '"' : ''}</div>
+        <div class="site-meta" style="opacity:.7;">${r.url ? escapeAttr(r.url) : ''} ${r.timestamp ? '· ' + new Date(r.timestamp).toLocaleString() : ''}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<p style="font-size:.75rem; color:#e63946;">Could not load reports: ${err.message}</p>`;
+  }
+}
+
+async function dismissReport(index, btn) {
+  const session = getAdminSession();
+  if (!session) {
+    alert('⚠️ Please log in with the admin password above first.');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/reports.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    const getRes = await fetch(apiUrl, { headers });
+    if (!getRes.ok) throw new Error(`Could not read reports.json (HTTP ${getRes.status})`);
+    const fileData = await getRes.json();
+    const current = JSON.parse(b64DecodeUtf8(fileData.content));
+    current.splice(index, 1);
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Dismiss a site report',
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        sha: fileData.sha,
+      }),
+    });
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+    loadReportsIntoAdmin();
+  } catch (err) {
+    alert(`❌ Failed to dismiss report: ${err.message}`);
+    btn.disabled = false;
+    btn.textContent = '✕ Dismiss';
+  }
+}
+
+// ========== LIVE LINK UPDATES (via the admin proxy Worker) ==========
+// GitHub Pages is static — there's no server to write files to on demand.
+// So "publishing" a link update means committing a change to overrides.json
+// straight to the repo via GitHub's REST API. IMPORTANT: the real GitHub
+// token never touches this browser. It lives only as a secret on the
+// ADMIN_PROXY_URL Cloudflare Worker (see worker.js). This page just logs
+// in with a password, gets back a short-lived signed session token, and
+// sends that session token to the worker — which is the only thing that
+// ever talks to api.github.com directly.
+function getAdminSession() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('cinefind-admin-session') || 'null');
+    if (!raw || !raw.session || !raw.exp) return null;
+    if (Date.now() / 1000 > raw.exp) { // expired locally, don't even bother the worker
+      localStorage.removeItem('cinefind-admin-session');
+      return null;
+    }
+    return raw.session;
+  } catch (e) { return null; }
+}
+
+async function adminLogin() {
+  const input = document.getElementById('admin-password');
+  const statusEl = document.getElementById('gh-config-status');
+  const password = input ? input.value : '';
+  if (!password) {
+    statusEl.textContent = 'Enter the admin password first.';
+    statusEl.style.color = '#e63946';
+    return;
+  }
+  statusEl.textContent = 'Logging in...';
+  statusEl.style.color = '#9494b5';
+  try {
+    const res = await fetch(`${ADMIN_PROXY_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Login failed (HTTP ${res.status})`);
+    try {
+      localStorage.setItem('cinefind-admin-session', JSON.stringify({
+        session: data.session,
+        exp: Math.floor(Date.now() / 1000) + (data.expiresIn || 0),
+      }));
+    } catch (e) { /* storage unavailable — session won't persist but login flow continues */ }
+    statusEl.textContent = '✅ Logged in — session active for a few hours.';
+    statusEl.style.color = '#06d6a0';
+    document.getElementById('admin-password').style.display = 'none';
+    document.getElementById('admin-login-btn').style.display = 'none';
+    document.getElementById('admin-logout-btn').style.display = '';
+  } catch (err) {
+    statusEl.textContent = `❌ ${err.message}`;
+    statusEl.style.color = '#e63946';
+  }
+}
+
+function adminLogout() {
+  try { localStorage.removeItem('cinefind-admin-session'); } catch (e) { /* storage unavailable */ }
+  const statusEl = document.getElementById('gh-config-status');
+  if (statusEl) {
+    statusEl.textContent = 'Logged out.';
+    statusEl.style.color = '#9494b5';
+  }
+  document.getElementById('admin-password').style.display = '';
+  document.getElementById('admin-login-btn').style.display = '';
+  document.getElementById('admin-logout-btn').style.display = 'none';
+}
+
+// UTF-8 safe base64 helpers — plain btoa()/atob() break on non-ASCII chars.
+function b64EncodeUtf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64DecodeUtf8(str) { return decodeURIComponent(escape(atob(str.replace(/\n/g, '')))); }
+
+async function updateLiveLink(siteName, btn) {
+  const wrap = btn.closest('.live-update-wrap');
+  const input = wrap.querySelector('.live-update-input');
+  const statusEl = wrap.querySelector('.live-update-status');
+  const newUrl = input.value.trim();
+  const session = getAdminSession();
+
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  if (!newUrl) {
+    statusEl.textContent = 'Paste a URL first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  statusEl.textContent = '';
+
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/overrides.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    let sha, current = {};
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read overrides.json (HTTP ${getRes.status})`);
+    } // 404 is fine — file doesn't exist yet, we'll create it
+
+    current[normalizeSiteName(siteName)] = newUrl;
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Update live link for ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    statusEl.textContent = '✅ Live! Re-checking for real now...';
+    statusEl.style.color = '#06d6a0';
+    input.value = '';
+
+    // The dot turning green above is just this session's optimistic guess —
+    // status.json (what a reload actually reads) won't agree until the
+    // checker runs again. Trigger it now instead of leaving the admin to
+    // wait up to 6h, so a reload shows the real, confirmed result sooner.
+    try {
+      const dispatchRes = await fetch(
+        `${ADMIN_PROXY_URL}/api/github/actions/workflows/check-sites.yml/dispatches`,
+        {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref: 'main' }),
+        }
+      );
+      if (dispatchRes.ok) {
+        statusEl.textContent = '✅ Live! Real check running now — reload in ~1–2 min for the confirmed result.';
+      } else if (dispatchRes.status === 403 || dispatchRes.status === 404) {
+        // 403/404 on this endpoint almost always means the token's scope
+        // doesn't cover Actions — not that the workflow itself is missing.
+        statusEl.textContent = '✅ Live! (⚠️ Your GitHub token is missing "workflow" permission, so the status check couldn\'t auto-run. Go to GitHub → Settings → Developer settings → your token, enable "workflow" (classic) or "Actions: Read and write" (fine-grained), then re-save it in the GitHub Connection section above. For now, run it manually from the Actions tab or wait up to 6h.)';
+      } else {
+        statusEl.textContent = `✅ Live! (Auto re-check failed — HTTP ${dispatchRes.status}. Run it manually from the Actions tab, or just wait up to 6h.)`;
+      }
+    } catch (dispatchErr) {
+      statusEl.textContent = '✅ Live! (Could not auto-trigger a re-check — check your internet connection, or run it manually from the Actions tab.)';
+    }
+
+    // Don't make the admin wait for tomorrow's automated check to see a
+    // green dot — a link they just pasted in is presumably working, so
+    // reflect that immediately in this session's status map.
+    if (!siteStatusMap) siteStatusMap = {};
+    siteStatusMap[normalizeSiteName(siteName)] = 'up';
+    applyStatusDots();
+
+    // The admin panel's own site-row (dot/icon/meta/warning) is built once
+    // from status.json and doesn't read siteStatusMap, so update it directly.
+    const row = btn.closest('.site-row');
+    if (row) {
+      row.classList.remove('down', 'blocked');
+      row.classList.add('up');
+      const dot = row.querySelector('.status-dot');
+      if (dot) { dot.classList.remove('down', 'blocked'); dot.classList.add('up'); }
+      const nameEl = row.querySelector('.site-name');
+      if (nameEl) nameEl.textContent = nameEl.textContent.replace(/[🟢🟡🔴]/g, '').trim() + ' 🟢';
+      const metaEl = row.querySelector('.site-meta');
+      if (metaEl) metaEl.textContent = `${newUrl} — Updated just now`;
+      row.querySelectorAll('.site-meta').forEach(el => {
+        if (el !== metaEl && el.textContent.includes('blocking this server')) el.remove();
+      });
+      row.querySelectorAll('.quick-test-btn').forEach(b => {
+        if (b.textContent.includes('Test This Link')) b.remove();
+      });
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== HOT (FEATURED) TOGGLE ==========
+// Marks/unmarks a site as "hot" — pinned to the front of the directory grid.
+// Same GitHub-commit pattern as updateLiveLink(), but writes to hot-sites.json,
+// a simple array of normalized site names.
+async function toggleHotSite(siteName, btn) {
+  const session = getAdminSession();
+  if (!session) {
+    alert('⚠️ Please log in with the admin password above first.');
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/hot-sites.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
+  const key = normalizeSiteName(siteName);
+
+  try {
+    let sha, current = [];
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read hot-sites.json (HTTP ${getRes.status})`);
+    } // 404 is fine — file doesn't exist yet, we'll create it
+
+    const nowHot = !current.includes(key);
+    current = nowHot ? [...current, key] : current.filter(k => k !== key);
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `${nowHot ? 'Mark' : 'Unmark'} ${siteName} as hot`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    // Reflect immediately in this session so the admin doesn't have to reload.
+    hotSiteNames = current;
+    renderSitesDirectory();
+    btn.textContent = nowHot ? '🔥 Hot — tap to unhot' : '🔥 Mark as Hot';
+    btn.style.background = nowHot ? '#f0b428' : '';
+    btn.style.color = nowHot ? '#1a1a2e' : '';
+    btn.style.borderColor = nowHot ? '#f0b428' : '';
+  } catch (err) {
+    alert(`❌ Failed to update hot status: ${err.message}`);
+    btn.textContent = originalLabel;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Adds a brand-new site card to the homepage directory — writes to
+// custom-sites.json the same way updateLiveLink() writes to overrides.json.
+// No custom logo needed: cards without a hand-crafted logoHtml automatically
+// fall back to defaultLogoHtml() (icon + site name, same font/spacing as
+// every other card) so new sites match the existing design immediately.
+async function addNewWebsite(btn) {
+  const name = document.getElementById('new-site-name').value.trim();
+  const url = document.getElementById('new-site-url').value.trim();
+  const icon = document.getElementById('new-site-icon').value.trim();
+  const cats = [];
+  if (document.getElementById('new-site-cat-movie').checked) cats.push('movie');
+  if (document.getElementById('new-site-cat-drama').checked) cats.push('drama');
+  if (document.getElementById('new-site-cat-anime').checked) cats.push('anime');
+  if (document.getElementById('new-site-cat-pinoy').checked) cats.push('pinoy');
+  const statusEl = document.getElementById('add-site-status');
+  const session = getAdminSession();
+
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  if (!name || !url) {
+    statusEl.textContent = 'Fill in at least the name and URL.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+  let domain;
+  try { domain = new URL(url).hostname.replace(/^www\./, ''); }
+  catch (e) { statusEl.textContent = "That URL doesn't look valid — include https://"; statusEl.style.color = '#e63946'; return; }
+  if (cats.length === 0) cats.push('movie');
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+  statusEl.textContent = '';
+
+  const apiUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    let sha, current = [];
+    const getRes = await fetch(apiUrl, { headers });
+    if (getRes.status === 200) {
+      const fileData = await getRes.json();
+      sha = fileData.sha;
+      current = JSON.parse(b64DecodeUtf8(fileData.content));
+    } else if (getRes.status !== 404) {
+      throw new Error(`Could not read custom-sites.json (HTTP ${getRes.status})`);
+    }
+
+    if (current.some(s => normalizeSiteName(s.name) === normalizeSiteName(name))) {
+      throw new Error(`"${name}" is already in the list.`);
+    }
+
+    current.push({ name, url, domain, categories: cats, icon: icon || undefined });
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Add new site: ${name}`,
+        content: b64EncodeUtf8(JSON.stringify(current, null, 2)),
+        ...(sha ? { sha } : {}),
+      }),
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the update (HTTP ${putRes.status})`);
+    }
+
+    statusEl.textContent = `✅ "${name}" added! Takes ~1 min to appear on the site.`;
+    statusEl.style.color = '#06d6a0';
+    document.getElementById('new-site-name').value = '';
+    document.getElementById('new-site-url').value = '';
+    document.getElementById('new-site-icon').value = '';
+
+    // The admin list below is rendered from status.json, which only refreshes
+    // once a day via the GitHub Action — so a freshly-added site wouldn't show
+    // up here until tomorrow's check. Insert a placeholder row now so it's
+    // visible (and deletable) right away.
+    const rowsContainer = document.getElementById('admin-site-rows');
+    if (rowsContainer) {
+      const safeName = escapeForAttr(name);
+      const row = document.createElement('div');
+      row.className = 'site-row';
+      row.innerHTML = `
+        <div class="status-dot"></div>
+        <div style="flex:1;">
+          <div class="site-name">${name} 🆕</div>
+          <button class="quick-test-btn hot-toggle-btn" style="margin-top:4px; padding:2px 9px; font-size:.7rem;" onclick="toggleHotSite('${safeName}', this)">🔥 Mark as Hot</button>
+          <div class="site-meta">${url} — Not checked yet (next automatic check within 24h)</div>
+          <button class="delete-site-btn" onclick="confirmDeleteWebsite('${safeName}', this)">🗑️ Delete Website</button>
+          <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
+        </div>
+      `;
+      rowsContainer.prepend(row);
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== DELETE WEBSITE (admin panel) ==========
+// Removes a site from sites.json (so it stops being checked by the daily
+// GitHub Action) and, if it was admin-added, from custom-sites.json too
+// (so its homepage card disappears). Built-in sites that live in
+// SITES_DIRECTORY (hardcoded in this file) still need their code line
+// removed manually — that part can't be safely automated via the API.
+function confirmDeleteWebsite(siteName, btn) {
+  const ok = confirm(`Sigurado ka bang gusto mong i-delete ang "${siteName}"?\n\nHindi na ito mababawi.`);
+  if (!ok) return;
+  deleteWebsite(siteName, btn);
+}
+
+async function deleteWebsite(siteName, btn) {
+  const statusEl = btn.closest('.site-row').querySelector('.delete-site-status');
+  const session = getAdminSession();
+
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+  statusEl.textContent = '';
+
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
+
+  // Snapshot the full site data (url/domain/categories/icon) *before* it gets
+  // removed from anywhere — this is what gets saved into removed-sites.json
+  // so restoreWebsite() can bring it back exactly as it was, not just its name.
+  const normalizedTargetName = normalizeSiteName(siteName);
+  const customMatch = customSites.find(s => normalizeSiteName(s.name) === normalizedTargetName);
+  const dirMatch = SITES_DIRECTORY.find(s => normalizeSiteName(s.name) === normalizedTargetName);
+  const source = customMatch || dirMatch || {};
+  const siteSnapshot = {
+    name: siteName,
+    url: source.url || '',
+    domain: source.domain || undefined,
+    categories: source.categories || undefined,
+    icon: source.icon || undefined,
+    removedAt: new Date().toISOString(),
+  };
+
+  try {
+    // 1) Remove from sites.json (the checker list) — if the site isn't in
+    // there at all (e.g. a built-in SITES_DIRECTORY entry that was never
+    // added to the checker list), that's fine, just skip this step instead
+    // of aborting the whole deletion.
+    let removedFromSitesJson = false;
+    const sitesUrl = `${ADMIN_PROXY_URL}/api/github/contents/sites.json`;
+    const sitesGetRes = await fetch(sitesUrl, { headers });
+    if (!sitesGetRes.ok) throw new Error(`Could not read sites.json (HTTP ${sitesGetRes.status})`);
+    const sitesFileData = await sitesGetRes.json();
+    let sitesCurrent = JSON.parse(b64DecodeUtf8(sitesFileData.content));
+    const beforeCount = sitesCurrent.length;
+    sitesCurrent = sitesCurrent.filter(s => normalizeSiteName(s.name) !== normalizeSiteName(siteName));
+
+    if (sitesCurrent.length !== beforeCount) {
+      const sitesPutRes = await fetch(sitesUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Remove site: ${siteName}`,
+          content: b64EncodeUtf8(JSON.stringify(sitesCurrent, null, 2)),
+          sha: sitesFileData.sha,
+        }),
+      });
+      if (!sitesPutRes.ok) {
+        const errData = await sitesPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `GitHub rejected the sites.json update (HTTP ${sitesPutRes.status})`);
+      }
+      removedFromSitesJson = true;
+    }
+
+    // 2) If it was an admin-added site, also remove it from custom-sites.json
+    // so its homepage card disappears. Built-in SITES_DIRECTORY sites don't
+    // live here, so a 404/miss here is expected and not an error.
+    let removedFromCustom = false;
+    const customUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
+    const customGetRes = await fetch(customUrl, { headers });
+    if (customGetRes.status === 200) {
+      const customFileData = await customGetRes.json();
+      const customCurrent = JSON.parse(b64DecodeUtf8(customFileData.content));
+      const filteredCustom = customCurrent.filter(s => normalizeSiteName(s.name) !== normalizeSiteName(siteName));
+      if (filteredCustom.length !== customCurrent.length) {
+        const customPutRes = await fetch(customUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Remove site: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(filteredCustom, null, 2)),
+            sha: customFileData.sha,
+          }),
+        });
+        if (!customPutRes.ok) {
+          const errData = await customPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Removed from sites.json but failed on custom-sites.json (HTTP ${customPutRes.status})`);
+        }
+        removedFromCustom = true;
+      }
+    }
+
+    // 3) Add to removed-sites.json regardless of site type — this is a small,
+    // cache-busted file the front-end filters against on every load, so the
+    // card disappears immediately even before index.html's own edit (below,
+    // for built-ins) or GitHub Pages' cache has caught up.
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
+    const removedGetRes = await fetch(removedUrl, { headers });
+    let removedList = [];
+    let removedSha = null;
+    if (removedGetRes.status === 200) {
+      const removedFileData = await removedGetRes.json();
+      const rawRemoved = JSON.parse(b64DecodeUtf8(removedFileData.content));
+      // Normalize any legacy plain-string entries so they survive round-tripping.
+      removedList = rawRemoved.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+      removedSha = removedFileData.sha;
+    } else if (removedGetRes.status !== 404) {
+      throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
+    }
+    const normalizedTarget = normalizedTargetName;
+    if (!removedList.some(entry => normalizeSiteName(entry.name) === normalizedTarget)) {
+      removedList.push(siteSnapshot);
+      const removedBody = {
+        message: `Mark site as removed: ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(removedList, null, 2)),
+      };
+      if (removedSha) removedBody.sha = removedSha;
+      const removedPutRes = await fetch(removedUrl, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(removedBody),
+      });
+      if (!removedPutRes.ok) {
+        const errData = await removedPutRes.json().catch(() => ({}));
+        throw new Error(errData.message || `Removed from sites.json but failed on removed-sites.json (HTTP ${removedPutRes.status})`);
+      }
+    }
+    removedSiteNames.push(normalizedTarget); // reflect in this session's own view too
+    removedSitesData.push(siteSnapshot);
+
+    // Show it in "Recently Deleted" immediately — without this, the row was
+    // only fetched fresh on the *next* admin panel open, so a just-deleted
+    // site would seem to vanish rather than appear as recoverable.
+    const removedListEl = document.getElementById('removed-sites-list');
+    const removedCountEl = document.getElementById('removed-sites-count');
+    if (removedListEl) {
+      const placeholder = removedListEl.querySelector('p');
+      if (placeholder) placeholder.remove();
+      removedListEl.insertAdjacentHTML('afterbegin', buildRemovedSiteRow(siteSnapshot));
+    }
+    if (removedCountEl) removedCountEl.textContent = `(${removedSitesData.length})`;
+
+    // (Old step 4 — rewriting SITES_DIRECTORY inside index.html — is gone: the new
+    // index.html has no such array, and removed-sites.json already hides built-ins.)
+    const removedFromDirectory = false;
+
+    statusEl.textContent = removedFromDirectory
+      ? `✅ Deleted "${siteName}" and its SITES_DIRECTORY entry in index.html. Takes ~1 min to appear on both admin and user sides.`
+      : removedFromCustom
+      ? `✅ Deleted "${siteName}" from custom-sites.json.`
+      : removedFromSitesJson
+      ? `✅ Deleted "${siteName}" from sites.json.`
+      : `✅ Marked "${siteName}" as removed.`;
+    statusEl.style.color = '#06d6a0';
+    btn.textContent = 'Deleted ✓';
+
+    // The admin list is rendered from status.json, which only refreshes once
+    // a day via the GitHub Action — so without this, a successfully deleted
+    // site would keep showing here until tomorrow. Remove the row now so the
+    // panel reflects reality immediately.
+    const row = btn.closest('.site-row');
+    if (row) {
+      setTimeout(() => {
+        row.style.transition = 'opacity .4s ease';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 400);
+      }, 900);
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== RESTORE DELETED WEBSITE (admin panel) ==========
+// Undoes deleteWebsite(): takes the entry out of removed-sites.json (so it
+// stops being hidden everywhere) and re-adds it to custom-sites.json using
+// the url/domain/categories/icon snapshot saved at delete time — restored
+// sites always come back as "admin-added" cards (custom-sites.json), even
+// if they originally lived in the hardcoded SITES_DIRECTORY, since that's
+// the only place a restore can safely write the full card data back to.
+async function restoreWebsite(siteName, btn) {
+  const statusEl = btn.closest('.site-row').querySelector('.restore-site-status');
+  const session = getAdminSession();
+
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const normalizedTarget = normalizeSiteName(siteName);
+  const snapshot = removedSitesData.find(s => normalizeSiteName(s.name) === normalizedTarget);
+  // Legacy deletes (before the snapshot feature existed) only saved a name,
+  // no url — but if the site is still a built-in (its SITES_DIRECTORY entry
+  // was never actually stripped from the source, just hidden via
+  // removed-sites.json), we already have everything we need right here.
+  const dirMatch = SITES_DIRECTORY.find(s => normalizeSiteName(s.name) === normalizedTarget);
+  const hasUsableData = (snapshot && snapshot.url) || dirMatch;
+  if (!hasUsableData) {
+    statusEl.textContent = `⚠️ No saved details for "${siteName}" (deleted before Restore existed, and it's not a built-in either) — add it back manually via "Add New Website".`;
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Restoring...';
+  statusEl.textContent = '';
+
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    // 1) Take it out of removed-sites.json so it's no longer hidden.
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
+    const removedGetRes = await fetch(removedUrl, { headers });
+    if (removedGetRes.status === 200) {
+      const removedFileData = await removedGetRes.json();
+      const rawRemoved = JSON.parse(b64DecodeUtf8(removedFileData.content));
+      const removedList = rawRemoved.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+      const filteredRemoved = removedList.filter(entry => normalizeSiteName(entry.name) !== normalizedTarget);
+      if (filteredRemoved.length !== removedList.length) {
+        const removedPutRes = await fetch(removedUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Restore site: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(filteredRemoved, null, 2)),
+            sha: removedFileData.sha,
+          }),
+        });
+        if (!removedPutRes.ok) {
+          const errData = await removedPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `GitHub rejected the removed-sites.json update (HTTP ${removedPutRes.status})`);
+        }
+      }
+    } else if (removedGetRes.status !== 404) {
+      throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
+    }
+
+    // 2) Re-add it to custom-sites.json so its homepage card comes back —
+    // only needed when it's not already a built-in. If it's still sitting
+    // in SITES_DIRECTORY (dirMatch), unhiding it via step 1 above is enough;
+    // adding it to custom-sites.json too would just create a duplicate card.
+    if (!dirMatch) {
+      const customUrl = `${ADMIN_PROXY_URL}/api/github/contents/custom-sites.json`;
+      const customGetRes = await fetch(customUrl, { headers });
+      let customSha, customCurrent = [];
+      if (customGetRes.status === 200) {
+        const customFileData = await customGetRes.json();
+        customSha = customFileData.sha;
+        customCurrent = JSON.parse(b64DecodeUtf8(customFileData.content));
+      } else if (customGetRes.status !== 404) {
+        throw new Error(`Removed from removed-sites.json but could not read custom-sites.json (HTTP ${customGetRes.status})`);
+      }
+      if (!customCurrent.some(s => normalizeSiteName(s.name) === normalizedTarget)) {
+        customCurrent.push({
+          name: snapshot.name,
+          url: snapshot.url,
+          domain: snapshot.domain,
+          categories: snapshot.categories,
+          icon: snapshot.icon,
+        });
+        const customPutRes = await fetch(customUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Restore site: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(customCurrent, null, 2)),
+            ...(customSha ? { sha: customSha } : {}),
+          }),
+        });
+        if (!customPutRes.ok) {
+          const errData = await customPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Removed from removed-sites.json but failed re-adding to custom-sites.json (HTTP ${customPutRes.status})`);
+        }
+      }
+      customSites.push({ name: snapshot.name, url: snapshot.url, domain: snapshot.domain, categories: snapshot.categories, icon: snapshot.icon });
+    }
+
+    // 3) Make sure the checker will actually verify this site going forward
+    // — add it to sites.json if it's not already there. This is what left
+    // KissKH/MyAsianTV stuck as "not checked yet" forever after restoring:
+    // they were built-ins that had never been added to sites.json at all,
+    // so the checker had nothing to check.
+    const sitesJsonUrl = `${ADMIN_PROXY_URL}/api/github/contents/sites.json`;
+    const sitesJsonGetRes = await fetch(sitesJsonUrl, { headers });
+    if (sitesJsonGetRes.status === 200) {
+      const sitesJsonFileData = await sitesJsonGetRes.json();
+      const sitesJsonCurrent = JSON.parse(b64DecodeUtf8(sitesJsonFileData.content));
+      if (!sitesJsonCurrent.some(s => normalizeSiteName(s.name) === normalizedTarget)) {
+        sitesJsonCurrent.push({ name: siteName, url: (snapshot && snapshot.url) || (dirMatch && dirMatch.url) || '' });
+        const sitesJsonPutRes = await fetch(sitesJsonUrl, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Add restored site to checker list: ${siteName}`,
+            content: b64EncodeUtf8(JSON.stringify(sitesJsonCurrent, null, 2)),
+            sha: sitesJsonFileData.sha,
+          }),
+        });
+        if (!sitesJsonPutRes.ok) {
+          const errData = await sitesJsonPutRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Restored but failed adding to sites.json for checking (HTTP ${sitesJsonPutRes.status})`);
+        }
+      }
+    } else if (sitesJsonGetRes.status !== 404) {
+      throw new Error(`Restored but could not read sites.json (HTTP ${sitesJsonGetRes.status})`);
+    }
+
+    // Reflect it in this session's own view right away.
+    removedSitesData = removedSitesData.filter(s => normalizeSiteName(s.name) !== normalizedTarget);
+    removedSiteNames = removedSiteNames.filter(n => n !== normalizedTarget);
+    markPendingRestore(dirMatch ? { name: siteName } : { name: snapshot.name, url: snapshot.url, domain: snapshot.domain, categories: snapshot.categories, icon: snapshot.icon });
+    renderSitesDirectory(); // refresh the homepage grid underneath the admin overlay right away
+
+    statusEl.textContent = `✅ Restored "${siteName}". Takes ~1 min to appear on the homepage; next automatic check within 24h.`;
+    statusEl.style.color = '#06d6a0';
+    btn.textContent = 'Restored ✓';
+
+    // Restoring only removed the row from "Recently Deleted" above — nothing
+    // added it back to the main Website List, so it looked like it vanished
+    // into nowhere. Insert a placeholder row here too (same technique as
+    // addNewWebsite()) so it's visible and manageable right away.
+    const mainRowsContainer = document.getElementById('admin-site-rows');
+    if (mainRowsContainer && !mainRowsContainer.querySelector(`[data-restored-name="${normalizedTarget}"]`)) {
+      const safeName = escapeForAttr(siteName);
+      const restoredUrl = (snapshot && snapshot.url) || (dirMatch && dirMatch.url) || '';
+      const newRow = document.createElement('div');
+      newRow.className = 'site-row';
+      newRow.setAttribute('data-restored-name', normalizedTarget);
+      newRow.innerHTML = `
+        <div class="status-dot"></div>
+        <div style="flex:1;">
+          <div class="site-name">${siteName} ♻️</div>
+          <div class="site-meta">${restoredUrl}${restoredUrl ? ' — ' : ''}Restored — not checked yet (next automatic check within 24h)</div>
+          <button class="delete-site-btn" onclick="confirmDeleteWebsite('${safeName}', this)">🗑️ Delete Website</button>
+          <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
+        </div>
+      `;
+      mainRowsContainer.prepend(newRow);
+    }
+
+    const row = btn.closest('.site-row');
+    if (row) {
+      setTimeout(() => {
+        row.style.transition = 'opacity .4s ease';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 400);
+      }, 900);
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== DELETE PERMANENTLY (admin panel — clears "Recently Deleted" history) ==========
+// Different from deleteWebsite(): that one hides a *live* site by adding it
+// to removed-sites.json. This one wipes an entry that's *already* in
+// removed-sites.json, so it stops accumulating there forever and stops
+// showing up in the Recently Deleted list. It never touches sites.json,
+// custom-sites.json, or SITES_DIRECTORY — the site is already gone from
+// those; this just clears its history record. Not reversible — no snapshot
+// is kept after this.
+function confirmDeletePermanently(siteName, btn) {
+  const ok = confirm(`Permanent na buburahin ang "${siteName}" sa Recently Deleted history.\n\nHindi na ito mababawi (kahit yung Restore option).`);
+  if (!ok) return;
+  deletePermanently(siteName, btn);
+}
+
+async function deletePermanently(siteName, btn) {
+  const statusEl = btn.closest('.site-row').querySelector('.restore-site-status');
+  const session = getAdminSession();
+
+  if (!session) {
+    statusEl.textContent = '⚠️ Please log in with the admin password above first.';
+    statusEl.style.color = '#f0b428';
+    return;
+  }
+
+  const normalizedTarget = normalizeSiteName(siteName);
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+  statusEl.textContent = '';
+
+  const headers = { 'Authorization': `Bearer ${session}`, 'Accept': 'application/vnd.github+json' };
+
+  try {
+    const removedUrl = `${ADMIN_PROXY_URL}/api/github/contents/removed-sites.json`;
+    const removedGetRes = await fetch(removedUrl, { headers });
+    if (!removedGetRes.ok) throw new Error(`Could not read removed-sites.json (HTTP ${removedGetRes.status})`);
+    const removedFileData = await removedGetRes.json();
+    const rawRemoved = JSON.parse(b64DecodeUtf8(removedFileData.content));
+    const removedList = rawRemoved.map(entry => typeof entry === 'string' ? { name: entry } : entry);
+    const filteredRemoved = removedList.filter(entry => normalizeSiteName(entry.name) !== normalizedTarget);
+
+    if (filteredRemoved.length === removedList.length) {
+      throw new Error(`"${siteName}" wasn't found in removed-sites.json.`);
+    }
+
+    const removedPutRes = await fetch(removedUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Permanently clear deleted-site record: ${siteName}`,
+        content: b64EncodeUtf8(JSON.stringify(filteredRemoved, null, 2)),
+        sha: removedFileData.sha,
+      }),
+    });
+    if (!removedPutRes.ok) {
+      const errData = await removedPutRes.json().catch(() => ({}));
+      throw new Error(errData.message || `GitHub rejected the removed-sites.json update (HTTP ${removedPutRes.status})`);
+    }
+
+    // Reflect it in this session's own view right away.
+    removedSitesData = removedSitesData.filter(s => normalizeSiteName(s.name) !== normalizedTarget);
+    removedSiteNames = removedSiteNames.filter(n => n !== normalizedTarget);
+    // NOTE: this site is now gone from removed-sites.json — it's no longer
+    // actively hidden by name. If it's still sitting in SITES_DIRECTORY or
+    // custom-sites.json, it will reappear on the site next load. That's
+    // expected: "delete permanently" here means "stop remembering it was
+    // deleted," not "delete it again."
+
+    statusEl.textContent = `✅ Cleared "${siteName}" from history.`;
+    statusEl.style.color = '#06d6a0';
+    btn.textContent = 'Cleared ✓';
+
+    const row = btn.closest('.site-row');
+    if (row) {
+      setTimeout(() => {
+        row.style.transition = 'opacity .4s ease';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 400);
+      }, 900);
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Failed: ${err.message}`;
+    statusEl.style.color = '#e63946';
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+// ========== TEST LINK (admin panel) ==========
+// Client-side only reachability check. Browsers block cross-origin fetches
+// from reading the real response (CORS), so this can't confirm HTTP status
+// or page content — it can only tell you whether the request errored out
+// (DNS failure, connection refused, timeout, offline) vs. got some kind of
+// response back. Always eyeball the actual page via "Open This Link".
+let testLinkAbortController = null;
+
+function escapeForAttr(str) {
+  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+async function testLink() {
+  const input = document.getElementById('test-link-input');
+  const resultBox = document.getElementById('test-link-result');
+  const btn = document.querySelector('.test-link-btn');
+  if (!input || !resultBox) return;
+
+  let url = input.value.trim();
+  if (!url) return;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  const safeUrl = escapeForAttr(url);
+
+  if (testLinkAbortController) testLinkAbortController.abort();
+  testLinkAbortController = new AbortController();
+  const timeoutId = setTimeout(() => testLinkAbortController.abort(), 8000);
+
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  resultBox.classList.add('show');
+  resultBox.innerHTML = `<div class="test-link-status"><span>⏳</span><span>Checking ${url}...</span></div>`;
+
+  try {
+    // no-cors gives an opaque response we can't inspect — but if it resolves
+    // without throwing, the browser was at least able to reach the host.
+    await fetch(url, { mode: 'no-cors', signal: testLinkAbortController.signal, cache: 'no-store' });
+    clearTimeout(timeoutId);
+    resultBox.innerHTML = `
+      <div class="test-link-status"><span style="color:#06d6a0;">🟢</span><span>Looks reachable — the browser was able to connect.</span></div>
+      <div class="test-link-note">Note: due to browser security (CORS), this can't confirm the actual page content or HTTP status — just that something answered. Open the link to verify visually.</div>
+      <button class="test-link-open-btn" onclick="window.open('${safeUrl}', '_blank')">↗ Open This Link</button>
+    `;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    const timedOut = err.name === 'AbortError';
+    resultBox.innerHTML = `
+      <div class="test-link-status"><span style="color:#e63946;">🔴</span><span>${timedOut ? 'Timed out — no response after 8 seconds.' : 'Could not reach this link (blocked, offline, or invalid URL).'}</span></div>
+      <div class="test-link-note">This check can have false negatives too (e.g. sites that block automated requests). Open the link to double-check yourself.</div>
+      <button class="test-link-open-btn" onclick="window.open('${safeUrl}', '_blank')">↗ Open This Link Anyway</button>
+    `;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Test';
+  }
+}
+
+
+loadHotSites().finally(checkAdminAccess);
+</script>
+</body>
+</html>
