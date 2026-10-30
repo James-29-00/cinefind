@@ -302,7 +302,45 @@ input[type=search]{-webkit-appearance:none;appearance:none}input[type=search]::-
 @media(prefers-reduced-motion:reduce){.search:focus-within::before{animation:none;background:var(--ac2)}.vt[aria-checked="true"]::before{animation:none}}
 .lkst.chk{background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent) 0 0/200% 100%;animation:lks 1.4s linear infinite}@keyframes lks{to{background-position:-200% 0}}@media(prefers-reduced-motion:reduce){.lkst.chk{animation:none}}.lkst.dir{color:var(--ok);border-color:var(--ok)}.tag.lkst:not(.dir):not(.chk){border-color:transparent;padding-left:0;font-size:12px}
 @media(max-width:700px){.u-opts{width:100%;justify-content:space-between;align-items:center}.sel{font-size:16px}.grid4.sm{gap:12px}.wtop,.sm .wtop{padding:12px 12px 6px}.wcard:has(.hasimg) .wtop{padding:36px 12px 6px}.wfoot,.sm .wfoot{padding:0 12px 12px}.wlogo b,.sm .wlogo b{font-size:16px}.kpi>div:not(.vis) .s12{display:none}.pinfo b{font-size:14px}.pinfo span{font-size:12px}.over{gap:20px}.over .poster{width:150px}}
-@media(hover:none){.wcard:hover,.pc:hover .poster{transform:none}}</style>
+@media(hover:none){.wcard:hover,.pc:hover .poster{transform:none}}
+/* Mobile compact pass */
+@media(max-width:700px){
+.stats{padding:20px 16px;border-radius:20px}
+.tl{font-size:2rem}
+.kpi{border-radius:14px}
+.kpi>div,.kpi>div:not(.vis){padding:14px 10px;gap:4px}
+.kpi dd{font-size:1.5rem}
+.kpi dt{font-size:13px;line-height:1.25}
+.kpi #von{font-size:12px;white-space:nowrap}
+.chip{height:40px;padding:0 14px;font-size:13px}
+.u-opts{flex-wrap:nowrap;gap:8px}
+.sel{height:40px;padding:0 12px;font-size:14px;flex:1;min-width:0}
+.sw{height:40px;flex:none;white-space:nowrap}
+.grid4.sm{gap:10px}
+.wtop,.sm .wtop,.wcard:has(.hasimg) .wtop{padding:38px 10px 4px;gap:6px}
+.wlogo.hasimg,.sm .wlogo.hasimg{height:40px;min-height:40px}
+.wimg{max-height:32px;max-width:100%}
+.wrow{top:0;right:0}
+.star,.sm .star{width:40px;height:40px}
+.dom,.sm .dom{font-size:13px}
+.wfoot,.sm .wfoot{padding:0 10px 10px;font-size:13px}
+.tag.hot{font-size:11px;padding:1px 6px}
+.chip,.sel,.sw{height:44px}
+.star,.sm .star{width:44px;height:44px}
+.cr{scroll-padding-inline:20px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+.dom,.sm .dom,.wfoot,.sm .wfoot,.s12,.s13{font-size:14px}
+:root[data-v="home"] .hs{background:var(--panel);border-color:var(--bd)}
+#brw>.u-row .s13{display:none}
+#brw>.u-row h2{white-space:nowrap}
+.chip .mu{display:none}
+#sort{display:none}
+.u-opts{margin-left:0}
+:root[data-v="home"] .hs{display:none}
+#brw{gap:14px}
+.filters{gap:4px}
+.sw{padding:0}
+}
+</style>
 </head>
 <body>
 <a class="skip" href="#app" onclick="event.preventDefault();$('#app').focus()">Skip to content</a>
