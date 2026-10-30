@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.json"><link rel="apple-touch-icon" href="./icon-192.png">
 <meta property="og:image" content="https://mycinefind.vercel.app/og-image.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://mycinefind.vercel.app/og-image.png">
-<script>try{var t=localStorage.getItem('cf-theme');document.documentElement.dataset.t=/^(modern|ocean|space|sunset|noir|forest)$/.test(t)?t:'space'}catch(e){document.documentElement.dataset.t='space'}</script>
+<script>try{var t=localStorage.getItem('cf-theme');document.documentElement.dataset.t=/^(modern|ocean|space|sunset|noir|forest|red|amber|coral)$/.test(t)?t:'space'}catch(e){document.documentElement.dataset.t='space'}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%23a78bfa'/%3E%3Crect x='8.5' y='14' width='17' height='12' rx='3.2' fill='none' stroke='%23150d2e' stroke-width='2.4'/%3E%3Cpath d='M13.5 10.5V14M21.5 10.5V14M13.5 26v3.5M21.5 26v3.5' stroke='%23150d2e' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -238,6 +238,9 @@ main{padding-top:40px;gap:72px}
 :root[data-t="sunset"]{--bg:#150c0b;--hd:#1c110f;--card:#2a1a17;--panel:#201411;--bd:#432923;--tx:#f8ede6;--mu:#bda296;--ac:#f08a3c;--ac2:#f5a35f;--ac3:#fbc99c;--onac:#1f0e04}
 :root[data-t="noir"]{--bg:#0b0b0b;--hd:#121212;--card:#1b1b1b;--panel:#151515;--bd:#2f2f2f;--tx:#f2f0ea;--mu:#a6a39c;--ac:#d4af37;--ac2:#e4c35e;--ac3:#f1dc95;--onac:#171204}
 :root[data-t="forest"]{--bg:#07140f;--hd:#0b1c15;--card:#11291f;--panel:#0d2019;--bd:#204034;--tx:#e9f5ee;--mu:#92b2a4;--ac:#34d399;--ac2:#5fe3b2;--ac3:#a4f0d2;--onac:#04180f}
+:root[data-t="red"]{--bg:#0e0809;--hd:#150b0d;--card:#221114;--panel:#1a0d10;--bd:#3d1c21;--tx:#f8ecec;--mu:#c0a3a6;--ac:#e5383b;--ac2:#f06a6c;--ac3:#f9a8a9;--onac:#1a0405}
+:root[data-t="amber"]{--bg:#0f0b05;--hd:#170f06;--card:#251a0b;--panel:#1c1408;--bd:#43300f;--tx:#fbf1dd;--mu:#c4ad84;--ac:#ffb020;--ac2:#ffc247;--ac3:#ffdd94;--onac:#1c1203}
+:root[data-t="coral"]{--bg:#130a10;--hd:#1a0e15;--card:#2a1520;--panel:#20111a;--bd:#472434;--tx:#fdeeee;--mu:#c9a5b8;--ac:#ff6f61;--ac2:#ff8f84;--ac3:#ffb9b2;--onac:#200805}
 .btn,.skip,.chip.on,.chip.on .mu{color:var(--onac)}.btn svg{color:var(--onac)!important}
 ::selection{background:color-mix(in srgb,var(--ac) 38%,transparent);color:var(--tx)}
 html{scrollbar-color:color-mix(in srgb,var(--tx) 24%,transparent) transparent}
@@ -341,6 +344,20 @@ input[type=search]{-webkit-appearance:none;appearance:none}input[type=search]::-
 .filters{gap:4px}
 .sw{padding:0}
 }
+@media(min-width:701px){
+main{padding-top:24px;gap:40px}
+.stats{padding:20px clamp(16px,2.5vw,28px);border-radius:20px}
+.st-in{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px}
+.tl{font-size:clamp(1.5rem,2.6vw,2.1rem);margin-bottom:12px}
+.search{min-height:52px}
+.kpi>div,.kpi>div:not(.vis){padding:12px 14px}
+.kpi dd{font-size:1.6rem}
+.kpi dt{font-size:13px}
+}
+.kpi [hidden]{display:none}
+.lbd{display:inline-block;padding:8px 14px;border-radius:10px;font:600 15px/1 Newsreader,Georgia,serif;white-space:nowrap;background:color-mix(in srgb,var(--ac) 16%,transparent);border:1px solid color-mix(in srgb,var(--ac) 30%,transparent);color:var(--ac2)}
+.tag.hot{background:var(--ac);color:var(--onac);font-weight:700}
+body::after{content:"";position:fixed;inset:0;z-index:5;pointer-events:none;opacity:.07;mix-blend-mode:overlay;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 </style>
 </head>
 <body>
@@ -384,12 +401,12 @@ function poster(t){return `<div class="poster">${t.img?`<img src="${esc(t.img)}"
 const SU={myasiantv:'/?s={q}',dramacool:'/search?q={q}',kisskh:'/search?q={q}',viki:'/search?q={q}',moviebox:'/web/searchResult?keyword={q}',fmovies:'/search/?q={q}',reanime:'/search?q={q}&limit=36&offset=0',miruro:'/search?query={q}&type=ANIME&sort=POPULARITY_DESC',enma:'/?s={q}'};
 const OV={/* "squid game":{dramacool:"https://..."} */};
 const lk=(s,det)=>{const o=det&&(OV[TITLES[S.tid].name.trim().toLowerCase()]||{})[s.n.toLowerCase().replace(/[^a-z0-9]/g,'')];if(o)return o;const p=det&&SU[s.n.toLowerCase().replace(/[^a-z0-9]/g,'')];return 'https://'+(p?s.d.split('/')[0]+p.replace('{q}',encodeURIComponent(TITLES[S.tid].name)):s.d)};
-function siteCard(s,i,detail){const n=esc(s.n),d=s.d?esc(s.d):'';const lg=s.logo?`<img class="wimg" src="${esc(s.logo)}" alt="${n}" style="width:${s.w||150}px" loading="lazy" decoding="async" onerror="this.replaceWith(this.alt)">`:n;return `<div class="wcard${s.d?' lk':''}${s.st==='down'?' dim':s.st==='flag'?' flg':''}"><div class="wtop"><div class="wrow">${s.hot&&s.st==='up'?'<span class="tag hot">Hot</span>':''}<button class="star ${S.favs.has(s.n)?'on':''}" data-fav="${n}" aria-label="Save ${n} as favorite" aria-pressed="${S.favs.has(s.n)}">${ICON.star}</button></div><div class="wlogo${s.logo?' hasimg':''}"><b>${s.d?`<a class="wl" data-sn="${n}" href="${esc(lk(s,detail))}" target="_blank" rel="noopener noreferrer" aria-label="Open ${n} (new tab)">${lg}</a>`:lg}</b></div>${s.d?`<div class="dom"><span class="dt">${d}</span></div>`:''}${detail?`<div class="tags">${s.d?/youtube\.com/.test(s.d)?'<span class="tag lkst">Click to watch</span>':'<span class="tag lkst chk">Finding direct link…</span>':''}</div>`:''}</div><div class="wfoot"><span title="${s.ca?'Checked '+new Date(s.ca).toLocaleString()+(s.ms?' · '+s.ms+' ms':''):''}"><i class="dot" style="background:var(${SL[s.st||'unk'][1]});animation:none"></i>${SL[s.st||'unk'][0]}</span><span class="go" aria-hidden="true">${ICON.ext}</span></div></div>`}
+function siteCard(s,i,detail){const n=esc(s.n),d=s.d?esc(s.d):'';const lg=s.logo?`<img class="wimg" src="${esc(s.logo)}" alt="${n}" style="width:${s.w||150}px" loading="lazy" decoding="async" onerror="var b=document.createElement('span');b.className='lbd';b.textContent=this.alt;this.replaceWith(b)">`:`<span class="lbd">${n}</span>`;return `<div class="wcard${s.d?' lk':''}${s.st==='down'?' dim':s.st==='flag'?' flg':''}"><div class="wtop"><div class="wrow">${s.hot&&s.st==='up'?'<span class="tag hot">Hot</span>':''}<button class="star ${S.favs.has(s.n)?'on':''}" data-fav="${n}" aria-label="Save ${n} as favorite" aria-pressed="${S.favs.has(s.n)}">${ICON.star}</button></div><div class="wlogo hasimg"><b>${s.d?`<a class="wl" data-sn="${n}" href="${esc(lk(s,detail))}" target="_blank" rel="noopener noreferrer" aria-label="Open ${n} (new tab)">${lg}</a>`:lg}</b></div>${s.d?`<div class="dom"><span class="dt">${d}</span></div>`:''}${detail?`<div class="tags">${s.d?/youtube\.com/.test(s.d)?'<span class="tag lkst">Click to watch</span>':'<span class="tag lkst chk">Finding direct link…</span>':''}</div>`:''}</div><div class="wfoot"><span title="${s.ca?'Checked '+new Date(s.ca).toLocaleString()+(s.ms?' · '+s.ms+' ms':''):''}"><i class="dot" style="background:var(${SL[s.st||'unk'][1]});animation:none"></i>${SL[s.st||'unk'][0]}</span><span class="go" aria-hidden="true">${ICON.ext}</span></div></div>`}
 const intent=`<div class="s12 mu u-stk5"><p>The separate star saves favorites on this browser and device only. No account or syncing.</p></div>`;
 const help=!STATUS?'':`<details class="tip"><summary aria-label="What website status means">${ICON.info.replace('margin-top:2px','')}</summary><div class="pop"><b class="s13">What website status means</b><div class="defs"><span><i style="background:var(--ok)"></i>Online — Reachable</span><span><i style="background:var(--bad)"></i>Offline — Unavailable after retry</span><span><i style="background:var(--warn)"></i>Flagged — CAPTCHA / robot verification</span><span><i style="background:var(--unk)"></i>Unknown — Indeterminate</span></div><p class="s12 mu">Automated reachability does not confirm title availability. Free access needs a separate manual check; it is not verified for these sample listings.</p></div></details>`;
 const ic=p=>`<i class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg></i>`;
 const statsCard=()=>{const t=SITES.length,o=SITES.filter(x=>x.online).length,fl=SITES.filter(x=>x.st==='flag').length,dn=SITES.filter(x=>x.st==='down').length,C=138.2,r='cx="30" cy="30" r="22" fill="none" stroke-width="5"';
-return `<div class="glow"><div class="stats" role="group" aria-label="Directory stats"><div class="st-in"><div><h1 class="tl">Find where to <span class="hl">watch, free.</span></h1><div class="u-hsb">${searchBox('')}</div></div><dl class="kpi"><div><span class="s12 mu">in ${CATS.length-1} categories</span><dt>Websites</dt><dd>${t}</dd></div>${STATUS?`<div class="on"><span class="s12 mu">of ${t} websites</span><dt>Sites working</dt><dd>${o}</dd><span class="bar" aria-hidden="true"><i style="width:${t?Math.round(o/t*100):0}%"></i></span></div>`:''}<div class="vis" id="visCell"><div class="s12 mu" id="von" hidden></div><dt>Total visits</dt><dd><span id="vis" class="tnum">—</span></dd></div></dl></div></div></div>`};
+return `<div class="glow"><div class="stats" role="group" aria-label="Directory stats"><div class="st-in"><div><h1 class="tl">Find where to <span class="hl">watch, free.</span></h1><div class="u-hsb">${searchBox('')}</div></div><dl class="kpi"><div><span class="s12 mu">in ${CATS.length-1} categories</span><dt>Websites</dt><dd>${t}</dd></div>${STATUS?`<div class="on"><span class="s12 mu">of ${t} websites</span><dt>Sites working</dt><dd>${o}</dd><span class="bar" aria-hidden="true"><i style="width:${t?Math.round(o/t*100):0}%"></i></span></div>`:''}<div class="vis" id="visCell" hidden><div class="s12 mu" id="von" hidden></div><dt>Total visits</dt><dd><span id="vis" class="tnum">—</span></dd></div></dl></div></div></div>`};
 const searchBox=(v,f)=>`<form id="sf"><div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" autocapitalize="off" role="combobox" aria-expanded="false" aria-controls="sgl" aria-autocomplete="list" aria-label="Search titles" value="${esc(v)}" placeholder="Search movies, dramas, anime…" autocomplete="off"${f?' autofocus':''}><button class="clr" type="button" data-clr="1" aria-label="Clear search"${v?'':' hidden'}>${XI}</button><button class="btn" type="submit" aria-label="Search"><span class="bl">Search</span><span class="bi">${ICON.search}</span></button></div><div class="sg box col" id="sgl" role="listbox" aria-label="Suggestions" hidden></div></form>`;
 
 function home(){const sites=SITES.filter(s=>(S.cat==='All'||s.c.includes(S.cat))&&(!S.on||s.online)).sort((a,b)=>(S.sort==='hot'?(b.hot|0)-(a.hot|0):0)||(S.sort==='chk'?(b.ca||0)-(a.ca||0):0)||(STATUS?b.online-a.online:0)||(S.sort==='az'?a.n.localeCompare(b.n):0));
@@ -414,7 +431,7 @@ function favs(){const s=SITES.filter(x=>S.favs.has(x.n)).sort((a,b)=>S.sort==='a
 var VIS=null;
 async function getVisitors(){/* CONNECT YOUR COUNTER HERE: return a real number, e.g.
   const r=await fetch('YOUR_COUNTER_URL');return (await r.json()).online; */let sid;try{sid=sessionStorage.getItem('cf-sid');if(!sid)sessionStorage.setItem('cf-sid',sid=crypto.randomUUID())}catch(e){sid='x'+Math.random()}const hit=getVisitors.h?0:1;try{const r=await fetch('https://cinefind-visits.manio-james-g-5588.workers.dev',{method:'POST',body:JSON.stringify({sid,hit})});const d=r.ok?await r.json():null;getVisitors.h=1;getVisitors.o=d&&d.online;return d&&d.total!=null?d.total:null}catch(e){return null}}
-function visUpdate(){const c=$('#visCell'),n=$('#vis');if(!c)return;const ok=Number.isFinite(VIS)&&VIS>=1;if(ok)n.textContent=VIS.toLocaleString();const o=$('#von'),k=getVisitors.o;if(o){o.hidden=!(ok&&k>=2);o.textContent=k+' online now'}}
+function visUpdate(){const c=$('#visCell'),n=$('#vis');if(!c)return;const ok=Number.isFinite(VIS)&&VIS>=1;c.hidden=!ok;if(ok)n.textContent=VIS.toLocaleString();const o=$('#von'),k=getVisitors.o;if(o){o.hidden=!(ok&&k>=2);o.textContent=k+' online now'}}
 async function visPoll(){try{const v=await getVisitors();if(Number.isFinite(v))VIS=v}catch(e){}visUpdate()}
 function navOn(){const h=S.view==='home';
  [['#bHome',h&&!S.rec],['#bFavs',S.view==='favs'],['#nHome',h&&!S.rec],['#nFavs',S.view==='favs']].forEach(([q,on])=>{const e=$(q);e.classList.toggle('on',on);on?e.setAttribute('aria-current','page'):e.removeAttribute('aria-current')})}
@@ -489,7 +506,10 @@ const THEMES=[
 {id:'space',name:'Deep Space',desc:'Cosmic purple nebula',p:['#150f33','#2d2260','#8d72e8'],ln:['#5b3fd1','#b79cff']},
 {id:'sunset',name:'Sunset Cinema',desc:'Warm dusk orange glow',p:['#1d1210','#3a2b33','#d9792f'],ln:['#8a3a2a','#f4a14a']},
 {id:'noir',name:'Film Noir',desc:'Classic black & gold',p:['#0d0d0d','#2c2c2c','#b8962a'],ln:['#5a5a5a','#d4af37']},
-{id:'forest',name:'Forest Theater',desc:'Emerald green sanctuary',p:['#0c1c14','#17402f','#1fa97a'],ln:['#0f6b4f','#6ee7b7']}];
+{id:'forest',name:'Forest Theater',desc:'Emerald green sanctuary',p:['#0c1c14','#17402f','#1fa97a'],ln:['#0f6b4f','#6ee7b7']},
+{id:'red',name:'Cinema Red',desc:'Velvet curtain crimson',p:['#150b0d','#3d1c21','#e5383b'],ln:['#7a1c20','#f06a6c']},
+{id:'amber',name:'Amber Projector',desc:'Warm projector-light amber',p:['#170f06','#43300f','#ffb020'],ln:['#8a5a10','#ffc247']},
+{id:'coral',name:'Coral Neon',desc:'Soft neon coral & plum',p:['#1a0e15','#472434','#ff6f61'],ln:['#8a3a4a','#ff8f84']}];
 let pref;try{pref=localStorage.getItem('cf-theme')}catch(e){}
 if(!THEMES.some(t=>t.id===pref))pref='space';
 function fav(){const cs=getComputedStyle(document.documentElement),a=cs.getPropertyValue('--ac').trim(),o=cs.getPropertyValue('--onac').trim();
