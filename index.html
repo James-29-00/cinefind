@@ -100,7 +100,7 @@ p{margin:0}
 .over{display:flex;gap:48px;align-items:center;flex-wrap:wrap}
 .over .poster{width:240px;max-width:100%;aspect-ratio:2/3}
 .over .sum{flex:1;min-width:260px;max-width:680px;display:flex;flex-direction:column;gap:24px}
-.over h1{font-size:32px;line-height:1.12}@media(max-width:700px){h1,.over h1{font-size:28px}}
+.over h1{font-size:clamp(2rem,4vw,2.75rem);line-height:1.1}@media(max-width:700px){h1,.over h1{font-size:28px}}
 .badge{border:1px solid var(--bd);border-radius:8px;padding:4px 8px;font-size:13px;font-weight:600;color:var(--mu)}
 .rs button{display:block;color:var(--ac2);min-height:44px;padding:0;font-size:14px}
 .clr{position:relative;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--mu)}.clr:hover{color:var(--tx)}.clr[hidden],.sg[hidden]{display:none}
@@ -139,7 +139,7 @@ main{padding:56px 0 calc(72px + env(safe-area-inset-bottom,0px));gap:88px}
 
 /* Stats panel */
 .kpi{margin:0;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid color-mix(in srgb,var(--tx) 14%,transparent);border-radius:18px;background:color-mix(in srgb,var(--bg) 45%,transparent);overflow:hidden}
-.kpi>div{position:relative;padding:24px clamp(14px,2vw,20px);display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:6px;min-width:0}.kpi .on .s12{text-wrap:balance}.kpi>div{padding:24px clamp(16px,2.2vw,24px) 28px;gap:8px;min-height:132px}.kpi dd{margin-bottom:2px}.kpi dt{line-height:1.3}.kpi .s12{margin-top:2px}
+.kpi>div{position:relative;padding:24px clamp(14px,2vw,20px);display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:6px;min-width:0}.kpi .on .s12{text-wrap:balance}.kpi>div{padding:22px clamp(16px,2.2vw,24px) 24px;gap:8px;justify-content:center}.kpi #von::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:middle}.kpi dd{margin-bottom:2px}.kpi dt{line-height:1.3}.kpi .s12{margin-top:2px}
 .kpi>div+div{border-left:1px solid color-mix(in srgb,var(--tx) 12%,transparent)}
 .kpi dd{margin:0;font:600 clamp(1.75rem,3.2vw,2.5rem)/1 Newsreader,"Newsreader Fallback",Georgia,serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:8px}
 .kpi dt{font-size:14px;color:var(--mu)}
@@ -299,7 +299,7 @@ input[type=search]{-webkit-appearance:none;appearance:none}input[type=search]::-
 @keyframes sa{to{--a:360deg}}
 @keyframes sw{from{--a:0deg;opacity:1}to{--a:360deg;opacity:0}}
 @media(prefers-reduced-motion:reduce){.search:focus-within::before{animation:none;background:var(--ac2)}.vt[aria-checked="true"]::before{animation:none}}
-.lkst.chk{background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent) 0 0/200% 100%;animation:lks 1.4s linear infinite}@keyframes lks{to{background-position:-200% 0}}@media(prefers-reduced-motion:reduce){.lkst.chk{animation:none}}.lkst.dir{color:var(--ok);border-color:var(--ok)}</style>
+.lkst.chk{background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent) 0 0/200% 100%;animation:lks 1.4s linear infinite}@keyframes lks{to{background-position:-200% 0}}@media(prefers-reduced-motion:reduce){.lkst.chk{animation:none}}.lkst.dir{color:var(--ok);border-color:var(--ok)}.tag.lkst:not(.dir):not(.chk){border-color:transparent;padding-left:0;font-size:12px}</style>
 </head>
 <body>
 <a class="skip" href="#app" onclick="event.preventDefault();$('#app').focus()">Skip to content</a>
@@ -365,7 +365,7 @@ function results(){const q=nz(S.q);
 
 function details(){const t=TITLES[S.tid],ws=SITES.filter(s=>s.c.includes(t.type)).sort((a,b)=>b.online-a.online);
  return `<button class="back" data-go="results">${ICON.back} Back to results</button>
- <section class="over"><div class="poster">${t.img?`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover">`:art(t)}</div><div class="sum"><div class="u-row u-g10"><span class="s13 mu">${esc(t.type)}</span></div><div><h1>${esc(t.name)}</h1>${t.alt?`<p class="s14 mu u-mt8">Alternative name: ${esc(t.alt)}</p>`:''}</div><p class="mu">${esc(t.syn)}</p></div></section>
+ <section class="over"><div class="poster">${t.img?`<img src="${esc(t.img)}" alt="" style="width:100%;height:100%;object-fit:cover">`:art(t)}</div><div class="sum"><div class="u-row u-g10"><span class="s13 mu">${esc(t.type)}${t.yr?' · '+t.yr:''}</span></div><div><h1>${esc(t.name)}</h1>${t.alt?`<p class="s14 mu u-mt8">Alternative name: ${esc(t.alt)}</p>`:''}</div><p class="mu">${esc(t.syn)}</p></div></section>
  <section class="sec"><div class="u-row"><h2>Where to Watch</h2>${help}</div><div class="box">${ICON.info}<p class="s13 mu">Availability is not verified, and these listings are not confirmed sources for ${esc(t.name)}. Check each website’s own catalog and access terms before watching.</p></div>${ws.length?['up','flag','down',''].map(k=>{const g=ws.filter(s=>k?s.st===k:!['up','flag','down'].includes(s.st));return g.length?`<div><h3 class="u-h3">${({up:'Working',flag:'May need verification',down:'Offline','':'Status unknown'})[k]} <span class="mu s14">${g.length}</span></h3><div class="grid4 sm">${g.map((s,i)=>siteCard(s,i,true)).join('')}</div></div>`:''}).join(''):'<div class="box"><p class="s14 mu">No websites listed for this category yet.</p></div>'}</section>`}
 
 function favs(){const s=SITES.filter(x=>S.favs.has(x.n)).sort((a,b)=>S.sort==='az'?a.n.localeCompare(b.n):0);return `<button class="back" data-go="home">${ICON.back} Back to Home</button><h1>Favorites</h1>${s.length>1?`<select class="sel u-as" id="sort" aria-label="Sort favorites"><option value="def">Default order</option><option value="az"${S.sort==='az'?' selected':''}>Name A–Z</option></select>`:''}${s.length?`<div class="grid4 sm">${s.map((x,i)=>siteCard(x,i,true)).join('')}</div>`:'<div class="box col u-ai"><p class="mu">Nothing saved yet. Tap the <span style="display:inline-block;vertical-align:-4px">'+ICON.star+'</span> on any website to keep it here.</p><button class="btn" data-go="home">Browse websites</button></div>'}`}
