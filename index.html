@@ -350,20 +350,30 @@ input[type=search]{-webkit-appearance:none;appearance:none}input[type=search]::-
 body::after{content:"";position:fixed;inset:0;z-index:5;pointer-events:none;opacity:.07;mix-blend-mode:overlay;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
 /* cf-polish */
+.stats{border-color:color-mix(in srgb,var(--tx) 16%,transparent)}
+@media(min-width:701px){.kpi>div{align-items:center;text-align:center}.kpi dd{justify-content:center}}
+@media(min-width:701px){.kpi>div{padding:28px 24px 30px;gap:10px}}
+.wrap{max-width:1440px}
+.grid4.sm{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px}
+@media(max-width:600px){.grid4.sm{grid-template-columns:repeat(2,1fr);gap:12px}}
+.wcard{background:color-mix(in srgb,var(--tx) 8%,var(--card));border-color:color-mix(in srgb,var(--tx) 18%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 1px 2px rgba(0,0,0,.25)}
+.wcard .wfoot{border-top:1px solid color-mix(in srgb,var(--tx) 10%,transparent);padding:12px 16px;margin-top:4px}
+.go{padding:4px 12px;border-radius:999px;background:color-mix(in srgb,var(--ac) 14%,transparent);opacity:1}
+.wcard:hover .go{background:var(--ac);color:var(--onac,#1a1405)}
 .go{width:auto;gap:4px;display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--ac2);opacity:.75;transition:opacity .2s}.wcard:hover .go,.wcard:has(.wl:focus-visible) .go{opacity:1}
-.star,.sm .star{opacity:.5;transition:opacity .2s,transform .1s}.star.on,.star:hover,.wcard:hover .star{opacity:1}.star svg{width:18px;height:18px}
-.wcard.flg{opacity:.55;transition:opacity .2s,transform .25s,border-color .25s,box-shadow .25s}.wcard.flg:hover{opacity:.85}.wcard.flg .go{display:none}
-.wlogo.hasimg,.sm .wlogo.hasimg{height:56px;min-height:56px}.wimg{height:32px;width:auto!important;max-width:132px;max-height:32px;object-fit:contain;filter:grayscale(.5) opacity(.85);transition:filter .2s}.wcard:hover .wimg{filter:none}
-.wcard::before{content:"";position:absolute;inset:0;background:radial-gradient(180px circle at var(--mx,50%) var(--my,50%),color-mix(in srgb,var(--ac) 16%,transparent),transparent 70%);opacity:0;transition:opacity .25s;pointer-events:none}.wcard:hover::before{opacity:1}
+.star,.sm .star{opacity:.8;transition:opacity .2s,transform .1s}.star.on,.star:hover,.wcard:hover .star{opacity:1}.star svg{width:18px;height:18px}
+.wcard.flg{opacity:.75;transition:opacity .2s,transform .25s,border-color .25s,box-shadow .25s}.wcard.flg:hover{opacity:.85}.wcard.flg .go{display:none}
+.wlogo.hasimg,.sm .wlogo.hasimg{height:56px;min-height:56px}.wimg{height:32px;width:auto!important;max-width:132px;max-height:32px;object-fit:contain;}
+
 @keyframes cfin{from{opacity:0;transform:translateY(10px)}}.grid4 .wcard{animation:cfin .45s backwards;animation-delay:calc(var(--i,0)*40ms)}
-.dot.pulse{animation:cfp 2s ease-out infinite}@keyframes cfp{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 55%,transparent)}100%{box-shadow:0 0 0 7px transparent}}
-.stats .tl .hl{color:inherit;text-decoration:underline;text-decoration-color:var(--ac);text-decoration-thickness:.07em;text-underline-offset:.14em;-webkit-text-fill-color:currentColor;background:none}
+@keyframes cfp{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 55%,transparent)}100%{box-shadow:0 0 0 7px transparent}}
+.stats .tl .hl{color:inherit;text-decoration:none;-webkit-text-fill-color:currentColor;background:linear-gradient(var(--ac),var(--ac)) 0 100%/100% .07em no-repeat;padding-bottom:.08em}
 .kpi .on dd{color:var(--ok);font-size:clamp(2rem,3.8vw,3rem)}.kpi .on dt{color:var(--tx);font-weight:600}
 .hbg{position:absolute;inset:0;border-radius:24px;overflow:hidden;z-index:-1;pointer-events:none}.hbg::before{content:"";position:absolute;inset:-30px;background:var(--hi) center/cover;filter:blur(32px) saturate(1.2);opacity:.3}
 .pinfo,.mini .pinfo{background:linear-gradient(transparent,color-mix(in srgb,var(--bg) 96%,transparent) 45%);padding:56px 12px 12px;text-shadow:0 1px 6px var(--bg)}
 .pinfo .psyn{display:none}@media(hover:hover){.pc:hover .pinfo .psyn{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;line-height:1.4;margin-top:6px;color:var(--tx)}}
 .ft p,.ft a{color:color-mix(in srgb,var(--tx) 80%,var(--bg))}
-@media(prefers-reduced-motion:reduce){.grid4 .wcard,.dot.pulse{animation:none}.wcard::before{display:none}}
+@media(prefers-reduced-motion:reduce){.grid4 .wcard,.dot.pulse{animation:none}}
 </style>
 </head>
 <body>
@@ -412,7 +422,7 @@ const intent=`<div class="s12 mu u-stk5"><p>The separate star saves favorites on
 const help=!STATUS?'':`<details class="tip"><summary aria-label="What website status means">${ICON.info.replace('margin-top:2px','')}</summary><div class="pop"><b class="s13">What website status means</b><div class="defs"><span><i style="background:var(--ok)"></i>Online — Reachable</span><span><i style="background:var(--bad)"></i>Offline — Unavailable after retry</span><span><i style="background:var(--warn)"></i>Flagged — CAPTCHA / robot verification</span><span><i style="background:var(--unk)"></i>Unknown — Indeterminate</span></div><p class="s12 mu">Automated reachability does not confirm title availability. Free access needs a separate manual check; it is not verified for these sample listings.</p></div></details>`;
 const ic=p=>`<i class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg></i>`;
 const statsCard=()=>{const t=SITES.length,o=SITES.filter(x=>x.online).length,fl=SITES.filter(x=>x.st==='flag').length,dn=SITES.filter(x=>x.st==='down').length,C=138.2,r='cx="30" cy="30" r="22" fill="none" stroke-width="5"';
-return `<div class="glow">${TITLES[0]&&TITLES[0].img?`<div class="hbg" style="--hi:url('${esc(TITLES[0].img)}')"></div>`:''}<div class="stats" role="group" aria-label="Directory stats"><div class="st-in"><div><h1 class="tl">Find where to <span class="hl">watch, free.</span></h1><div class="u-hsb">${searchBox('')}</div></div><dl class="kpi"><div><span class="s12 mu">listed</span><dt>Websites</dt><dd>${t}</dd></div>${STATUS?`<div class="on"><span class="s12 mu">of ${t} websites</span><dt>Sites online</dt><dd>${o}</dd><span class="bar" aria-hidden="true"><i style="width:${t?Math.round(o/t*100):0}%"></i></span></div>`:''}<div><span class="s12 mu">${CATS.slice(1).join(', ')}</span><dt>Categories</dt><dd>${CATS.length-1}</dd></div></dl></div></div></div>`};
+return `<div class="glow">${TITLES[0]&&TITLES[0].img?`<div class="hbg" style="--hi:url('${esc(TITLES[0].img)}')"></div>`:''}<div class="stats" role="group" aria-label="Directory stats"><div class="st-in"><div><h1 class="tl">Find where to <span class="hl">watch, free.</span></h1><div class="u-hsb">${searchBox('')}</div></div><dl class="kpi"><div><dt>Websites</dt><dd>${t}</dd></div>${STATUS?`<div class="on"><dt>Sites online</dt><dd>${o}</dd><span class="bar" aria-hidden="true"><i style="width:${t?Math.round(o/t*100):0}%"></i></span></div>`:''}<div><dt>Categories</dt><dd>${CATS.length-1}</dd></div></dl></div></div></div>`};
 const searchBox=(v,f)=>`<form id="sf"><div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" autocapitalize="off" role="combobox" aria-expanded="false" aria-controls="sgl" aria-autocomplete="list" aria-label="Search titles" value="${esc(v)}" placeholder="Search movies, dramas, anime…" autocomplete="off"${f?' autofocus':''}><button class="clr" type="button" data-clr="1" aria-label="Clear search"${v?'':' hidden'}>${XI}</button><button class="btn" type="submit" aria-label="Search"><span class="bl">Search</span><span class="bi">${ICON.search}</span></button></div><div class="sg box col" id="sgl" role="listbox" aria-label="Suggestions" hidden></div></form>`;
 
 function home(){const sites=SITES.filter(s=>(S.cat==='All'||s.c.includes(S.cat))&&(!S.on||s.online)).sort((a,b)=>(S.sort==='hot'?(b.hot|0)-(a.hot|0):0)||(S.sort==='chk'?(b.ca||0)-(a.ca||0):0)||(STATUS?b.online-a.online:0)||(S.sort==='az'?a.n.localeCompare(b.n):0));
@@ -765,7 +775,6 @@ addEventListener('cf-wake',()=>{last=0;wake()});
 };
 if(mq.matches){const w=e=>{if(!e.matches){mq.removeEventListener('change',w);init()}};mq.addEventListener('change',w)}else init();
 })();
-document.addEventListener('pointermove',e=>{const c=e.target.closest&&e.target.closest('.wcard');if(!c)return;const r=c.getBoundingClientRect();c.style.setProperty('--mx',e.clientX-r.left+'px');c.style.setProperty('--my',e.clientY-r.top+'px')},{passive:true});
 </script>
 </body>
 </html>
