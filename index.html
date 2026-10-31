@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0c1417;--hd:#101a1e;--card:#172328;--panel:#121d21;--bd:#233138;--tx:#eef1ec;--mu:#98a8a8;--ac:#e0a458;--ac2:#eab978;--ac3:#f3d2a3;--ok:#4ade80;--bad:#f87171;--warn:#fb923c;--unk:#a1a1aa;color-scheme:dark;box-sizing:border-box}
+:root{--bg:#0b0b0b;--hd:#121212;--card:#1b1b1b;--panel:#151515;--bd:#2f2f2f;--tx:#f2f0ea;--mu:#a6a39c;--ac:#e0a458;--ac2:#eab978;--ac3:#f3d2a3;--mkd:#a7691c;--mkl:#f3c17d;--ok:#4ade80;--bad:#f87171;--warn:#fb923c;--unk:#a1a1aa;color-scheme:dark;box-sizing:border-box}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:400 16px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -232,15 +232,15 @@ main{padding-top:40px;gap:72px}
 @media(min-width:701px) and (max-width:1199px){.posters.mini>div:nth-child(n+9){display:none}}
 /* ===== Round 6: Choose Your Vibe (six cinema themes + picker) ===== */
 :root{--onac:#1a1208;accent-color:var(--ac)}
-:root[data-t="modern"]{--onac:#1a1208}
-:root[data-t="ocean"]{--bg:#07111e;--hd:#0a1829;--card:#10243b;--panel:#0c1b2f;--bd:#1f3a58;--tx:#eaf2fb;--mu:#97aec7;--ac:#e3b341;--ac2:#ecc766;--ac3:#f6e0a0;--onac:#1a1405}
-:root[data-t="space"]{--bg:#0a0716;--hd:#0f0b24;--card:#1a1438;--panel:#150f30;--bd:#2d2556;--tx:#f0ebff;--mu:#a99ed3;--ac:#a78bfa;--ac2:#b9a3fb;--ac3:#d8cbff;--onac:#150d2e}
-:root[data-t="sunset"]{--bg:#150c0b;--hd:#1c110f;--card:#2a1a17;--panel:#201411;--bd:#432923;--tx:#f8ede6;--mu:#bda296;--ac:#f08a3c;--ac2:#f5a35f;--ac3:#fbc99c;--onac:#1f0e04}
-:root[data-t="noir"]{--bg:#0b0b0b;--hd:#121212;--card:#1b1b1b;--panel:#151515;--bd:#2f2f2f;--tx:#f2f0ea;--mu:#a6a39c;--ac:#d4af37;--ac2:#e4c35e;--ac3:#f1dc95;--onac:#171204}
-:root[data-t="forest"]{--bg:#07140f;--hd:#0b1c15;--card:#11291f;--panel:#0d2019;--bd:#204034;--tx:#e9f5ee;--mu:#92b2a4;--ac:#34d399;--ac2:#5fe3b2;--ac3:#a4f0d2;--onac:#04180f}
-:root[data-t="red"]{--bg:#0e0809;--hd:#150b0d;--card:#221114;--panel:#1a0d10;--bd:#3d1c21;--tx:#f8ecec;--mu:#c0a3a6;--ac:#e5383b;--ac2:#f06a6c;--ac3:#f9a8a9;--onac:#1a0405}
-:root[data-t="amber"]{--bg:#0f0b05;--hd:#170f06;--card:#251a0b;--panel:#1c1408;--bd:#43300f;--tx:#fbf1dd;--mu:#c4ad84;--ac:#ffb020;--ac2:#ffc247;--ac3:#ffdd94;--onac:#1c1203}
-:root[data-t="coral"]{--bg:#130a10;--hd:#1a0e15;--card:#2a1520;--panel:#20111a;--bd:#472434;--tx:#fdeeee;--mu:#c9a5b8;--ac:#ff6f61;--ac2:#ff8f84;--ac3:#ffb9b2;--onac:#200805}
+:root[data-t="modern"]{--onac:#1a1208;--mkd:#a7691c;--mkl:#f3c17d}
+:root[data-t="ocean"]{--ac:#e3b341;--ac2:#ecc766;--ac3:#f6e0a0;--onac:#1a1405;--mkd:#a57503;--mkl:#f6d071}
+:root[data-t="space"]{--ac:#a78bfa;--ac2:#b9a3fb;--ac3:#d8cbff;--onac:#150d2e;--mkd:#6d59c3;--mkl:#c2aafe}
+:root[data-t="sunset"]{--ac:#f08a3c;--ac2:#f5a35f;--ac3:#fbc99c;--onac:#1f0e04;--mkd:#b35200;--mkl:#fdac6d}
+:root[data-t="noir"]{--ac:#d4af37;--ac2:#e4c35e;--ac3:#f1dc95;--onac:#171204;--mkd:#997403;--mkl:#e7cb69}
+:root[data-t="forest"]{--ac:#34d399;--ac2:#5fe3b2;--ac3:#a4f0d2;--onac:#04180f;--mkd:#01935c;--mkl:#68ebbb}
+:root[data-t="red"]{--ac:#e5383b;--ac2:#f06a6c;--ac3:#f9a8a9;--onac:#1a0405;--mkd:#9a0a27;--mkl:#f86456}
+:root[data-t="amber"]{--ac:#ffb020;--ac2:#ffc247;--ac3:#ffdd94;--onac:#1c1203;--mkd:#b4740e;--mkl:#fed595}
+:root[data-t="coral"]{--ac:#ff6f61;--ac2:#ff8f84;--ac3:#ffb9b2;--onac:#200805;--mkd:#c1333a;--mkl:#ff9f8d}
 .btn,.skip,.chip.on,.chip.on .mu{color:var(--onac)}.btn svg{color:var(--onac)!important}
 ::selection{background:color-mix(in srgb,var(--ac) 38%,transparent);color:var(--tx)}
 html{scrollbar-color:color-mix(in srgb,var(--tx) 24%,transparent) transparent}
@@ -272,11 +272,11 @@ dialog#vibe[open]{animation:vin .32s cubic-bezier(.16,1,.3,1)}
 @media(prefers-reduced-motion:reduce){dialog#vibe[open]{animation:none}.vt,.vc,.theme,.vx{transition:none}.vt:hover{transform:none}}
 /* Brand mark: film-frame tile with inner ring, perforations and soft lift */
 .brand{gap:12px;font-size:22px;letter-spacing:-.01em}
-.mark{position:relative;width:40px;height:40px;border-radius:12px;display:block;flex:none;background:var(--ac);transition:transform .25s cubic-bezier(.16,1,.3,1)}
-.mark svg{position:relative;display:block;width:100%;height:100%;stroke:none}
-.mark .cm{fill:none;stroke:var(--onac);stroke-width:4.4;stroke-linecap:round}.mark .cd{fill:var(--onac);stroke:none}
+.mark{position:relative;height:34px;display:block;flex:none;transition:transform .25s cubic-bezier(.16,1,.3,1)}
+.mark svg{display:block;height:100%;width:auto}
+.mark .cm{fill:var(--ac)}.mark .cf{fill:var(--mkd)}.mark .ca{fill:var(--mkl)}
 .brand:hover .mark{transform:translateY(-1px)}
-@media(max-width:480px){.brand{font-size:20px;gap:10px}.mark{width:36px;height:36px;border-radius:11px}}
+@media(max-width:480px){.brand{font-size:20px;gap:10px}.mark{height:30px}}
 @media(prefers-reduced-motion:reduce){.mark,.brand:hover .mark{transition:none;transform:none}}
 :root[data-v="home"] main>.sec:not(#brw){order:2}:root[data-v="home"] #brw{order:1}
 .hero,.u-stk{display:flex;flex-direction:column;gap:12px}.u-stk5{display:flex;flex-direction:column;gap:5px}.u-stk8{display:flex;flex-direction:column;gap:8px}
@@ -381,7 +381,7 @@ body::after{content:"";position:fixed;inset:0;z-index:5;pointer-events:none;opac
 <div class="fl" id="fl" aria-hidden="true"><canvas></canvas></div>
 <header class="site-hd"><div class="wrap hd">
   <div class="left">
-    <a class="brand" id="nBrand" href="#/" aria-label="Cinefind home"><span class="mark"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true" focusable="false"><path class="cm" d="M26.4 13.6A9 9 0 1 0 26.4 26.4"/><circle class="cd" cx="20" cy="20" r="2.8"/></svg></span><span class="bt">Cinefind</span></a>
+    <a class="brand" id="nBrand" href="#/" aria-label="Cinefind home"><span class="mark"><svg viewBox="-2 -2 515 282" width="62" height="34" aria-hidden="true" focusable="false"><defs><path id="cfm" d="M248.4 27.8A157.1 138.9 4.8 1 0 150.0 278.2C163.6 277.9 197.5 278.4 211.5 277.5C295.3 256.1 281.2 170.8 324.8 170.8L398 170.8C423.3 170.8 461.5 139.8 461.5 115.0C461.5 110.9 457.0 105.8 453.8 105.8L322 105.8C274.2 105.8 243.0 161.4 218.5 194.0A85.4 67.8 7.9 1 1 214.1 82.8L248.4 27.8Z"/><clipPath id="cfc"><use href="#cfm"/></clipPath></defs><use href="#cfm" class="cm"/><path id="cff" class="cf" clip-path="url(#cfc)" d="M103.4 85.7A92.8 73.6 7.9 1 0 194.1 201.2A85.4 67.8 7.9 0 1 103.4 85.7Z"/><path id="cfa" class="ca" d="M208.2 151.2C225.9 97.5 253.3 2.5 327.0 2.5L500 2.5C505.1 2.5 509.0 7.7 509.0 12.5C509.0 41.6 474.4 67.5 445.0 67.5L323 67.5C269.1 67.5 238.6 115.4 208.2 151.2Z"/></svg></span><span class="bt">Cinefind</span></a>
     <nav class="mainnav" aria-label="Main"><a id="nHome" class="on" href="#/" aria-current="page">Home</a><a id="nFavs" href="#/favorites">Favorites <span class="cnt" id="fc"></span></a></nav>
   </div>
   <form class="hs" id="hsf" role="search"></form><div class="rt"><button class="theme" id="theme" aria-label="Theme"></button></div>
@@ -517,19 +517,19 @@ async function omni(t){const ok=()=>S.view==='details'&&TITLES[S.tid]===t;if(!t.
 let ST;const SQ={};document.addEventListener('input',e=>{const i=e.target;if(!i.matches('#q'))return;clearTimeout(ST);const v=i.value.trim();if(v.length<3)return;ST=setTimeout(async()=>{try{const d=SQ[v]||(SQ[v]=await(await fetch(TM+'?query='+encodeURIComponent(pq(v).t))).json()),l=[...new Map((d.results||[]).filter(m=>m.media_type==='movie'||m.media_type==='tv').map(m=>[m.title||m.name,m])).values()].slice(0,5),b=i.closest('form').querySelector('.sg');if(i.value.trim()!==v||!l.length)return;b.innerHTML=l.map((x,n)=>{const nm=x.title||x.name,y=(x.release_date||x.first_air_date||'').slice(0,4);return`<button type="button" role="option" tabindex="-1" id="sg${n}" data-rq="${esc(nm)}">${esc(nm)}<span class="mu s12"> · ${y?y+' · ':''}${TC[cat(x,x.media_type==='tv')]}</span></button>`}).join('');b.hidden=false;i.setAttribute('aria-expanded','true')}catch(e){}},500)});
 function toast(m,u){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.addEventListener('mouseenter',()=>clearTimeout(toast.t));t.addEventListener('mouseleave',()=>toast.h());t.addEventListener('focusin',()=>clearTimeout(toast.t));t.addEventListener('focusout',()=>toast.h());document.body.appendChild(t)}t.textContent=m;if(u){const b=document.createElement('button');b.type='button';b.className='tundo';b.textContent='Undo';b.onclick=()=>{u();t.classList.remove('show')};t.append(' ',b)}t.classList.add('show');toast.h=()=>{clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),4000)};toast.h()}
 const THEMES=[
-{id:'modern',name:'Modern Cinema',desc:'Contemporary teal & amber',p:['#0e1a1c','#2b3b39','#b9894f'],ln:['#2c6a6e','#e0b27a']},
-{id:'ocean',name:'Ocean Screen',desc:'Deep blue & gold waves',p:['#0a1d3a','#16406f','#c9a23f'],ln:['#1f5fa8','#e3b341']},
-{id:'space',name:'Deep Space',desc:'Cosmic purple nebula',p:['#150f33','#2d2260','#8d72e8'],ln:['#5b3fd1','#b79cff']},
-{id:'sunset',name:'Sunset Cinema',desc:'Warm dusk orange glow',p:['#1d1210','#3a2b33','#d9792f'],ln:['#8a3a2a','#f4a14a']},
-{id:'noir',name:'Film Noir',desc:'Classic black & gold',p:['#0d0d0d','#2c2c2c','#b8962a'],ln:['#5a5a5a','#d4af37']},
-{id:'forest',name:'Forest Theater',desc:'Emerald green sanctuary',p:['#0c1c14','#17402f','#1fa97a'],ln:['#0f6b4f','#6ee7b7']},
-{id:'red',name:'Cinema Red',desc:'Velvet curtain crimson',p:['#150b0d','#3d1c21','#e5383b'],ln:['#7a1c20','#f06a6c']},
-{id:'amber',name:'Amber Projector',desc:'Warm projector-light amber',p:['#170f06','#43300f','#ffb020'],ln:['#8a5a10','#ffc247']},
-{id:'coral',name:'Coral Neon',desc:'Soft neon coral & plum',p:['#1a0e15','#472434','#ff6f61'],ln:['#8a3a4a','#ff8f84']}];
+{id:'modern',name:'Modern Cinema',desc:'Contemporary teal & amber',p:['#0b0b0b','#1b1b1b','#b9894f'],ln:['#2c6a6e','#e0b27a']},
+{id:'ocean',name:'Ocean Screen',desc:'Deep blue & gold waves',p:['#0b0b0b','#1b1b1b','#c9a23f'],ln:['#1f5fa8','#e3b341']},
+{id:'space',name:'Deep Space',desc:'Cosmic purple nebula',p:['#0b0b0b','#1b1b1b','#8d72e8'],ln:['#5b3fd1','#b79cff']},
+{id:'sunset',name:'Sunset Cinema',desc:'Warm dusk orange glow',p:['#0b0b0b','#1b1b1b','#d9792f'],ln:['#8a3a2a','#f4a14a']},
+{id:'noir',name:'Film Noir',desc:'Classic black & gold',p:['#0b0b0b','#1b1b1b','#b8962a'],ln:['#5a5a5a','#d4af37']},
+{id:'forest',name:'Forest Theater',desc:'Emerald green sanctuary',p:['#0b0b0b','#1b1b1b','#1fa97a'],ln:['#0f6b4f','#6ee7b7']},
+{id:'red',name:'Cinema Red',desc:'Velvet curtain crimson',p:['#0b0b0b','#1b1b1b','#e5383b'],ln:['#7a1c20','#f06a6c']},
+{id:'amber',name:'Amber Projector',desc:'Warm projector-light amber',p:['#0b0b0b','#1b1b1b','#ffb020'],ln:['#8a5a10','#ffc247']},
+{id:'coral',name:'Coral Neon',desc:'Soft neon coral & plum',p:['#0b0b0b','#1b1b1b','#ff6f61'],ln:['#8a3a4a','#ff8f84']}];
 let pref;try{pref=localStorage.getItem('cf-theme')}catch(e){}
 if(!THEMES.some(t=>t.id===pref))pref='space';
 function fav(){const cs=getComputedStyle(document.documentElement),a=cs.getPropertyValue('--ac').trim(),o=cs.getPropertyValue('--onac').trim();
- document.querySelector('link[rel=icon]').href='data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="12" fill="${a}"/><path d="M26.4 13.6A9 9 0 1 0 26.4 26.4" fill="none" stroke="${o}" stroke-width="4.4" stroke-linecap="round"/><circle cx="20" cy="20" r="2.8" fill="${o}"/></svg>`)}
+ document.querySelector('link[rel=icon]').href='data:image/svg+xml,'+encodeURIComponent((()=>{const g=i=>document.getElementById(i).getAttribute('d'),k=cs.getPropertyValue('--mkd').trim();return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -121 520 520"><defs><clipPath id="c"><path d="${g('cfm')}"/></clipPath></defs><path d="${g('cfm')}" fill="${a}"/><path d="${g('cff')}" fill="${k}" clip-path="url(#c)"/><path d="${g('cfa')}" fill="${cs.getPropertyValue('--mkl').trim()}"/></svg>`})())}
 const applyTheme=(id=pref)=>{const t=THEMES.find(x=>x.id===id);document.documentElement.dataset.t=id;window.CF_LINES=t.ln;
  document.querySelector('meta[name=theme-color]').content=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();fav();dispatchEvent(new Event('cf-theme'))};
 const sv=p=>`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
