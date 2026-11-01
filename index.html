@@ -489,6 +489,10 @@ dialog#how::backdrop{background:rgba(4,3,10,.64)}
 .lg>summary::after{content:"+";font-size:20px;color:var(--mu)}.lg[open]>summary::after{content:"\2212"}
 .fb .lg p:first-of-type{margin-top:0;padding-top:0;border-top:0}
 }
+/* mobile: show header search when the hero search scrolls out of view (same as desktop) */
+@media(max-width:700px){
+:root[data-v] .hs{display:flex;position:absolute;grid-area:auto;margin:0;width:auto;left:clamp(20px,3vw,48px);right:clamp(20px,3vw,48px);top:calc(100% + 8px);z-index:20;background:color-mix(in srgb,var(--hd) 92%,var(--tx));box-shadow:0 8px 24px rgba(0,0,0,.28)}
+}
 </style>
 </head>
 <body>
