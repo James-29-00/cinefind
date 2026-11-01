@@ -575,7 +575,7 @@ dialog#how::backdrop{background:rgba(4,3,10,.64)}
 :root[data-v] .hs{display:flex;position:absolute;grid-area:auto;margin:0;width:auto;left:clamp(20px,3vw,48px);right:clamp(20px,3vw,48px);top:calc(100% + 8px);z-index:20;background:color-mix(in srgb,var(--hd) 92%,var(--tx));box-shadow:0 8px 24px rgba(0,0,0,.28)}
 }
 </style>
-</head>
+<style>.wlogo .wimg{width:144px!important;height:38px!important;max-width:100%!important;max-height:38px!important;object-fit:contain;object-position:center}</style></head>
 <body>
 <a class="skip" href="#app" onclick="event.preventDefault();$('#app').focus()">Skip to content</a>
 <div class="fl" id="fl" aria-hidden="true"><canvas></canvas></div>
@@ -986,5 +986,5 @@ if(mq.matches){const w=e=>{if(!e.matches){mq.removeEventListener('change',w);ini
 })();
 </script>
 <script>document.addEventListener('click',e=>{const b=e.target.closest('.star');if(b&&b.classList.contains('on')){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}})</script>
-</body>
+<script>document.addEventListener('load',e=>{const i=e.target;if(!i.classList||!i.classList.contains('wimg')||i.dataset.t||/\.svg/i.test(i.src))return;i.dataset.t=1;try{const w=i.naturalWidth,h=i.naturalHeight;if(!w||!h)return;const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(i,0,0);const d=x.getImageData(0,0,w,h).data;let a=w,b=h,r=-1,t=-1;for(let y=0;y<h;y++)for(let q=0;q<w;q++)if(d[(y*w+q)*4+3]>12){if(q<a)a=q;if(q>r)r=q;if(y<b)b=y;if(y>t)t=y}if(r<a)return;const cw=r-a+1,ch=t-b+1;if(cw>=w-2&&ch>=h-2)return;const o=document.createElement('canvas');o.width=cw;o.height=ch;o.getContext('2d').drawImage(c,a,b,cw,ch,0,0,cw,ch);i.src=o.toDataURL('image/png')}catch(_){}},true)</script></body>
 </html>
