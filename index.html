@@ -489,6 +489,50 @@ dialog#how::backdrop{background:rgba(4,3,10,.64)}
 .lg>summary::after{content:"+";font-size:20px;color:var(--mu)}.lg[open]>summary::after{content:"\2212"}
 .fb .lg p:first-of-type{margin-top:0;padding-top:0;border-top:0}
 }
+/* narrow phones: keep the Visit pill inside the card */
+@media(max-width:400px){
+ .wfoot,.sm .wfoot{font-size:13px;gap:4px;padding:0 10px 10px}
+ .wfoot>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+ .wfoot>span:first-child .dot{margin-right:4px}
+ .go{padding:4px 10px;flex:none}
+ .go svg{display:none}
+}
+/* section headers with icon + count badge; hero description and status line (phones) */
+.hh{display:inline-flex;align-items:center;gap:10px}
+.hh svg{flex:none;color:var(--ac2)}
+.hh+.cb{margin-left:10px}
+.hdesc{display:none}
+.kpi .on.live dd::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;align-self:center;flex:none;animation:lp 1.6s ease-out infinite}
+@media(prefers-reduced-motion:reduce){.kpi .on.live dd::before{animation:none}}
+@media(max-width:700px){
+ #sbtn{display:grid}
+ .rt{gap:8px}
+ .rt .ib,.rt .theme{background:color-mix(in srgb,var(--tx) 7%,transparent);border-color:color-mix(in srgb,var(--tx) 16%,transparent);color:var(--tx)}
+ .rt .ib:hover,.rt .theme:hover{color:var(--tx)}
+ .stats .kpi>div,.stats .kpi>div:not(.vis){padding:12px 8px 14px;gap:2px;align-items:center;text-align:center}
+ .stats .kpi dd,.stats .kpi .on dd{font-size:1.5rem;justify-content:center}
+ .stats .kpi dt,.stats .kpi .on dt{font-size:13px;line-height:1.2}
+ .hdesc{display:block;margin:12px 0 0;max-width:34ch;font-size:15px;line-height:1.5;color:color-mix(in srgb,var(--tx) 78%,var(--bg))}
+ .hh{gap:8px}.hh svg{width:20px;height:20px}
+}
+/* phones: quieter stats strip (no inner lines, no bar, calmer labels, softer search border) */
+@media(max-width:700px){
+ .stats .kpi{border:0;border-radius:14px;background:color-mix(in srgb,var(--tx) 5%,transparent)}
+ .stats .kpi>div+div{border-left:0}
+ .stats .kpi .bar{display:none}
+ .stats .kpi dd,.stats .kpi .on dd{font-size:1.375rem;font-weight:500}
+ .stats .kpi dt,.stats .kpi .on dt{color:var(--mu);font-weight:400}
+ .stats .search:not(:focus-within){border-color:color-mix(in srgb,var(--tx) 16%,transparent)}
+}
+/* category chips: icon + label + count badge, brighter text, clear hover/selected states */
+.chip{display:inline-flex;align-items:center;gap:8px;color:color-mix(in srgb,var(--tx) 88%,var(--bg))}
+.chip svg{flex:none;opacity:.9}
+.chip:hover{color:var(--tx);border-color:var(--ac2);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 18%,transparent)}
+.cb{min-width:22px;height:22px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:12px;font-weight:700;line-height:1;background:color-mix(in srgb,var(--tx) 14%,transparent);color:var(--tx)}
+.chip.on{color:var(--onac);font-weight:700}
+.chip.on svg{opacity:1}
+.chip.on .cb{background:color-mix(in srgb,var(--onac) 18%,transparent);color:var(--onac)}
+@media(max-width:700px){.chip{gap:6px}.cr .chip{padding:0 12px}.cb{min-width:20px;height:20px;font-size:12px}}
 /* category chips: solid and crisp so background lines don't show through them */
 .chip{background:color-mix(in srgb,var(--tx) 7%,var(--bg));border-color:color-mix(in srgb,var(--tx) 28%,transparent)}
 .chip:hover{background:color-mix(in srgb,var(--tx) 12%,var(--bg))}
@@ -562,6 +606,10 @@ for(const k in ICON)ICON[k]=ICON[k].replace('<svg','<svg aria-hidden="true" focu
 const TITLES=[];
 const SITES=[{n:'MyAsianTV',w:157,logo:'logos/myasiantv.webp',c:['Asian Drama'],online:true},{n:'DramaCool',w:176,logo:'logos/dramacool.webp',c:['Asian Drama'],online:true},{n:'KissKH',w:141,logo:'logos/kisskh.webp',c:['Asian Drama'],online:true},{n:'Viki',w:113,logo:'logos/viki.webp',c:['Asian Drama'],online:true},{n:'MovieBox',w:171,logo:'logos/moviebox.webp',c:['Movies'],online:true},{n:'FMovies',w:153,logo:'logos/fmovies.webp',c:['Movies'],online:true},{n:'CineWhale',w:153,logo:'logos/cinewhale.webp',c:['Movies'],online:true},{n:'Dulo',w:126,logo:'logos/dulo.webp',c:['Movies'],online:true},{n:'ReAnime',w:155,logo:'logos/reanime.webp',c:['Anime'],online:true},{n:'Miruro',w:143,logo:'logos/miruro.webp',c:['Anime'],online:true},{n:'Enma',w:144,logo:'logos/enma.webp',c:['Anime'],online:true},{n:'TBA Studios',w:148,logo:'logos/tbastudios.webp',c:['Filipino/Local'],online:true}];
 SITES.forEach(s=>s.online=false);const CATS=['All','Movies','Anime','Asian Drama','Filipino/Local'];
+const hico=p=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${p}</svg>`;
+const HI={tr:hico('<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>'),br:hico('<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>')};
+const cico=p=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${p}</svg>`;
+const CI={'All':cico('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'),'Movies':cico('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 8h4M3 12h4M3 16h4M17 8h4M17 12h4M17 16h4"/>'),'Anime':cico('<path d="m12 3 2.7 5.8 6.3.8-4.6 4.4 1.2 6.3-5.6-3 -5.6 3 1.2-6.3L3 9.6l6.3-.8z"/>'),'Asian Drama':cico('<rect x="2" y="7" width="20" height="13" rx="2"/><path d="m17 2-5 5-5-5"/>'),'Filipino/Local':cico('<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>')};
 const S={view:'home',q:'',cat:'All',tid:0,recent:(()=>{try{return JSON.parse(localStorage.getItem('cf-recent')||'[]')}catch(e){return[]}})(),favs:new Set(),on:false,sort:'def'};
 try{JSON.parse(localStorage.getItem('cf-favs')||'[]').forEach(f=>S.favs.add(f))}catch(e){}
 const saveFavs=()=>{try{localStorage.setItem('cf-favs',JSON.stringify([...S.favs]))}catch(e){}};
@@ -581,13 +629,13 @@ const intent=()=>`<div class="s12 mu u-stk5"><p>${window.LA?'Status checked '+(m
 const help=!STATUS?'':`<details class="tip"><summary aria-label="What website status means">${ICON.info.replace('margin-top:2px','')}</summary><div class="pop"><b class="s13">What website status means</b><div class="defs"><span><i style="background:var(--ok)"></i>Online: Reachable</span><span><i style="background:var(--bad)"></i>Offline: Unavailable after retry</span><span><i style="background:var(--warn)"></i>Flagged: CAPTCHA / robot verification</span><span><i style="background:var(--unk)"></i>Unknown: Indeterminate</span></div><p class="s12 mu">Automated reachability does not confirm title availability. Free access needs a separate manual check; it is not verified for these sample listings.</p></div></details>`;
 const ic=p=>`<i class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg></i>`;
 const statsCard=()=>{const t=SITES.length,o=SITES.filter(x=>x.online).length,fl=SITES.filter(x=>x.st==='flag').length,dn=SITES.filter(x=>x.st==='down').length,C=138.2,r='cx="30" cy="30" r="22" fill="none" stroke-width="5"';
-return `<div class="glow">${TITLES[0]&&TITLES[0].img?`<div class="hbg" style="--hi:url('${esc(TITLES[0].img)}')"></div>`:''}<div class="stats" role="group" aria-label="Directory stats"><div class="st-in"><div><h1 class="tl">Find where to <span class="hl">watch, free.</span></h1><div class="u-hsb">${searchBox('')}</div></div><dl class="kpi"><div><dt>Websites</dt><dd>${t}</dd></div>${STATUS?`<div class="on"><dt>Sites online</dt><dd>${SITES.some(x=>x.st&&x.st!=='unk')?o:'–'}</dd><span class="bar" aria-hidden="true"><i style="width:${t?Math.round(o/t*100):0}%"></i></span></div>`:''}<div><dt>Categories</dt><dd>${CATS.length-1}</dd></div></dl></div></div></div>`};
+return `<div class="glow">${TITLES[0]&&TITLES[0].img?`<div class="hbg" style="--hi:url('${esc(TITLES[0].img)}')"></div>`:''}<div class="stats" role="group" aria-label="Directory stats"><div class="st-in"><div><h1 class="tl">Find where to <span class="hl">watch, free.</span></h1><p class="hdesc">A directory of streaming websites. Search a title, then check each site yourself.</p><div class="u-hsb">${searchBox('')}</div></div><dl class="kpi"><div><dt>Websites</dt><dd>${t}</dd></div>${STATUS?`<div class="on${SITES.some(x=>x.st&&x.st!=='unk')?' live':''}"><dt>Sites online</dt><dd>${SITES.some(x=>x.st&&x.st!=='unk')?o:'–'}</dd><span class="bar" aria-hidden="true"><i style="width:${t?Math.round(o/t*100):0}%"></i></span></div>`:''}<div><dt>Categories</dt><dd>${CATS.length-1}</dd></div></dl></div></div></div>`};
 const searchBox=(v,f)=>`<form id="sf"><div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" autocapitalize="off" role="combobox" aria-expanded="false" aria-controls="sgl" aria-autocomplete="list" aria-label="Search titles" value="${esc(v)}" placeholder="Search a title…" autocomplete="off"${f?' autofocus':''}><button class="clr" type="button" data-clr="1" aria-label="Clear search"${v?'':' hidden'}>${XI}</button><button class="btn" type="submit" aria-label="Search"><span class="bl">Search</span><span class="bi">${ICON.search}</span></button></div><div class="sg box col" id="sgl" role="listbox" aria-label="Suggestions" hidden></div></form>`;
 
 function home(){const sites=SITES.filter(s=>(S.cat==='All'||s.c.includes(S.cat))&&(!S.on||s.online)).sort((a,b)=>(S.sort==='hot'?(b.hot|0)-(a.hot|0):0)||(S.sort==='chk'?(b.ca||0)-(a.ca||0):0)||(STATUS?b.online-a.online:0)||(S.sort==='az'?a.n.localeCompare(b.n):0));
  return `<section class="hero">${statsCard()}</section>
- ${S.tf||S.live&&!TITLES.length?'':`<section class="sec"><div class="hrow"><h2>Trending now</h2><button class="more" data-go="results" data-all="1">See all titles</button></div><div class="posters mini">${TITLES.length?TITLES.map(t=>`<div><button class="pc" data-t="${t.id}" aria-label="${esc(t.name)}, ${esc(t.type)}">${poster(t)}</button></div>`).join(''):SK1.repeat(5)}</div></section>`}
- <section class="sec" id="brw"><div class="u-row"><h2>Browse websites</h2>${help}<span class="s13 mu" style="margin-left:auto">Showing ${sites.length} of ${SITES.length}</span></div><div class="u-stk"><div class="filters" role="group" aria-label="Website category"><div class="cr">${CATS.map(c=>`<button class="chip ${c===S.cat?'on':''}" data-cat="${c}" aria-pressed="${c===S.cat}">${c} <span class="mu s12">${c==='All'?SITES.length:SITES.filter(s=>s.c.includes(c)).length}</span></button>`).join('')}</div><span class="u-opts"><button class="sw" role="switch" aria-checked="${S.on}"${STATUS?'':' hidden'} data-on="1"><i></i>Online only</button><select class="sel" id="sort" aria-label="Sort websites"><option value="def">Default order</option><option value="hot"${S.sort==='hot'?' selected':''}>Hot first</option><option value="chk"${S.sort==='chk'?' selected':''}>Recently checked</option><option value="az"${S.sort==='az'?' selected':''}>Name A–Z</option></select></span></div></div>${sites.length?`<div class="grid4 sm">${sites.map(s=>siteCard(s)).join('')}</div>`:'<div class="box col u-ai"><p class="mu">No websites match these filters.</p><button class="chip" data-clrf="1">Clear filters</button></div>'}${intent()}</section>`}
+ ${S.tf||S.live&&!TITLES.length?'':`<section class="sec"><div class="hrow"><div class="u-row"><h2 class="hh">${HI.tr}Trending now</h2>${TITLES.length?`<span class="cb">${TITLES.length}</span>`:''}</div><button class="more" data-go="results" data-all="1">See all titles</button></div><div class="posters mini">${TITLES.length?TITLES.map(t=>`<div><button class="pc" data-t="${t.id}" aria-label="${esc(t.name)}, ${esc(t.type)}">${poster(t)}</button></div>`).join(''):SK1.repeat(5)}</div></section>`}
+ <section class="sec" id="brw"><div class="u-row"><h2 class="hh">${HI.br}Browse websites</h2><span class="cb">${sites.length}</span>${help}<span class="s13 mu" style="margin-left:auto">Showing ${sites.length} of ${SITES.length}</span></div><div class="u-stk"><div class="filters" role="group" aria-label="Website category"><div class="cr">${CATS.map(c=>`<button class="chip ${c===S.cat?'on':''}" data-cat="${c}" aria-pressed="${c===S.cat}">${CI[c]||''}<span>${c}</span><span class="cb">${c==='All'?SITES.length:SITES.filter(s=>s.c.includes(c)).length}</span></button>`).join('')}</div><span class="u-opts"><button class="sw" role="switch" aria-checked="${S.on}"${STATUS?'':' hidden'} data-on="1"><i></i>Online only</button><select class="sel" id="sort" aria-label="Sort websites"><option value="def">Default order</option><option value="hot"${S.sort==='hot'?' selected':''}>Hot first</option><option value="chk"${S.sort==='chk'?' selected':''}>Recently checked</option><option value="az"${S.sort==='az'?' selected':''}>Name A–Z</option></select></span></div></div>${sites.length?`<div class="grid4 sm">${sites.map(s=>siteCard(s)).join('')}</div>`:'<div class="box col u-ai"><p class="mu">No websites match these filters.</p><button class="chip" data-clrf="1">Clear filters</button></div>'}${intent()}</section>`}
 
 function results(){const q=nz(S.q);
  const b0=S.live&&S.lq===S.q?TITLES:TITLES.filter(t=>!q||nz(t.name).includes(q)||nz(t.alt||'').includes(q)),r=rf(b0);
