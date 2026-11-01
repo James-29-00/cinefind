@@ -489,6 +489,24 @@ dialog#how::backdrop{background:rgba(4,3,10,.64)}
 .lg>summary::after{content:"+";font-size:20px;color:var(--mu)}.lg[open]>summary::after{content:"\2212"}
 .fb .lg p:first-of-type{margin-top:0;padding-top:0;border-top:0}
 }
+/* category chips: solid and crisp so background lines don't show through them */
+.chip{background:color-mix(in srgb,var(--tx) 7%,var(--bg));border-color:color-mix(in srgb,var(--tx) 28%,transparent)}
+.chip:hover{background:color-mix(in srgb,var(--tx) 12%,var(--bg))}
+.chip.on{background:var(--ac);border-color:var(--ac)}
+/* status info popup: fit the screen on mobile (bottom card instead of an off-screen dropdown) */
+@media(max-width:700px){
+.tip .pop{position:fixed;left:16px;right:16px;top:auto;bottom:calc(76px + env(safe-area-inset-bottom,0px));width:auto;max-height:60dvh;overflow:auto;z-index:25;background:var(--panel);border-color:color-mix(in srgb,var(--ac) 30%,var(--bd));box-shadow:0 16px 48px rgba(0,0,0,.6);animation:popUp .22s cubic-bezier(.16,1,.3,1)}
+.tip .pop::after{content:"Tap anywhere outside to close";font-size:12px;color:var(--mu);text-align:center;padding-top:4px}
+.tip .pop .s12,.tip .pop .defs{font-size:14px}
+}
+@keyframes popUp{from{opacity:0;transform:translateY(12px)}}
+@media(prefers-reduced-motion:reduce){.tip .pop{animation:none!important}}
+/* results: make the next step obvious (where to watch) */
+.rhint{display:flex;align-items:flex-start;gap:10px;margin:0;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--ac) 14%,transparent);border:1px solid color-mix(in srgb,var(--ac) 30%,transparent);font-size:14px;line-height:1.4;color:var(--tx)}
+.rhint svg{flex:none;margin-top:1px}.rhint b{color:var(--ac2)}
+.wtw{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;margin-top:8px;padding:0 12px;border-radius:999px;background:var(--ac);color:var(--onac);font-size:14px;font-weight:700;transition:filter .2s}
+.wtw svg{width:14px;height:14px}
+.pc:hover .wtw{filter:brightness(1.1)}.pc:active .wtw{filter:brightness(.92)}
 /* "Finding direct link" loading indicator: visible on mobile and with reduced motion */
 @keyframes lkpulse{50%{opacity:.4}}
 .tag.lkst.chk{animation:lkpulse 1.2s ease-in-out infinite;background:none;color:var(--ac2)}
@@ -574,9 +592,9 @@ function home(){const sites=SITES.filter(s=>(S.cat==='All'||s.c.includes(S.cat))
 function results(){const q=nz(S.q);
  const b0=S.live&&S.lq===S.q?TITLES:TITLES.filter(t=>!q||nz(t.name).includes(q)||nz(t.alt||'').includes(q)),r=rf(b0);
  return `<button class="back" data-go="home">${ICON.back} Back to Home</button><div class="u-rhd"><h1>Search Results</h1>${searchBox(S.q)}</div>
- <section class="sec"><div class="u-stk8"><div class="hrow"><h2>${S.q.trim()?`Results for “${esc(S.q.trim())}”`:'All titles'}</h2><span class="s12 mu">${S.ld?'Searching…':r.length+' result'+(r.length===1?'':'s')}</span></div></div>
+ <section class="sec"><div class="u-stk8"><div class="hrow"><h2>${S.q.trim()?`Results for “${esc(S.q.trim())}”`:'All titles'}</h2><span class="s12 mu">${S.ld?'Searching…':r.length+' result'+(r.length===1?'':'s')}</span></div>${r.length&&!S.ld?`<p class="rhint">${ICON.info}<span><b>Next step:</b> tap a title to see websites where you can look for it.</span></p>`:''}</div>
  ${b0.length>1?`<div class="filters"><div class="cr">${['All','Movies','Asian Drama','Anime','Filipino/Local'].filter(c=>c==='All'||b0.some(t=>t.type===c)).map(c=>`<button class="chip ${c===(S.rc||'All')?'on':''}" data-rc="${c}" aria-pressed="${c===(S.rc||'All')}">${c}</button>`).join('')}</div><span class="u-opts"><select class="sel" id="rsort" aria-label="Sort results"><option value="rel">Best match</option><option value="new"${S.rs==='new'?' selected':''}>Newest</option><option value="az"${S.rs==='az'?' selected':''}>Title A–Z</option></select></span></div>`:''}
- ${S.ld?SKP:r.length?`<div class="posters">${r.map(t=>`<div><button class="pc" data-t="${t.id}" aria-label="${esc(t.name)}, ${esc(t.type)}">${poster(t)}</button>${t.alt?`<p class="alt">Also called “${esc(t.alt)}”</p>`:''}</div>`).join('')}</div>`:`<div class="box col"><p class="s14 mu">${S.err?'Could not reach the search service.':'No matches for that title.'} Try a shorter name or another spelling${sgs().length?', or try one of these:':'.'}</p>${S.err?`<button class="chip" data-rq="${esc(S.q)}">Retry</button>`:''}<div class="rs">${sgs().map(n=>`<button data-rq="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`}
+ ${S.ld?SKP:r.length?`<div class="posters">${r.map(t=>`<div><button class="pc" data-t="${t.id}" aria-label="${esc(t.name)}, ${esc(t.type)}">${poster(t)}<span class="wtw">Where to watch ${ICON.ext}</span></button>${t.alt?`<p class="alt">Also called “${esc(t.alt)}”</p>`:''}</div>`).join('')}</div>`:`<div class="box col"><p class="s14 mu">${S.err?'Could not reach the search service.':'No matches for that title.'} Try a shorter name or another spelling${sgs().length?', or try one of these:':'.'}</p>${S.err?`<button class="chip" data-rq="${esc(S.q)}">Retry</button>`:''}<div class="rs">${sgs().map(n=>`<button data-rq="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`}
  ${r.length?`<div class="box">${ICON.info}<p class="s13 mu">Choose a title to see its Where to Watch listings. A search match does not confirm that a title is available on any website.</p></div>`:''}</section>`}
 
 function details(){const t=TITLES[S.tid],ws=SITES.filter(s=>s.c.includes(t.type)).sort((a,b)=>b.online-a.online);
@@ -768,7 +786,7 @@ void main(){
   vec3 bloom=vec3(0.0);
   vec3 inkColor=vec3(0.0);
   float inkAlpha=0.0;
-  float aa=0.75*uRatio;
+  float aa=1.1*uRatio;
   float invSigma=1.0/max(uBendRadius*uBendRadius,1e-4);
   float tight=1.0/(2.6*uRatio);
   float wide=1.0/(11.0*uRatio);
@@ -887,7 +905,7 @@ const render=()=>{
  gl.uniform2f(u.uResolution,w,h);gl.uniform1f(u.uRatio,ratio);
  gl.uniform4fv(u.uWave,waveD);gl.uniform4fv(u.uShape,shapeD);gl.uniform4fv(u.uParallax,parD);gl.uniform1iv(u.uCount,cnt);
  gl.uniform4fv(u.uLine,lineD);gl.uniform3fv(u.uLineColor,colD);gl.uniform2fv(u.uMouseWarp,mouseD);
- gl.uniform1f(u.uHaloReach,11*ratio*Math.log(161));gl.uniform1f(u.uWidth,.5*ratio);gl.uniform1f(u.uGlow,1);
+ gl.uniform1f(u.uHaloReach,11*ratio*Math.log(161));gl.uniform1f(u.uWidth,.9*ratio);gl.uniform1f(u.uGlow,1);
  gl.uniform1f(u.uBrightness,e);gl.uniform1f(u.uFocus,.5);gl.uniform1f(u.uEdgeFade,0);
  gl.uniform4f(u.uMouse,mouse.x,mouse.y,mouse.influence,0);gl.uniform1f(u.uBendRadius,.45);gl.uniform1f(u.uBendStrength,-1.25);
  gl.uniform1f(u.uLight,0);gl.uniform1f(u.uOpaque,0);gl.uniform3f(u.uBackground,0,0,0);gl.uniform1f(u.uOpacity,e);
@@ -903,7 +921,7 @@ const frame=now=>{raf=0;if(!vis||document.hidden||off()||(reveal>=1&&now-act>100
  mouse.px+=((eng?ptr.nx*.2:0)-mouse.px)*fol;mouse.py+=((eng?ptr.ny*.2:0)-mouse.py)*fol;
  render();raf=requestAnimationFrame(frame)};
 const wake=()=>{if(!raf&&vis&&!document.hidden&&!off())raf=requestAnimationFrame(frame)};
-const resize=()=>{const r=Math.min(devicePixelRatio||1,1)*.5;canvas.width=Math.max(1,Math.round(container.clientWidth*r));canvas.height=Math.max(1,Math.round(container.clientHeight*r));render();wake()};
+const resize=()=>{const r=Math.min(devicePixelRatio||1,1.5)*.9;canvas.width=Math.max(1,Math.round(container.clientWidth*r));canvas.height=Math.max(1,Math.round(container.clientHeight*r));render();wake()};
 const loc=e=>{const r=container.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,k=canvas.width/Math.max(1,r.width);ptr.inside=x>=0&&y>=0&&x<=r.width&&y<=r.height;ptr.x=x*k;ptr.y=(r.height-y)*k;ptr.nx=x/Math.max(1,r.width)-.5;ptr.ny=.5-y/Math.max(1,r.height)};
 ['keydown','scroll','touchstart'].forEach(t=>addEventListener(t,()=>{act=performance.now();last=0;wake()},{passive:true}));
 addEventListener('pointermove',e=>{act=performance.now();const was=ptr.inside;loc(e);if(ptr.inside&&!was&&mouse.influence<.05){mouse.x=ptr.x;mouse.y=ptr.y}wake()},{passive:true});
