@@ -333,6 +333,9 @@ input[type=search]{-webkit-appearance:none;appearance:none}input[type=search]::-
 .star,.sm .star{width:44px;height:44px}
 .cr{scroll-padding-inline:20px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
 .dom,.sm .dom,.wfoot,.sm .wfoot,.s12,.s13{font-size:14px}
+.search>svg:first-child{display:none}.search input{padding-left:14px}
+.stats .kpi .on dd{font-size:1.5rem}.stats .kpi .on dt{font-weight:400;color:var(--mu)}
+.stats .u-hsb{margin-top:16px}.stats .st-in{gap:16px}
 :root[data-v="home"] .hs{background:var(--panel);border-color:var(--bd)}
 #brw>.u-row .s13{display:none}
 #brw>.u-row h2{white-space:nowrap}
@@ -522,7 +525,7 @@ const help=!STATUS?'':`<details class="tip"><summary aria-label="What website st
 const ic=p=>`<i class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg></i>`;
 const statsCard=()=>{const t=SITES.length,o=SITES.filter(x=>x.online).length,fl=SITES.filter(x=>x.st==='flag').length,dn=SITES.filter(x=>x.st==='down').length,C=138.2,r='cx="30" cy="30" r="22" fill="none" stroke-width="5"';
 return `<div class="glow">${TITLES[0]&&TITLES[0].img?`<div class="hbg" style="--hi:url('${esc(TITLES[0].img)}')"></div>`:''}<div class="stats" role="group" aria-label="Directory stats"><div class="st-in"><div><h1 class="tl">Find where to <span class="hl">watch, free.</span></h1><div class="u-hsb">${searchBox('')}</div></div><dl class="kpi"><div><dt>Websites</dt><dd>${t}</dd></div>${STATUS?`<div class="on"><dt>Sites online</dt><dd>${SITES.some(x=>x.st&&x.st!=='unk')?o:'–'}</dd><span class="bar" aria-hidden="true"><i style="width:${t?Math.round(o/t*100):0}%"></i></span></div>`:''}<div><dt>Categories</dt><dd>${CATS.length-1}</dd></div></dl></div></div></div>`};
-const searchBox=(v,f)=>`<form id="sf"><div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" autocapitalize="off" role="combobox" aria-expanded="false" aria-controls="sgl" aria-autocomplete="list" aria-label="Search titles" value="${esc(v)}" placeholder="Search movies, dramas, anime…" autocomplete="off"${f?' autofocus':''}><button class="clr" type="button" data-clr="1" aria-label="Clear search"${v?'':' hidden'}>${XI}</button><button class="btn" type="submit" aria-label="Search"><span class="bl">Search</span><span class="bi">${ICON.search}</span></button></div><div class="sg box col" id="sgl" role="listbox" aria-label="Suggestions" hidden></div></form>`;
+const searchBox=(v,f)=>`<form id="sf"><div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" autocapitalize="off" role="combobox" aria-expanded="false" aria-controls="sgl" aria-autocomplete="list" aria-label="Search titles" value="${esc(v)}" placeholder="Search a title…" autocomplete="off"${f?' autofocus':''}><button class="clr" type="button" data-clr="1" aria-label="Clear search"${v?'':' hidden'}>${XI}</button><button class="btn" type="submit" aria-label="Search"><span class="bl">Search</span><span class="bi">${ICON.search}</span></button></div><div class="sg box col" id="sgl" role="listbox" aria-label="Suggestions" hidden></div></form>`;
 
 function home(){const sites=SITES.filter(s=>(S.cat==='All'||s.c.includes(S.cat))&&(!S.on||s.online)).sort((a,b)=>(S.sort==='hot'?(b.hot|0)-(a.hot|0):0)||(S.sort==='chk'?(b.ca||0)-(a.ca||0):0)||(STATUS?b.online-a.online:0)||(S.sort==='az'?a.n.localeCompare(b.n):0));
  return `<section class="hero">${statsCard()}</section>
