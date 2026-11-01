@@ -489,6 +489,20 @@ dialog#how::backdrop{background:rgba(4,3,10,.64)}
 .lg>summary::after{content:"+";font-size:20px;color:var(--mu)}.lg[open]>summary::after{content:"\2212"}
 .fb .lg p:first-of-type{margin-top:0;padding-top:0;border-top:0}
 }
+/* page transition, star pop, switch knob */
+@keyframes pgIn{from{opacity:0;transform:translateY(8px)}}
+#app.pg{animation:pgIn .3s cubic-bezier(.16,1,.3,1)}
+@keyframes starPop{0%{transform:scale(.7)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.star.pop svg{animation:starPop .35s cubic-bezier(.16,1,.3,1)}
+@keyframes knob{from{transform:translateX(0)}}
+.sw[aria-checked=true] i::after{animation:knob .2s ease-out}
+@media(prefers-reduced-motion:reduce){#app.pg,.star.pop svg,.sw[aria-checked=true] i::after{animation:none}}
+/* category tap feedback */
+@keyframes chipPop{0%{transform:scale(.9)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+#brw .chip.on{animation:chipPop .28s cubic-bezier(.16,1,.3,1)}
+#brw .grid4.sm{animation:gridIn .3s ease-out}
+@keyframes gridIn{from{opacity:.4}}
+@media(prefers-reduced-motion:reduce){#brw .chip.on,#brw .grid4.sm{animation:none}}
 /* mobile: show header search when the hero search scrolls out of view (same as desktop) */
 @media(max-width:700px){
 :root[data-v] .hs{display:flex;position:absolute;grid-area:auto;margin:0;width:auto;left:clamp(20px,3vw,48px);right:clamp(20px,3vw,48px);top:calc(100% + 8px);z-index:20;background:color-mix(in srgb,var(--hd) 92%,var(--tx));box-shadow:0 8px 24px rgba(0,0,0,.28)}
@@ -584,7 +598,7 @@ const SC={};function route(){SC[S.ck]=scrollY;S.pv=S.cv;const bk=!S.fwd,k=locati
  S.rec=false;S.cv=S.view;S.ck=k;render();if(bk&&SC[k])scrollTo(0,SC[k]);route.d&&fh();route.d=1}
 function fh(){const h=$('#app h1');if(h){h.tabIndex=-1;h.focus({preventScroll:true})}}
 addEventListener('hashchange',route);
-function rr(sel){const y=scrollY;if(S.view==='home'){const t=document.createElement('template');t.innerHTML=home();$('#brw').replaceWith(t.content.querySelector('#brw'));$('#live').textContent=document.querySelectorAll('.grid4.sm .wcard').length+' of '+SITES.length+' websites shown'}else{render();scrollTo(0,y)}const e=$(sel);e&&e.focus({preventScroll:true})}
+function rr(sel){const y=scrollY;if(S.view==='home'){const sl=($('#brw .cr')||{}).scrollLeft||0,t=document.createElement('template');t.innerHTML=home();$('#brw').replaceWith(t.content.querySelector('#brw'));{const c=$('#brw .cr');if(c){c.scrollLeft=sl;const on=c.querySelector('.chip.on');if(on){const k=Math.max(0,on.offsetLeft-(c.clientWidth-on.offsetWidth)/2);c.scrollTo({left:k,behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'})}}}$('#live').textContent=document.querySelectorAll('.grid4.sm .wcard').length+' of '+SITES.length+' websites shown'}else{render();scrollTo(0,y)}const e=$(sel);e&&e.focus({preventScroll:true})}
 const nz=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function sug(i){const f=i.closest('form'),d=f.querySelector('.sg'),c=f.querySelector('[data-clr="1"]'),v=nz(i.value);if(c)c.hidden=!i.value;
  const l=(v?TITLES.filter(t=>nz(t.name).includes(v)||nz(t.alt||'').includes(v)).map(t=>t.name):S.recent).slice(0,5);
@@ -594,7 +608,7 @@ document.addEventListener('focusin',e=>e.target.matches('#q')&&sug(e.target));
 document.addEventListener('focusout',e=>{const f=e.target.closest('#sf');f&&!f.contains(e.relatedTarget)&&(f.querySelector('.sg').hidden=true,f.querySelector('#q').setAttribute('aria-expanded','false'))});
 document.addEventListener('mousedown',e=>e.target.closest('.sg')&&e.preventDefault());
 document.addEventListener('keydown',e=>{const q=e.target;if(!q.matches||!q.matches('#q'))return;const d=q.closest('form').querySelector('.sg'),o=[...d.children];if(e.key==='Escape'&&!d.hidden){d.hidden=true;q.setAttribute('aria-expanded','false');return}if(d.hidden||!o.length)return;const a=d.querySelector('[aria-selected=true]'),k={ArrowDown:1,ArrowUp:-1}[e.key];if(k){e.preventDefault();let i=o.indexOf(a);i=i<0?(k>0?0:o.length-1):(i+k+o.length)%o.length;o.forEach(x=>x.removeAttribute('aria-selected'));o[i].setAttribute('aria-selected','true');q.setAttribute('aria-activedescendant',o[i].id)}else if(e.key==='Enter'&&a){e.preventDefault();doSearch(a.dataset.rq)}});
-function render(){document.documentElement.dataset.v=S.view;document.title=S.view==='details'?TITLES[S.tid].name+' · Cinefind':TT[S.view];$('#app').innerHTML={home,results,details,favs}[S.view]();
+function render(){document.documentElement.dataset.v=S.view;document.title=S.view==='details'?TITLES[S.tid].name+' · Cinefind':TT[S.view];$('#app').innerHTML={home,results,details,favs}[S.view]();if(render.v!==S.view){render.v=S.view;const a=$('#app');a.classList.remove('pg');void a.offsetWidth;a.classList.add('pg')}
  navOn();hdSearch();visUpdate();if(S.view==='results')$('#hq').value=S.q;$('#fc').textContent=S.favs.size||'';window.scrollTo(0,0);S.view==='details'&&omni(TITLES[S.tid]);dispatchEvent(new Event('cf-wake'))}
 function go(v){S.view=v;S.rec=false;const h=path();(location.hash||'#/')!==h?(S.fwd=1,location.hash=h):(render(),fh())}
 const TM='https://cinefind-proxy.manio-james-g-5588.workers.dev',TC={movie:'Movies',series:'Movies',drama:'Asian Drama',anime:'Anime',pinoy:'Filipino/Local'};
@@ -900,5 +914,6 @@ addEventListener('cf-wake',()=>{last=0;wake()});
 if(mq.matches){const w=e=>{if(!e.matches){mq.removeEventListener('change',w);init()}};mq.addEventListener('change',w)}else init();
 })();
 </script>
+<script>document.addEventListener('click',e=>{const b=e.target.closest('.star');if(b&&b.classList.contains('on')){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}})</script>
 </body>
 </html>
