@@ -16,6 +16,16 @@
 const ADMIN_PROXY_URL = 'https://cinefind-admin.manio-james-g-5588.workers.dev';
 const VISIT_WORKER_URL = 'https://cinefind-visits.manio-james-g-5588.workers.dev';
 
+const _origFetch = window.fetch.bind(window);
+window.fetch = (input, init = {}) => {
+  const u = typeof input === 'string' ? input : input.url;
+  if (u.startsWith(VISIT_WORKER_URL) && /\/top-(searches|sites)/.test(u)) {
+    const s = getAdminSession();
+    if (s) init = { ...init, headers: { ...(init.headers || {}), Authorization: `Bearer ${s}` } };
+  }
+  return _origFetch(input, init);
+};
+
 // Built-in sites (name/url/domain/categories/icon only). Used to show built-ins as
 // "pending" and to snapshot them when deleted/restored.
 const SITES_DIRECTORY = [
