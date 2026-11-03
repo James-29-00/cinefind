@@ -729,6 +729,19 @@ html::before,body::before,.glow::after{display:none}
 @media(min-width:701px){.wlogo .wimg{width:156px!important;height:44px!important;max-height:44px!important}}
 .wimg{transition:transform .3s cubic-bezier(.16,1,.3,1)}@media(hover:hover){.wcard:hover .wimg{transform:scale(1.05)}}@media(prefers-reduced-motion:reduce){.wimg{transition:none}.wcard:hover .wimg{transform:none}}
 </style>
+<style id="cf-polish">
+/* cf-polish: less pill-shaped, more hierarchy. Delete this block to undo everything below. */
+.stats .tl .hl,.tl .hl{color:var(--tx)!important;-webkit-text-fill-color:currentColor!important;background:none!important}
+.search,.search .btn,.hs{border-radius:999px}
+.theme{border-radius:12px}
+.sel{border-radius:12px}
+.tag,.tag.hot{border-radius:8px}
+.cfa-rbs{opacity:.7}
+.stats .kpi{background:color-mix(in srgb,var(--bg) 92%,transparent)!important}
+.wfoot .go,.go{border-radius:8px}
+.wcard:has(.tag.hot){border-color:color-mix(in srgb,var(--ac) 55%,transparent);background-image:linear-gradient(180deg,color-mix(in srgb,var(--ac) 11%,transparent),transparent 65%)}
+.wcard:has(.tag.hot):hover{border-color:var(--ac2)}
+</style>
 </head>
 <body>
 <div class="cfa" aria-hidden="true"><div class="cfa-blob cfa-blob--1"></div><div class="cfa-blob cfa-blob--2"></div><div class="cfa-blob cfa-blob--3"></div><div class="cfa-blob cfa-blob--4"></div><div class="cfa-halo"></div><div class="cfa-veil"></div></div>
@@ -1138,6 +1151,8 @@ if(mq.matches){const w=e=>{if(!e.matches){mq.removeEventListener('change',w);ini
 </script>
 <script>document.addEventListener('click',e=>{const b=e.target.closest('.star');if(b&&b.classList.contains('on')){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}})</script>
 <script>document.addEventListener('load',e=>{const i=e.target;if(!i.classList||!i.classList.contains('wimg')||i.dataset.t||/\.svg/i.test(i.src))return;i.dataset.t=1;try{const w=i.naturalWidth,h=i.naturalHeight;if(!w||!h)return;const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(i,0,0);const d=x.getImageData(0,0,w,h).data;let a=w,b=h,r=-1,t=-1;for(let y=0;y<h;y++)for(let q=0;q<w;q++)if(d[(y*w+q)*4+3]>12){if(q<a)a=q;if(q>r)r=q;if(y<b)b=y;if(y>t)t=y}if(r<a)return;const cw=r-a+1,ch=t-b+1;if(cw>=w-2&&ch>=h-2)return;const o=document.createElement('canvas');o.width=cw;o.height=ch;o.getContext('2d').drawImage(c,a,b,cw,ch,0,0,cw,ch);i.src=o.toDataURL('image/png')}catch(_){}},true)</script><script>document.addEventListener('click',e=>{e.target.closest('.u-hsb input')&&go('find')});function cfGo(){const rm=matchMedia('(prefers-reduced-motion:reduce)').matches,hd=document.querySelector('.site-hd');let st=0;const C=()=>{st=1;fin()},fin=()=>{removeEventListener('touchstart',C);removeEventListener('wheel',C)};addEventListener('touchstart',C,{passive:true});addEventListener('wheel',C,{passive:true});const T=()=>{const c=document.querySelector('#ww .grid4 .wcard');if(!c)return null;let o=hd.getBoundingClientRect().bottom;const h=document.getElementById('hsf');if(h&&!h.classList.contains('off')&&getComputedStyle(h).display!=='none')o=Math.max(o,h.getBoundingClientRect().bottom);return Math.max(0,scrollY+c.getBoundingClientRect().top-o-28)},pulse=()=>[...document.querySelectorAll('#ww .grid4 .wcard')].slice(0,4).forEach(x=>{x.classList.remove('cfh');void x.offsetWidth;x.classList.add('cfh');x.addEventListener('animationend',v=>v.animationName==='cfh'&&x.classList.remove('cfh'))}),y0=scrollY,t0=performance.now(),D=rm?1:450,settle=n=>{if(st)return;const y=T();if(y!=null&&Math.abs(y-scrollY)>2)scrollTo({top:y,behavior:'instant'});if(n<5)setTimeout(()=>settle(n+1),250);else{fin();rm||pulse()}},step=t=>{if(st)return;const k=Math.min(1,(t-t0)/D),y=T();if(y==null)return t-t0<1500?requestAnimationFrame(step):fin();scrollTo({top:y0+(y-y0)*(1-Math.pow(1-k,3)),behavior:'instant'});k<1?requestAnimationFrame(step):settle(0)};requestAnimationFrame(step)};document.addEventListener('click',e=>{if(e.target.closest('.jw')){cfGo();return}const b=e.target.closest('.rm');if(!b)return;const p=b.previousElementSibling,o=p.classList.toggle('open');b.textContent=o?'Show less':'Read more'});{const f=()=>document.querySelectorAll('.over .syn:not([data-c])').forEach(p=>{p.dataset.c=1;const b=p.nextElementSibling;b&&b.classList.contains('rm')&&p.scrollHeight>p.clientHeight+1&&b.classList.add('on')});new MutationObserver(()=>requestAnimationFrame(f)).observe(document.getElementById('app'),{childList:true,subtree:true});f()}</script><script>document.addEventListener('visibilitychange',function(){document.documentElement.classList.toggle('cf-paused',document.hidden)})</script><script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>window.gsap||document.write('<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"><\/script>')</script>
+<script>window.gsap||document.write('<script src="./gsap.min.js"><\/script>')</script>
 <script>
 /* Cinefind x GSAP: aurora page background + hero silk ribbons */
 (function () {
