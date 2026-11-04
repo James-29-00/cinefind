@@ -587,7 +587,7 @@ body .rt .theme{border-color:color-mix(in srgb,var(--tx) 38%,transparent)}
 @media(max-width:700px){#sort.u-as{flex:none;height:44px;min-height:44px;width:auto}body .rt .theme{width:auto;height:40px;gap:8px;padding:0 14px 0 10px}body .rt .theme .tt{display:inline;font-size:13.5px;font-weight:500}.bnav .bdg{top:2px;left:calc(50% + 10px)}}
 body .rt .theme{min-height:44px;height:44px}
 @media(max-width:700px){.rlist .rrow:nth-child(n+4){display:none}.rhint{display:none}}
-.posters:not(.mini){grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:24px}
+.posters:not(.mini){grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px}
 @media(max-width:600px){.posters:not(.mini){grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
 .vg .vt:last-child:nth-child(odd){grid-column:1/-1}
 html[data-v=results] .u-rhd h1{position:absolute;width:1px;height:1px;margin:0;overflow:hidden;clip:rect(0 0 0 0)}
@@ -851,6 +851,7 @@ function doSearch(q){S.q=q;document.body.dataset.busy=1;if(q.trim()){S.recent=[q
 
 addEventListener('keydown',e=>{if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){const q=$('#hsf.off')?$('#q'):$('#hq');if(q){e.preventDefault();q.focus()}}});
 addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.tip[open]').forEach(d=>d.removeAttribute('open'))});
+document.addEventListener('click',e=>{if(e.target.matches('#hq')&&(S.view==='home'||S.view==='favs')){const v=e.target.value;go('find');setTimeout(()=>{const q=$('#q');if(q){q.value=v;q.focus()}},80)}});
 document.addEventListener('submit',e=>{const f=e.target.id;if(f==='sf'||f==='hsf'){e.preventDefault();doSearch($(f==='sf'?'#q':'#hq').value)}});
 document.addEventListener('click',e=>{const al=e.target.closest('a[href^="#/"]');al&&al.getAttribute('href')!==(location.hash||'#/')&&(S.fwd=1);al&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&(e.preventDefault(),location.hash=al.getAttribute('href'));document.querySelectorAll('.tip[open]').forEach(d=>d.contains(e.target)||d.removeAttribute('open'));const b=e.target.closest('button');if(!b)return;
  if(b.dataset.cat){S.cat=b.dataset.cat;rr('[data-cat="'+S.cat+'"]')}
