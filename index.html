@@ -40,7 +40,7 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible,su
 .cnt{font-size:13px;background:color-mix(in srgb,var(--tx) 14%,transparent);color:var(--tx);border-radius:9px;padding:1px 6px;margin-left:4px}.cnt:empty{display:none}
 main{padding:32px 0 calc(48px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:48px}
 h1{font-size:32px;line-height:1.1;letter-spacing:-.02em;font-weight:600;margin:0}
-.fl{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;mix-blend-mode:screen}.fl canvas{display:block;width:100%;height:100%}
+
 .glow{position:relative;isolation:isolate;margin-top:8px}
 
 .stats{background:var(--panel);background:color-mix(in srgb,var(--tx) 6%,transparent);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);background-image:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.02) 60%);border:1px solid color-mix(in srgb,var(--tx) 16%,transparent);border-top-color:color-mix(in srgb,var(--tx) 28%,transparent);border-radius:20px;padding:24px 32px;box-shadow:0 8px 32px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.14)}
@@ -136,7 +136,7 @@ main{padding:56px 0 calc(72px + env(safe-area-inset-bottom,0px));gap:88px}
 .tl{font-size:clamp(2.5rem,5.4vw,4.25rem);line-height:1.02;letter-spacing:-.03em;font-weight:600;margin:0;max-width:none;text-wrap:balance}
 .search{min-height:64px;padding:8px}.search input{font-size:17px}
 .chk{margin-top:16px;display:flex;align-items:center}
-.fl{opacity:.32}
+
 
 /* Stats panel */
 .kpi{margin:0;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid color-mix(in srgb,var(--tx) 14%,transparent);border-radius:18px;background:color-mix(in srgb,var(--bg) 45%,transparent);overflow:hidden}
@@ -282,7 +282,6 @@ dialog#vibe[open]{animation:vin .32s cubic-bezier(.16,1,.3,1)}
 .hero,.u-stk{display:flex;flex-direction:column;gap:12px}.u-stk5{display:flex;flex-direction:column;gap:5px}.u-stk8{display:flex;flex-direction:column;gap:8px}
 .u-row{display:flex;align-items:center;gap:4px}.u-g10{gap:10px}.u-hsb{width:min(680px,100%);margin-top:24px}.u-rhd{max-width:800px}.u-rhd h1{margin-bottom:24px}.u-w792{max-width:792px}.u-mt8{margin-top:8px}
 .u-opts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}.u-h3{font-size:16px;font-weight:600;margin:0 0 12px}.u-vf{padding:0 28px 24px;text-align:center}.u-as{align-self:flex-start}.box.col.u-ai{align-items:flex-start}#sf{position:relative}
-@media(max-width:700px){.fl{display:none}}
 /* Round 7: one focal point (floating lines); flat surfaces, solid accent text, no button glow */
 .stats{-webkit-backdrop-filter:none;backdrop-filter:none;background:color-mix(in srgb,var(--tx) 6%,var(--panel));background-image:none;border-top-color:color-mix(in srgb,var(--tx) 26%,transparent);box-shadow:0 24px 48px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.25)}
 .tl .hl{background:none;-webkit-text-fill-color:currentColor;color:var(--ac2)}
@@ -369,7 +368,6 @@ body::after{content:"";position:fixed;inset:0;z-index:5;pointer-events:none;opac
 .wlogo.hasimg,.sm .wlogo.hasimg{height:56px;min-height:56px}.wimg{width:148px!important;height:44px;max-width:100%;max-height:44px;object-fit:contain;object-position:center}
 
 @keyframes cfin{from{opacity:0;transform:translateY(10px)}}.grid4 .wcard{animation:cfin .45s backwards;animation-delay:calc(var(--i,0)*40ms)}
-@keyframes cfp{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 55%,transparent)}100%{box-shadow:0 0 0 7px transparent}}
 .stats .tl .hl{color:inherit;text-decoration:none;-webkit-text-fill-color:currentColor;background:linear-gradient(var(--ac),var(--ac)) 0 100%/100% .07em no-repeat;padding-bottom:.08em}
 .kpi .on dd{color:var(--ok);font-size:clamp(2rem,3.8vw,3rem)}.kpi .on dt{color:var(--tx);font-weight:600}
 .hbg{position:absolute;inset:0;border-radius:24px;overflow:hidden;z-index:-1;pointer-events:none}.hbg::before{content:"";position:absolute;inset:-30px;background:var(--hi) center/cover;filter:blur(32px) saturate(1.2);opacity:.3}
@@ -550,8 +548,7 @@ dialog#how::backdrop{background:rgba(4,3,10,.64)}
 @keyframes chipPop{0%{transform:scale(.9)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
 #brw .chip.on{animation:chipPop .28s cubic-bezier(.16,1,.3,1)}
 
-@keyframes gridIn{from{opacity:.4}}
-@media(prefers-reduced-motion:reduce){#brw .chip.on,#brw .grid4.sm{animation:none}}
+@media(prefers-reduced-motion:reduce){#brw .chip.on{animation:none}}
 /* mobile: show header search when the hero search scrolls out of view (same as desktop) */
 @media(max-width:700px){
 :root[data-v] .hs{display:flex;position:absolute;grid-area:auto;margin:0;width:auto;left:clamp(20px,3vw,48px);right:clamp(20px,3vw,48px);top:calc(100% + 8px);z-index:20;background:color-mix(in srgb,var(--hd) 92%,var(--tx));box-shadow:0 8px 24px rgba(0,0,0,.28)}
@@ -614,35 +611,15 @@ html[data-v=details] .grid4.sm{grid-template-columns:repeat(auto-fill,minmax(240
 @media(max-width:700px){body::after{display:none}}
 @media(prefers-reduced-motion:reduce){.tag.lkst.chk{animation:none}}
 </style><style>
-/* Cinefind ambient light: background animation only */
-html::before,body::before{content:"";position:fixed;z-index:-1;pointer-events:none;opacity:.9;will-change:transform,opacity}
-html::before{top:-30vmax;left:-28vmax;width:75vmax;height:75vmax;background:radial-gradient(closest-side,color-mix(in srgb,var(--ac) 10%,transparent),transparent);animation:cf-a 80s ease-in-out infinite alternate}
-body::before{right:-28vmax;bottom:-28vmax;width:70vmax;height:70vmax;background:radial-gradient(closest-side,color-mix(in srgb,var(--mkd) 14%,transparent),transparent);animation:cf-b 100s ease-in-out infinite alternate}
-@keyframes cf-a{from{transform:translate3d(0,0,0);opacity:.7}to{transform:translate3d(14vmax,10vmax,0);opacity:1}}
-@keyframes cf-b{from{transform:translate3d(0,0,0);opacity:1}to{transform:translate3d(-12vmax,-8vmax,0);opacity:.7}}
-/* Hero aura: spills above and below the card, never behind the text */
-.glow::before{content:"";position:absolute;inset:-44px 0;z-index:-2;pointer-events:none;background:radial-gradient(closest-side,color-mix(in srgb,var(--ac) 26%,transparent),color-mix(in srgb,var(--ac) 18%,transparent) 70%,transparent);opacity:.8;animation:cf-aura 12s ease-in-out infinite alternate;will-change:opacity}
-@keyframes cf-aura{from{opacity:.5}to{opacity:1}}
-/* Paused when the tab is hidden */
-html.cf-paused::before,html.cf-paused body::before,html.cf-paused .glow::before{animation-play-state:paused}
-/* Reduced motion: calm static version */
-@media(prefers-reduced-motion:reduce){html::before,body::before,.glow::before{animation:none}}
 /* Page: deep purple wash (static, no cost) */
 body{background-image:radial-gradient(110% 55% at 50% 0%,color-mix(in srgb,var(--ac) 14%,transparent),transparent 72%),linear-gradient(180deg,color-mix(in srgb,var(--mkd) 14%,transparent),transparent 65%);background-repeat:no-repeat}
 /* Hero glass (desktop only): a slow purple wave moves behind a ~72% card */
 @media(min-width:701px){
-.glow::after{content:"";position:absolute;left:0;top:-25%;width:62%;height:150%;z-index:-2;pointer-events:none;background:radial-gradient(ellipse 60% 26% at 45% 50%,color-mix(in srgb,var(--ac) 50%,transparent),transparent 100%),radial-gradient(ellipse 50% 22% at 65% 42%,color-mix(in srgb,var(--ac3) 28%,transparent),transparent 100%);opacity:.95;will-change:transform;animation:cf-wave 45s ease-in-out infinite alternate}
-@keyframes cf-wave{from{transform:translate3d(0,0,0) rotate(-6deg)}to{transform:translate3d(48%,4%,0) rotate(5deg)}}
-html.cf-paused .glow::after{animation-play-state:paused}
 .stats{background:color-mix(in srgb,var(--panel) 72%,transparent);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-color:color-mix(in srgb,var(--tx) 18%,transparent);border-top-color:color-mix(in srgb,var(--tx) 30%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 24px 48px rgba(0,0,0,.35)}
 }
-@media(prefers-reduced-motion:reduce){.glow::after{animation:none}}
 @media(prefers-reduced-transparency:reduce){
 .stats{background:color-mix(in srgb,var(--tx) 6%,var(--panel));-webkit-backdrop-filter:none;backdrop-filter:none}
-.glow::after{display:none}
 }
-/* Hide the WebGL hairline layer */
-.fl{display:none}
 /* Hero headline: gradient text instead of underline */
 @supports ((-webkit-background-clip:text) or (background-clip:text)){
 .stats .tl .hl{background:linear-gradient(90deg,var(--ac3),var(--ac));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;padding-bottom:0;-webkit-box-decoration-break:clone;box-decoration-break:clone}
@@ -692,10 +669,6 @@ h2{letter-spacing:-.01em}
   .cfa-blob--2{width:80vmax;height:80vmax}
   .cfa-blob--3{width:90vmax;height:90vmax}
 }
-
-/* The old CSS-only ambient lights and hero wave are replaced by the GSAP aurora (one background, not two).
-   Delete this rule to bring them back. The soft aura around the hero card (.glow::before) is kept. */
-html::before,body::before,.glow::after{display:none}
 
 /* ---------- Hero ribbons (live inside .stats, the glass card) ---------- */
 .stats{position:relative}
@@ -759,7 +732,6 @@ h1,h2,.pinfo b,.alt{overflow-wrap:anywhere}.hrow h2{min-width:0}
 <div class="cfa" aria-hidden="true"><div class="cfa-blob cfa-blob--1"></div><div class="cfa-blob cfa-blob--2"></div><div class="cfa-blob cfa-blob--3"></div><div class="cfa-blob cfa-blob--4"></div><div class="cfa-halo"></div><div class="cfa-veil"></div></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-house" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></g></symbol><symbol id="i-house-f" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></g></symbol><symbol id="i-search" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></g></symbol><symbol id="i-bookmark" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></g></symbol><symbol id="i-bookmark-o" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15-5-2.18L7 18V5h10v13z"/></g></symbol><symbol id="i-bookmark-f" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></g></symbol><symbol id="i-info" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></g></symbol><symbol id="i-help" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></g></symbol><symbol id="i-help-f" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></g></symbol><symbol id="i-warn" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></g></symbol><symbol id="i-palette" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M16.56 8.94 7.62 0 6.21 1.41l2.38 2.38-5.15 5.15c-.59.59-.59 1.54 0 2.12l5.5 5.5c.29.29.68.44 1.06.44s.77-.15 1.06-.44l5.5-5.5c.59-.58.59-1.53 0-2.12zM5.21 10 10 5.21 14.79 10H5.21zM19 11.5s-2 2.17-2 3.5c0 1.1.9 2 2 2s2-.9 2-2c0-1.33-2-3.5-2-3.5z"/><path d="M3 20h18v3H3z"/></g></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></g></symbol><symbol id="i-back" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></symbol><symbol id="i-ext" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol><symbol id="i-trend" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></g></symbol><symbol id="i-globe" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></g></symbol><symbol id="i-grid" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></g></symbol><symbol id="i-film" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></g></symbol><symbol id="i-sparkle" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"/></g></symbol><symbol id="i-monitor" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12zm-5-6l-7 4V7z"/></g></symbol><symbol id="i-flag" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></g></symbol><symbol id="i-arrow" viewBox="0 0 24 24"><g style="fill:currentColor;stroke:none"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></g></symbol></defs></svg>
 <a class="skip" href="#app" onclick="event.preventDefault();$('#app').focus()">Skip to content</a>
-<div class="fl" id="fl" aria-hidden="true"><canvas></canvas></div>
 <header class="site-hd"><div class="wrap hd">
   <div class="left">
     
@@ -946,220 +918,6 @@ SITES.forEach(s=>{const n=k(s.n),z=m[n],v=z&&z.status;s.d=o[n]?o[n].replace(/^ht
 SITES.sort((a,b)=>(b.hot|0)-(a.hot|0));S.view!=='results'&&render()})}
 'serviceWorker'in navigator&&navigator.serviceWorker.register('./sw.js').catch(()=>{});
 setTheme(pref);route();visPoll();setInterval(()=>{document.hidden||visPoll()},90000);
-</script>
-<script>
-/* FloatingLines (vanilla WebGL2 port of React Bits) */
-(()=>{
-const MAX_LINES=24,MAX_CLICKS=3,INTRO=1.8,N=10,DIST=.06;
-const WD=[{x:10,y:.5,rotate:-.4},{x:5,y:0,rotate:.2},{x:2,y:-.7,rotate:-1}];
-const WS=[{offset:1,step:.2,light:.2,flip:1,depth:1,drift:.6},{offset:2,step:.15,light:1,flip:0,depth:0,drift:1},{offset:1.5,step:.2,light:.32,flip:0,depth:.6,drift:1.4}];
-const VERT=`#version 300 es
-in vec2 aPosition;
-void main(){gl_Position=vec4(aPosition,0.0,1.0);}`;
-const FRAG=`#version 300 es
-precision highp float;
-precision highp int;
-uniform vec2 uResolution;
-uniform float uRatio;
-uniform vec4 uWave[3];
-uniform vec4 uShape[3];
-uniform vec4 uParallax[3];
-uniform int uCount[3];
-uniform vec4 uLine[${MAX_LINES*3}];
-uniform vec3 uLineColor[${MAX_LINES*3}];
-uniform vec2 uMouseWarp[3];
-uniform float uHaloReach;
-uniform float uWidth;
-uniform float uGlow;
-uniform float uBrightness;
-uniform float uFocus;
-uniform float uEdgeFade;
-uniform vec4 uMouse;
-uniform float uBendRadius;
-uniform float uBendStrength;
-uniform vec4 uClicks[${MAX_CLICKS}];
-uniform float uLight;
-uniform float uOpaque;
-uniform vec3 uBackground;
-uniform float uOpacity;
-uniform float uStyle;
-uniform float uSpacing;
-out vec4 outColor;
-vec3 toSrgb(vec3 c){return pow(max(c,0.0),vec3(1.0/2.2));}
-vec3 inkOf(vec3 color){float luma=dot(color,vec3(0.2126,0.7152,0.0722));return color*min(1.0,0.16/max(luma,0.001));}
-vec2 warp(vec2 p,float rotate,float flip){
-  float angle=rotate*log(length(p)+1.0);
-  vec2 r=p*mat2(cos(angle),sin(angle),-sin(angle),cos(angle));
-  if(flip>0.5)r.x=-r.x;
-  return r;
-}
-void main(){
-  vec2 screen=(2.0*gl_FragCoord.xy-uResolution)/uResolution.y;
-  screen.y=-screen.y;
-  for(int k=0;k<${MAX_CLICKS};k++){
-    vec4 click=uClicks[k];
-    if(click.w==0.0)continue;
-    float age=click.z;
-    float turn=1.9*smoothstep(0.0,0.23,age)*exp(-max(age-0.23,0.0)*1.1)*click.w;
-    float spread=0.3*(1.0+age*0.55);
-    vec2 offset=screen-click.xy;
-    float angle=turn*exp(-dot(offset,offset)/(spread*spread));
-    screen=click.xy+mat2(cos(angle),sin(angle),-sin(angle),cos(angle))*offset;
-  }
-  vec3 light=vec3(0.0);
-  vec3 bloom=vec3(0.0);
-  vec3 inkColor=vec3(0.0);
-  float inkAlpha=0.0;
-  float aa=1.1*uRatio;
-  float invSigma=1.0/max(uBendRadius*uBendRadius,1e-4);
-  float tight=1.0/(2.6*uRatio);
-  float wide=1.0/(11.0*uRatio);
-  for(int w=0;w<3;w++){
-    int count=uCount[w];
-    if(count<=0)continue;
-    vec4 wave=uWave[w];
-    vec4 shape=uShape[w];
-    vec2 r=warp(screen+uParallax[w].xy,wave.z,shape.w);
-    vec2 rm=uMouseWarp[w];
-    float blur=uFocus*uParallax[w].z;
-    float width=uWidth*(1.0+blur*2.5);
-    float soft=aa*(1.0+blur*7.0);
-    float energy=(uWidth+aa)/(width+soft)*shape.z;
-    float cut=uHaloReach+width*2.0+soft;
-    float sx=sin(r.x);
-    float cx=cos(r.x);
-    float along=r.x-rm.x;
-    float pull=uMouse.z*exp(-along*along*invSigma);
-    float level=r.y+wave.y;
-    int first=w*${MAX_LINES};
-    for(int i=0;i<${MAX_LINES};i++){
-      if(i>=count)break;
-      vec4 line=uLine[first+i];
-      float y=(sx*line.x+cx*line.y)*line.z;
-      float near=0.0;
-      if(pull>0.002){
-        float across=(y-wave.y)-rm.y;
-        near=exp(-across*across*invSigma)*pull;
-        float push=uBendStrength*near;
-        y+=across*(uBendStrength<0.0?min(-push,2.5):-min(push,0.9));
-      }
-      float m=level-y;
-      float slope=length(vec2(dFdx(m),dFdy(m)));
-      float d=abs(m)/max(slope,1e-5);
-      if(d<cut){
-        float gap=d;
-        float size=width;
-        if(uStyle>0.5){
-          float period=uSpacing/(uResolution.y*0.5);
-          float cell=(fract((r.x+line.w)/period+float(i)*0.37)-0.5)*uSpacing;
-          float span=uStyle>1.5?max(uSpacing*0.32-width,0.0):0.0;
-          gap=length(vec2(max(abs(cell)-span,0.0),d));
-          size=uStyle>1.5?width:width*1.6;
-        }
-        float core=smoothstep(size+soft,size-soft,gap);
-        float fall=1.0-d/cut;
-        float halo=(exp(-gap*tight)*0.3+exp(-d*wide)*0.02*fall*fall)*uGlow;
-        vec3 color=uLineColor[first+i];
-        float lift=1.0+near*0.8;
-        light+=color*core*energy*lift;
-        bloom+=color*halo*shape.z*lift;
-        float a=clamp(clamp(core*energy*1.15+halo*shape.z*0.12,0.0,1.0)*lift,0.0,1.0);
-        inkColor=inkOf(color)*a+inkColor*(1.0-a);
-        inkAlpha=a+inkAlpha*(1.0-a);
-      }
-    }
-  }
-  float edge=1.0;
-  if(uEdgeFade>0.0){
-    float u=gl_FragCoord.x/uResolution.x;
-    float fade=uEdgeFade*0.45;
-    float left=smoothstep(0.0,fade,u);
-    float right=smoothstep(0.0,fade,1.0-u);
-    edge=left*left*(3.0-2.0*left)*right*right*(3.0-2.0*right);
-  }
-  if(uLight>0.5){
-    float alpha=inkAlpha*edge*uOpacity;
-    vec3 ink=toSrgb(inkColor/max(inkAlpha,1e-4));
-    if(uOpaque>0.5){outColor=vec4(mix(uBackground,ink,alpha),1.0);}
-    else{outColor=vec4(ink*alpha,alpha);}
-    return;
-  }
-  vec3 capped=0.28*(1.0-exp(-bloom/0.28));
-  vec3 glow=toSrgb(1.0-exp(-(light+capped)*uBrightness*1.2))*edge*uOpacity;
-  if(uOpaque>0.5){outColor=vec4(uBackground+glow*(1.0-uBackground),1.0);}
-  else{outColor=vec4(glow,max(glow.r,max(glow.g,glow.b)));}
-}`;
-const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-const warp=(x,y,rot,flip)=>{const a=rot*Math.log(Math.hypot(x,y)+1),c=Math.cos(a),s=Math.sin(a),rx=x*c+y*s;return[flip>.5?-rx:rx,y*c-x*s]};
-const rgb=h=>{const n=parseInt(h.slice(1),16);return[(n>>16&255)/255,(n>>8&255)/255,(n&255)/255].map(c=>Math.pow(c,2.2))};
-const lineStops=()=>(window.CF_LINES||['#2c6a6e','#e0b27a']).map(rgb);let stops=lineStops();
-const container=document.getElementById('fl'),canvas=container&&container.firstElementChild;
-if(matchMedia('(prefers-reduced-data: reduce)').matches||(navigator.connection||{}).saveData||(navigator.deviceMemory||8)<=2||(navigator.hardwareConcurrency||8)<=2)return;
-const mq=matchMedia('(max-width:700px)');const init=()=>{if(container&&getComputedStyle(container).display==='none')return;
-const off=()=>document.documentElement.dataset.v!=='home'||!!document.querySelector('dialog[open]');
-const gl=canvas&&canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false});
-if(!gl)return;
-const mk=(t,src)=>{const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);return gl.getShaderParameter(s,gl.COMPILE_STATUS)?s:null};
-const vs=mk(gl.VERTEX_SHADER,VERT),fs=mk(gl.FRAGMENT_SHADER,FRAG),pg=gl.createProgram();
-if(!vs||!fs)return;
-gl.attachShader(pg,vs);gl.attachShader(pg,fs);gl.bindAttribLocation(pg,0,'aPosition');gl.linkProgram(pg);
-if(!gl.getProgramParameter(pg,gl.LINK_STATUS))return;
-const u={};for(let i=0,n=gl.getProgramParameter(pg,gl.ACTIVE_UNIFORMS);i<n;i++){const f=gl.getActiveUniform(pg,i);u[f.name.replace('[0]','')]=gl.getUniformLocation(pg,f.name)}
-const vao=gl.createVertexArray();gl.bindVertexArray(vao);
-gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
-gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
-const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const ptr={x:0,y:0,nx:0,ny:0,inside:false},mouse={x:0,y:0,influence:0,px:0,py:0};
-const waveD=new Float32Array(12),shapeD=new Float32Array(12),parD=new Float32Array(12),cnt=new Int32Array(3),lineD=new Float32Array(MAX_LINES*12),colD=new Float32Array(MAX_LINES*9),mouseD=new Float32Array(6);
-let time=0,reveal=reduce?1:0,raf=0,last=0,vis=true,act=performance.now();
-const render=()=>{
- const w=canvas.width,h=canvas.height,e=reveal*reveal*(3-2*reveal),ratio=w/Math.max(1,container.clientWidth);
- const mx=(2*mouse.x-w)/h,my=-(2*mouse.y-h)/h;
- for(let i=0;i<3;i++){
-  const sh=WS[i],{x:shift,y:lift,rotate}=WD[i],px=mouse.px*sh.drift,py=-mouse.py*sh.drift;
-  waveD.set([shift,lift,rotate,0],i*4);shapeD.set([sh.offset,sh.step,sh.light,sh.flip],i*4);parD.set([px,py,sh.depth,0],i*4);
-  mouseD.set(warp(mx+px,my+py,rotate,sh.flip),i*2);cnt[i]=N;
-  for(let l=0;l<N;l++){
-   const off=sh.offset+sh.step*l,along=DIST*l+shift,ph=along+off+time*.1,amp=Math.sin(off+time*.2)*.3*e,slot=i*MAX_LINES+l,t=l/(N-1),f=t*t*(3-2*t);
-   lineD.set([Math.cos(ph),Math.sin(ph),amp,along],slot*4);
-   for(let c=0;c<3;c++)colD[slot*3+c]=stops[0][c]+(stops[1][c]-stops[0][c])*f;
-  }
- }
- gl.viewport(0,0,w,h);gl.useProgram(pg);gl.bindVertexArray(vao);
- gl.uniform2f(u.uResolution,w,h);gl.uniform1f(u.uRatio,ratio);
- gl.uniform4fv(u.uWave,waveD);gl.uniform4fv(u.uShape,shapeD);gl.uniform4fv(u.uParallax,parD);gl.uniform1iv(u.uCount,cnt);
- gl.uniform4fv(u.uLine,lineD);gl.uniform3fv(u.uLineColor,colD);gl.uniform2fv(u.uMouseWarp,mouseD);
- gl.uniform1f(u.uHaloReach,11*ratio*Math.log(161));gl.uniform1f(u.uWidth,.9*ratio);gl.uniform1f(u.uGlow,1);
- gl.uniform1f(u.uBrightness,e);gl.uniform1f(u.uFocus,.5);gl.uniform1f(u.uEdgeFade,0);
- gl.uniform4f(u.uMouse,mouse.x,mouse.y,mouse.influence,0);gl.uniform1f(u.uBendRadius,.45);gl.uniform1f(u.uBendStrength,-1.25);
- gl.uniform1f(u.uLight,0);gl.uniform1f(u.uOpaque,0);gl.uniform3f(u.uBackground,0,0,0);gl.uniform1f(u.uOpacity,e);
- gl.uniform1f(u.uStyle,0);gl.uniform1f(u.uSpacing,9*ratio);
- gl.drawArrays(gl.TRIANGLES,0,3);
-};
-const frame=now=>{raf=0;if(!vis||document.hidden||off()||(reveal>=1&&now-act>10000))return;if(last&&now-last<33){raf=requestAnimationFrame(frame);return}
- const dt=last?clamp((now-last)/1000,.0005,.05):1/60;last=now;
- if(!reduce){time+=dt;if(reveal<1)reveal=Math.min(1,reveal+dt/INTRO)}
- const fol=1-Math.pow(.95,dt*60),eng=ptr.inside&&!reduce;
- if(eng){mouse.x+=(ptr.x-mouse.x)*fol;mouse.y+=(ptr.y-mouse.y)*fol}
- mouse.influence+=((eng?1:0)-mouse.influence)*fol;
- mouse.px+=((eng?ptr.nx*.2:0)-mouse.px)*fol;mouse.py+=((eng?ptr.ny*.2:0)-mouse.py)*fol;
- render();raf=requestAnimationFrame(frame)};
-const wake=()=>{if(!raf&&vis&&!document.hidden&&!off())raf=requestAnimationFrame(frame)};
-const resize=()=>{const r=Math.min(devicePixelRatio||1,1.5)*.9;canvas.width=Math.max(1,Math.round(container.clientWidth*r));canvas.height=Math.max(1,Math.round(container.clientHeight*r));render();wake()};
-const loc=e=>{const r=container.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,k=canvas.width/Math.max(1,r.width);ptr.inside=x>=0&&y>=0&&x<=r.width&&y<=r.height;ptr.x=x*k;ptr.y=(r.height-y)*k;ptr.nx=x/Math.max(1,r.width)-.5;ptr.ny=.5-y/Math.max(1,r.height)};
-['keydown','scroll','touchstart'].forEach(t=>addEventListener(t,()=>{act=performance.now();last=0;wake()},{passive:true}));
-addEventListener('pointermove',e=>{act=performance.now();const was=ptr.inside;loc(e);if(ptr.inside&&!was&&mouse.influence<.05){mouse.x=ptr.x;mouse.y=ptr.y}wake()},{passive:true});
-addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')ptr.inside=false},{passive:true});
-document.documentElement.addEventListener('pointerleave',()=>{ptr.inside=false});
-document.addEventListener('visibilitychange',()=>{last=0;wake()});
-new ResizeObserver(resize).observe(container);
-new IntersectionObserver(en=>{vis=en.some(x=>x.isIntersecting);if(vis){last=0;wake()}}).observe(container);
-resize();
-addEventListener('cf-theme',()=>{stops=lineStops();render();wake()});
-addEventListener('cf-wake',()=>{last=0;wake()});
-};
-if(mq.matches){const w=e=>{if(!e.matches){mq.removeEventListener('change',w);init()}};mq.addEventListener('change',w)}else init();
-})();
 </script>
 <script>document.addEventListener('click',e=>{const b=e.target.closest('.star');if(b&&b.classList.contains('on')){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}})</script>
 <script>document.addEventListener('load',e=>{const i=e.target;if(!i.classList||!i.classList.contains('wimg')||i.dataset.t||/\.svg/i.test(i.src))return;i.dataset.t=1;try{const w=i.naturalWidth,h=i.naturalHeight;if(!w||!h)return;const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(i,0,0);const d=x.getImageData(0,0,w,h).data;let a=w,b=h,r=-1,t=-1;for(let y=0;y<h;y++)for(let q=0;q<w;q++)if(d[(y*w+q)*4+3]>12){if(q<a)a=q;if(q>r)r=q;if(y<b)b=y;if(y>t)t=y}if(r<a)return;const cw=r-a+1,ch=t-b+1;if(cw>=w-2&&ch>=h-2)return;const o=document.createElement('canvas');o.width=cw;o.height=ch;o.getContext('2d').drawImage(c,a,b,cw,ch,0,0,cw,ch);i.src=o.toDataURL('image/png')}catch(_){}},true)</script><script>document.addEventListener('click',e=>{e.target.closest('.u-hsb input')&&go('find')});function cfGo(){const rm=matchMedia('(prefers-reduced-motion:reduce)').matches,hd=document.querySelector('.site-hd');let st=0;const C=()=>{st=1;fin()},fin=()=>{removeEventListener('touchstart',C);removeEventListener('wheel',C)};addEventListener('touchstart',C,{passive:true});addEventListener('wheel',C,{passive:true});const T=()=>{const c=document.querySelector('#ww .grid4 .wcard');if(!c)return null;let o=hd.getBoundingClientRect().bottom;const h=document.getElementById('hsf');if(h&&!h.classList.contains('off')&&getComputedStyle(h).display!=='none')o=Math.max(o,h.getBoundingClientRect().bottom);return Math.max(0,scrollY+c.getBoundingClientRect().top-o-28)},pulse=()=>[...document.querySelectorAll('#ww .grid4 .wcard')].slice(0,4).forEach(x=>{x.classList.remove('cfh');void x.offsetWidth;x.classList.add('cfh');x.addEventListener('animationend',v=>v.animationName==='cfh'&&x.classList.remove('cfh'))}),y0=scrollY,t0=performance.now(),D=rm?1:450,settle=n=>{if(st)return;const y=T();if(y!=null&&Math.abs(y-scrollY)>2)scrollTo({top:y,behavior:'instant'});if(n<5)setTimeout(()=>settle(n+1),250);else{fin();rm||pulse()}},step=t=>{if(st)return;const k=Math.min(1,(t-t0)/D),y=T();if(y==null)return t-t0<1500?requestAnimationFrame(step):fin();scrollTo({top:y0+(y-y0)*(1-Math.pow(1-k,3)),behavior:'instant'});k<1?requestAnimationFrame(step):settle(0)};requestAnimationFrame(step)};document.addEventListener('click',e=>{if(e.target.closest('.jw')){cfGo();return}const b=e.target.closest('.rm');if(!b)return;const p=b.previousElementSibling,o=p.classList.toggle('open');b.textContent=o?'Show less':'Read more'});{const f=()=>document.querySelectorAll('.over .syn:not([data-c])').forEach(p=>{p.dataset.c=1;const b=p.nextElementSibling;b&&b.classList.contains('rm')&&p.scrollHeight>p.clientHeight+1&&b.classList.add('on')});new MutationObserver(()=>requestAnimationFrame(f)).observe(document.getElementById('app'),{childList:true,subtree:true});f()}</script><script>document.addEventListener('visibilitychange',function(){document.documentElement.classList.toggle('cf-paused',document.hidden)})</script><script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
