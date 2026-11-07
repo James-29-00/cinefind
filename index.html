@@ -937,6 +937,29 @@ html body .wrow:has(.hot) .ctag{display:none}
 html body .wlogo .wimg{width:120px!important;height:32px!important;max-height:32px!important}
 }
 </style>
+<style id="cf-find-spacing">@media(min-width:701px){html[data-v=find] main{padding-top:4px}html[data-v=find] .fnd{gap:40px;padding-top:28px;padding-bottom:40px}html[data-v=find] .fnd .frow{margin:0}html[data-v=find] .fsec{gap:12px}}</style>
+<style id="cf-results-match">@media(min-width:701px){
+html[data-v=results] main{gap:24px;padding-top:16px}
+html[data-v=results] .u-rhd{max-width:none}
+html[data-v=results] .back{font-size:13px;color:var(--mu);margin:0 0 -8px}
+html[data-v=results] .hrow{justify-content:flex-start;align-items:baseline;gap:12px}
+html[data-v=results] .posters:not(.mini){gap:24px 20px}
+html[data-v=results] .poster{overflow:visible;aspect-ratio:auto;background:none}
+html[data-v=results] .poster>img,html[data-v=results] .poster>svg{display:block;width:100%!important;height:auto!important;aspect-ratio:282/423;object-fit:cover;border-radius:10px;box-shadow:0 0 0 1px color-mix(in srgb,var(--tx) 10%,transparent);transition:box-shadow .25s}
+html[data-v=results] .pc:hover .poster>img{box-shadow:0 0 0 2px var(--ac),0 14px 28px rgba(0,0,0,.45)}
+html[data-v=results] .pinfo{position:static;background:none;text-shadow:none;padding:10px 2px 0}
+html[data-v=results] .pinfo b{font:600 14px/1.3 "Instrument Sans",system-ui,sans-serif}
+html[data-v=results] .pinfo .psyn{display:none!important}
+}</style>
+<style id="cf-details-tidy">@media(min-width:701px){
+html[data-v=details] .grid4.sm{grid-template-columns:repeat(4,minmax(0,1fr))}
+html[data-v=details] .lkh{margin:-8px 0 0}
+html[data-v=details] footer .wrap.ft nav,html[data-v=details] footer .wrap.ft .ftag{display:none!important}
+html[data-v=details] footer .wrap.ft .lg{grid-row:2;margin-top:16px;padding-top:16px}
+html[data-v=details] footer .wrap.ft .fcp{grid-row:3;margin-top:12px}
+html[data-v=details] footer{padding-top:24px}
+}</style>
+<style id="cf-favs-grid">@media(min-width:1100px){html[data-v=favs] .grid4.sm{grid-template-columns:repeat(5,minmax(0,1fr))}}</style>
 </head>
 <body>
 <div class="cfa" aria-hidden="true"><div class="cfa-blob cfa-blob--1"></div><div class="cfa-blob cfa-blob--2"></div><div class="cfa-blob cfa-blob--3"></div><div class="cfa-blob cfa-blob--4"></div><div class="cfa-halo"></div><div class="cfa-veil"></div></div>
@@ -975,7 +998,8 @@ function art(t,sz){const w=282,h=423,L=t.lines.length;
  const sh=[['0,300 70,190 140,300','150,330 205,250 282,330'],['0,330 0,250 90,250 90,200 170,200 170,330','170,330 170,300 230,300 230,230 282,230 282,330'],['30,210 110,170 90,250','120,423 282,260 282,423'],['0,260 40,260 40,310 0,310','200,230 250,230 250,270 282,270 282,330 200,330']][t.shape];
  const path=['M70 380C20 330 190 310 120 290S150 250 190 250','M50 423V380H100V345H140V300H185V263H238','M150 423 282 290M120 423 282 330','M30 290Q141 470 252 290M60 280Q141 430 222 280'][t.shape];
  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="${w}" height="${h}" fill="${t.bg}"/><circle cx="196" cy="92" r="41" fill="${t.fg}"/><polygon points="${sh[0]}" fill="${t.fg}" opacity=".3"/><polygon points="${sh[1]}" fill="${t.fg}" opacity=".35"/><rect x="138" y="63" width="1" height="224" fill="${t.ln}" opacity=".7"/><path d="${path}" fill="none" stroke="${t.ln}" stroke-width="2"/>${t.lines.map((l,i)=>`<text x="141" y="${172+i*30-(L-1)*0}" text-anchor="middle" font-family="Newsreader,Georgia,serif" font-weight="600" font-size="22" fill="${t.fg}">${esc(l)}</text>`).join('')}</svg>`}
-function poster(t){return `<div class="poster">${t.img?`<img src="${esc(t.img)}" alt="" width="282" height="423" loading="lazy" decoding="async" onerror="this.outerHTML=art(TITLES[${t.id}])" style="width:100%;height:100%;object-fit:cover">`:art(t)}<div class="pinfo"><b>${esc(t.name)}</b><span>${esc(t.tv&&t.type==='Movies'?'TV Series':t.type)}</span><span class="psyn">${esc(t.syn||'')}</span></div></div>`}
+const ty=t=>t.tv&&t.type==='Movies'?'TV Series':t.type;
+function poster(t){return `<div class="poster">${t.img?`<img src="${esc(t.img)}" alt="" width="282" height="423" loading="lazy" decoding="async" onerror="this.outerHTML=art(TITLES[${t.id}])" style="width:100%;height:100%;object-fit:cover">`:art(t)}<div class="pinfo"><b>${esc(t.name)}</b><span>${esc(ty(t))}${t.yr?' · '+t.yr:''}</span><span class="psyn">${esc(t.syn||'')}</span></div></div>`}
 
 const NT={/* MovieBox:'Needs a free account' */};const nt=s=>s.note||NT[s.n];
 const SU={myasiantv:'/?s={q}',dramacool:'/search?q={q}',kisskh:'/search?q={q}',viki:'/search?q={q}',moviebox:'/web/searchResult?keyword={q}',fmovies:'/search/?q={q}',reanime:'/search?q={q}&limit=36&offset=0',miruro:'/search?query={q}&type=ANIME&sort=POPULARITY_DESC',enma:'/?s={q}'};
@@ -1000,7 +1024,7 @@ function results(){const q=nz(S.q);
  const b0=S.live&&S.lq===S.q?TITLES:TITLES.filter(t=>!q||nz(t.name).includes(q)||nz(t.alt||'').includes(q)),r=rf(b0);
  return `<button class="back" data-go="home">${ICON.back} Back to Home</button><div class="u-rhd"><h1>Search Results</h1>${searchBox(S.q)}</div>
  <section class="sec"><div class="u-stk8"><div class="hrow"><h2>${S.q.trim()?`Results for “${esc(S.q.trim())}”`:'All titles'}</h2><span class="s12 mu" role="status">${S.ld?'Searching…':r.length+' result'+(r.length===1?'':'s')}</span></div></div>
- ${b0.length>1?`<div class="filters"><div class="cr">${['All','Movies','Asian Drama','Anime','Filipino/Local'].filter(c=>c==='All'||b0.some(t=>t.type===c)).map(c=>`<button class="chip ${c===(S.rc||'All')?'on':''}" data-rc="${c}" aria-pressed="${c===(S.rc||'All')}">${c}</button>`).join('')}</div><span class="u-opts"><select class="sel" id="rsort" aria-label="Sort results"><option value="rel">Best match</option><option value="new"${S.rs==='new'?' selected':''}>Newest</option><option value="az"${S.rs==='az'?' selected':''}>Title A–Z</option></select></span></div>`:''}
+ ${b0.length>1?`<div class="filters"><div class="cr">${['All','Movies','TV Series','Asian Drama','Anime','Filipino/Local'].filter(c=>c==='All'||b0.some(t=>ty(t)===c)).map(c=>`<button class="chip ${c===(S.rc||'All')?'on':''}" data-rc="${c}" aria-pressed="${c===(S.rc||'All')}">${c}</button>`).join('')}</div><span class="u-opts"><select class="sel" id="rsort" aria-label="Sort results"><option value="rel">Best match</option><option value="new"${S.rs==='new'?' selected':''}>Newest</option><option value="az"${S.rs==='az'?' selected':''}>Title A–Z</option></select></span></div>`:''}
  ${S.ld?SKP:r.length?`<div class="posters">${r.map(t=>`<div><button class="pc" data-t="${t.id}" aria-label="${esc(t.name)}, ${esc(t.type)}">${poster(t)}</button></div>`).join('')}</div>`:`<div class="box col u-ai"><p class="s14 mu" role="status">${S.err?'Could not reach the search service. Check your connection, then tap Retry.':'No matches for that title. Try a shorter name or another spelling'+(sgs().length?', or try one of these:':'.')}</p>${S.err?`<button class="chip" data-rq="${esc(S.q)}">Retry</button>`:''}<div class="rs">${sgs().map(n=>`<button data-rq="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`}
  ${r.length?`<div class="box">${ICON.warn}<p class="s13 mu">Choose a title to see its where-to-watch listings. A search match does not confirm that a title is available on any website.</p></div>`:''}</section>`}
 
@@ -1057,7 +1081,7 @@ const lv=(a,b)=>{let p=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++
 const KG=()=>{try{return JSON.parse(localStorage.getItem('cf-kt')||'[]')}catch(e){return[]}};
 const kt=()=>{try{localStorage.setItem('cf-kt',JSON.stringify([...new Set([...KG(),...TITLES.map(t=>t.name)])].slice(-300)))}catch(e){}};
 const fz=q=>{q=q.trim().toLowerCase();const m=Math.max(1,Math.floor(q.length*.3));return[...new Set([...Object.values(AL),...KG()])].map(t=>[t,lv(q,t.toLowerCase())]).filter(x=>x[1]>0&&x[1]<=m).sort((a,b)=>a[1]-b[1]).map(x=>x[0])};
-const rf=a=>{a=S.rc&&S.rc!=='All'?a.filter(t=>t.type===S.rc):a.slice();S.rs==='az'?a.sort((x,y)=>x.name.localeCompare(y.name)):S.rs==='new'&&a.sort((x,y)=>(y.yr||0)-(x.yr||0));return a};
+const rf=a=>{a=S.rc&&S.rc!=='All'?a.filter(t=>ty(t)===S.rc):a.slice();S.rs==='az'?a.sort((x,y)=>x.name.localeCompare(y.name)):S.rs==='new'&&a.sort((x,y)=>(y.yr||0)-(x.yr||0));return a};
 document.addEventListener('click',e=>{const b=e.target.closest('[data-rc]');if(b){S.rc=b.dataset.rc;render()}});
 document.addEventListener('change',e=>{if(e.target.id==='rsort'){S.rs=e.target.value;render()}});
 let LQ=0,TRD;
