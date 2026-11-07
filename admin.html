@@ -417,17 +417,17 @@ async function loadAdminPanel() {
 // admin panel render and by deleteWebsite()'s live-append (see below), so a
 // freshly-deleted site shows up immediately without needing to reopen the panel.
 function buildRemovedSiteRow(s) {
-  const safeName = s.name.replace(/'/g, "\\'");
+  const safeName = escapeAttr(JSON.stringify(s.name));
   const dirBackup = SITES_DIRECTORY.find(d => normalizeSiteName(d.name) === normalizeSiteName(s.name));
   const hasSnapshot = !!s.url || !!dirBackup;
   const urlLabel = s.url || (dirBackup ? dirBackup.url + ' (built-in, still in code)' : 'No saved URL (deleted before Restore existed)');
   return `
     <div class="site-row" style="background:#0f0f16;" data-removed-site="${normalizeSiteName(s.name)}">
       <div style="flex:1;">
-        <div class="site-name">${s.name} ${s.icon || ''}</div>
-        <div class="site-meta">${urlLabel}${s.removedAt ? ' — deleted ' + new Date(s.removedAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) : ''}</div>
-        <button class="restore-site-btn" ${hasSnapshot ? '' : 'disabled'} onclick="restoreWebsite('${safeName}', this)">♻️ Restore</button>
-        <button class="delete-permanent-btn" onclick="confirmDeletePermanently('${safeName}', this)">🗑️ Delete Permanently</button>
+        <div class="site-name">${escapeAttr(s.name)} ${escapeAttr(s.icon || '')}</div>
+        <div class="site-meta">${escapeAttr(urlLabel)}${s.removedAt ? ' — deleted ' + new Date(s.removedAt).toLocaleDateString('en-PH', { dateStyle: 'medium' }) : ''}</div>
+        <button class="restore-site-btn" ${hasSnapshot ? '' : 'disabled'} onclick="restoreWebsite(${safeName}, this)">♻️ Restore</button>
+        <button class="delete-permanent-btn" onclick="confirmDeletePermanently(${safeName}, this)">🗑️ Delete Permanently</button>
         <div class="restore-site-status site-meta" style="margin-top:4px;"></div>
       </div>
     </div>`;
@@ -444,35 +444,35 @@ function renderAdminPanel(data) {
       : site.status === 'pending'
       ? 'Not checked yet — next automatic check within 6h'
       : (site.httpStatus ? 'HTTP ' + site.httpStatus : (site.error || site.status));
-    const safeUrl = site.url.replace(/'/g, "\\'");
-    const safeName = site.name.replace(/'/g, "\\'");
+    const safeUrl = escapeAttr(JSON.stringify(site.url));
+    const safeName = escapeAttr(JSON.stringify(site.name));
     const isHot = isHotSite(site.name);
     return `
     <div class="site-row ${site.status}">
       <div class="status-dot ${site.status}"></div>
       <div style="flex:1;">
-        <div class="site-name">${site.name} ${icon}</div>
-        <button class="quick-test-btn hot-toggle-btn" style="margin-top:4px; padding:2px 9px; font-size:.7rem; ${isHot ? 'background:#f0b428; color:#1a1a2e; border-color:#f0b428;' : ''}" onclick="toggleHotSite('${safeName}', this)">${isHot ? '🔥 Hot — tap to unhot' : '🔥 Mark as Hot'}</button>
-        <div class="site-meta">${site.url} — ${metaText}</div>
+        <div class="site-name">${escapeAttr(site.name)} ${icon}</div>
+        <button class="quick-test-btn hot-toggle-btn" style="margin-top:4px; padding:2px 9px; font-size:.7rem; ${isHot ? 'background:#f0b428; color:#1a1a2e; border-color:#f0b428;' : ''}" onclick="toggleHotSite(${safeName}, this)">${isHot ? '🔥 Hot — tap to unhot' : '🔥 Mark as Hot'}</button>
+        <div class="site-meta">${escapeAttr(site.url)} — ${metaText}</div>
         ${site.status === 'blocked' ? `
           <div class="site-meta" style="margin-top:2px; color:#f0b428;">Might just be blocking this server's IP — verify from your own browser.</div>
-          <button class="quick-test-btn" onclick="document.getElementById('test-link-input').value='${safeUrl}'; testLink(); document.getElementById('test-link-input').scrollIntoView({behavior:'smooth', block:'center'});">🔗 Test This Link</button>
+          <button class="quick-test-btn" onclick="document.getElementById('test-link-input').value=${safeUrl}; testLink(); document.getElementById('test-link-input').scrollIntoView({behavior:'smooth', block:'center'});">🔗 Test This Link</button>
         ` : ''}
         ${site.status === 'down' ? `
           <input class="replace-input" placeholder="Paste replacement URL here (for your notes only)..." 
-                 onchange="saveReplacementNote('${site.name.replace(/'/g, "\\'")}', this.value)"
-                 value="${getReplacementNote(site.name)}">
+                 onchange="saveReplacementNote(${escapeAttr(JSON.stringify(site.name))}, this.value)"
+                 value="${escapeAttr(getReplacementNote(site.name))}">
         ` : ''}
         ${(site.status === 'down' || site.status === 'blocked') ? `
           <div class="live-update-wrap" style="margin-top:8px;">
             <div style="display:flex; gap:6px; align-items:center;">
               <input class="replace-input live-update-input" style="margin-top:0; flex:1;" placeholder="Paste new working URL to go LIVE...">
-              <button class="quick-test-btn" style="margin-top:0; white-space:nowrap;" onclick="updateLiveLink('${site.name.replace(/'/g, "\\'")}', this)">Update Live Link</button>
+              <button class="quick-test-btn" style="margin-top:0; white-space:nowrap;" onclick="updateLiveLink(${escapeAttr(JSON.stringify(site.name))}, this)">Update Live Link</button>
             </div>
             <div class="live-update-status site-meta" style="margin-top:4px;"></div>
           </div>
         ` : ''}
-        <button class="delete-site-btn" onclick="confirmDeleteWebsite('${site.name.replace(/'/g, "\\'")}', this)">🗑️ Delete Website</button>
+        <button class="delete-site-btn" onclick="confirmDeleteWebsite(${escapeAttr(JSON.stringify(site.name))}, this)">🗑️ Delete Website</button>
         <div class="delete-site-status site-meta" style="margin-top:4px;"></div>
       </div>
     </div>
@@ -579,7 +579,7 @@ async function loadSearchAnalytics() {
     const renderRankedList = (items) => items.map((item, i) => `
       <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:.78rem;">
         <span style="color:#f0f0f5;">${i + 1}. ${escapeAttr(item.name)}</span>
-        <span style="color:#9494b5;">${item.count}×</span>
+        <span style="color:#9494b5;">${Number(item.count) || 0}×</span>
       </div>
     `).join('');
 
@@ -622,7 +622,7 @@ async function loadTopSites() {
     body.innerHTML = sites.slice(0, 10).map((item, i) => `
       <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:.78rem;">
         <span style="color:#f0f0f5;">${i + 1}. ${escapeAttr(item.name)}</span>
-        <span style="color:#9494b5;">${item.count}×</span>
+        <span style="color:#9494b5;">${Number(item.count) || 0}×</span>
       </div>
     `).join('');
   } catch (err) {
