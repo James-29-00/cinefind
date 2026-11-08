@@ -114,10 +114,10 @@ p{margin:0}
 
 /* Cinefind overrides. Tokens live in :root above; rules follow DESIGN.md. */
 
-@font-face{font-family:"Newsreader Fallback";src:local("Georgia");size-adjust:100%;ascent-override:98%;descent-override:25%;line-gap-override:0%}
-@font-face{font-family:"Instrument Sans Fallback";src:local("Arial");size-adjust:98%;ascent-override:95%;descent-override:25%;line-gap-override:0%}
+@font-face{font-family:"Newsreader Fallback";src:local("Georgia"),local("Noto Serif"),local("Droid Serif");size-adjust:100%;ascent-override:98%;descent-override:25%;line-gap-override:0%}
+@font-face{font-family:"Instrument Sans Fallback";src:local("Arial"),local("Roboto");size-adjust:98%;ascent-override:95%;descent-override:25%;line-gap-override:0%}
 /* Type and layout */
-body{font:400 16px/1.55 "Instrument Sans","Instrument Sans Fallback",system-ui,-apple-system,"Segoe UI",sans-serif}
+body{font:400 16px/1.55 "Instrument Sans","Instrument Sans Fallback",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 h1,h2,.tl,.brand,.wlogo b,.pinfo b{font-family:Newsreader,"Newsreader Fallback",Georgia,"Times New Roman",serif}
 h2{font-size:clamp(1.5rem,2.4vw,1.875rem);letter-spacing:-.015em;font-weight:600}
 .wrap{max-width:1280px}
@@ -927,6 +927,7 @@ html:is([data-v=find],[data-v=results],[data-v=favs]) main{padding-bottom:16px!i
 }
 </style>
 <style id="cf-cards">
+.grid4 .wrow .ctag{display:none!important}
 html body .wcard.flg{box-shadow:none;border-color:color-mix(in srgb,var(--warn) 40%,var(--bd))}
 html body .wcard.flg .go{background:transparent;color:var(--mu);box-shadow:inset 0 0 0 1px var(--bd)}
 html body .wcard:has(.tag.hot){border-color:var(--bd);background-image:none}
@@ -980,6 +981,98 @@ html body .search{padding:8px;gap:8px}
 html body #ww h2{font-size:20px}
 html body .ft .dis a{display:inline;padding:0}
 html body .kpi .on .dot,html body .kpi .vis dd .dot{width:8px;height:8px}
+/*C1*/html body .btn{height:44px;min-height:44px;border-radius:999px}
+html body .over .jw{height:44px;min-height:44px}
+/*S2*/html body .wcard:has(.hasimg) .wtop{padding:32px 12px 12px;gap:8px}
+html body .wcard .wfoot{padding:12px}
+/*C8*/html body #sort,html body #rsort,html body .sel{border-radius:999px}
+/*S5*/html body #brw{gap:16px}
+html body .box.col{gap:16px}
+html body .bnav a,html body .bnav button{gap:16px}
+html body .lbd{padding:8px 16px}
+html body .hw li{column-gap:16px}
+html body .fi{padding:0 16px}
+/*S7*/html body .grid4.sm{gap:12px}
+/*V4*/html body .wcard{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tx) 8%,transparent),0 6px 18px color-mix(in srgb,var(--bg) 28%,transparent)}
+html body .wcard:hover{box-shadow:0 12px 32px color-mix(in srgb,var(--bg) 30%,transparent)}
+html body .vt span:not(.vc){color:color-mix(in srgb,var(--tx) 82%,transparent)}
+/*V6*/html body :is(.chip,.ic,.rq,.rx) svg{--sw:1.75}
+html body .star svg,html body .sla svg{width:20px;height:20px}
+/*K6*/html body #brw .tip{display:block}
+/*B3 tokens*/:root{--fs-xs:12px;--fs-s:14px;--fs-m:16px;--fs-l:20px;--fs-xl:24px;--fs-2xl:32px;--sec-gap:32px;--r1:8px;--r2:12px;--r3:16px;--r4:24px;--rp:999px;--card-r:var(--r3);--card-bd:color-mix(in srgb,var(--tx) 18%,transparent);--sh1:0 1px 2px color-mix(in srgb,var(--bg) 60%,transparent);--sh2:0 6px 18px color-mix(in srgb,var(--bg) 40%,transparent);--sh3:0 16px 48px color-mix(in srgb,var(--bg) 70%,transparent);--dur1:.2s;--dur2:.3s;--ease:cubic-bezier(.16,1,.3,1)}
+/*T1*/html body .vt b{font-size:var(--fs-m)}
+html body .vt span:not(.vc),html body .hw span,html body .vh p,html body .kpi #von{font-size:var(--fs-s)}
+html body .lbd,html body .over .jw{font-size:var(--fs-m)}
+html[data-v] body #app :is(.s13,.lkh,.box p,.wcard .dom,.wcard .tag.lkst,.tag.ctag,.pinfo span){font-size:var(--fs-s)}
+html body footer .wrap.ft nav a{font-size:var(--fs-m)}
+html body footer .wrap.ft nav b{font-size:var(--fs-s)}
+html body footer .wrap.ft .lg :is(summary,p.dis){font-size:var(--fs-s)}
+/*T7*/html body #app :is(h1,h1.tl){font-size:28px}
+html body #app h2,html body .vh h2{font-size:var(--fs-xl)}
+/*S1*/html[data-v] body main{gap:var(--sec-gap)}
+/*S3*/html body .stats{padding:16px}
+html body .stats .kpi>div,html body .stats .kpi>div:not(.vis){padding:12px;gap:4px}
+html body .hwb{padding:16px}
+html body dialog#how .vh,html body dialog#vibe .vh,html body dialog#sugd .vh{padding:16px 56px 16px 16px}
+html body .vg{padding:16px}
+html body .vt{padding:12px}
+html body .u-vf{padding:0 16px 16px}
+html body .hws{padding-top:16px}
+/*V1*/html body :is(.poster,.tp img,.tsk,.poster.sk,.poster>img,.poster>svg,.slw .poster>img,.slw .poster>svg){border-radius:var(--r2)}
+html body .lbd{border-radius:var(--r1)}
+html body .bnav a,html body .bnav button{border-radius:var(--r2)}
+html body .bdg{border-radius:var(--rp)}
+/*V2*/html body .wcard{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--tx) 8%,transparent),var(--sh1)}
+html body .wcard:hover{box-shadow:var(--sh2)}
+html body .tip .pop,html body .bnav,html body dialog#vibe,html body dialog#how,html body dialog#sugd{box-shadow:var(--sh3)}
+html body .sg,html:root[data-v] body .hs{box-shadow:var(--sh2)}
+/*S6*/html body .chip{gap:8px}
+html body .cb{padding:0 8px}
+html body .tag.ctag{padding:2px 8px}
+html body .sg{top:calc(100% + 8px)}
+html body .rt .theme{gap:8px}
+html body .u-stk5{gap:4px}
+html body .wcard .tags,html body .grid4 .wrow,html body .over .u-g10{gap:8px}
+html body .fb p{margin-bottom:8px}
+html[data-v=results] body .pinfo,html body .slw .pinfo{padding:8px 0 0}
+/*S8*/html body .lkh,html[data-v=details] body .rm,html body .u-stk5:has(.fv){margin:0}
+/*V7*/@media(prefers-reduced-motion:no-preference){
+html[data-v] body :is(.chip,.sel,.btn,.go,.go svg,.theme,.ib,.star,.sw i,.clr,.vx,.vt,.vc,.wcard,.wimg,.dom svg,.mark,.hs,.wlogo,.search,.pc .poster,.posters.mini .poster){transition-duration:var(--dur1);transition-timing-function:var(--ease)}
+html[data-v] body .sw i::after{transition-duration:var(--dur1);transition-timing-function:var(--ease)}
+html[data-v] body .bnav{transition-duration:var(--dur2);transition-timing-function:var(--ease)}
+html body #toast{transition-duration:var(--dur1);transition-timing-function:var(--ease)}
+html[data-v] body :is(.grid4 .wcard:not(.cfh),.star.pop svg,.star.pp svg,#app.pg,.tip .pop,#brw .chip.on){animation-duration:var(--dur2);animation-timing-function:var(--ease)}
+html body dialog#vibe[open]{animation-duration:var(--dur2);animation-timing-function:var(--ease)}
+}
+html body .search{padding:4px;min-height:48px}
+html body .search input{min-height:40px}
+html body .search .btn{width:40px;height:40px;min-height:40px}
+html body .site-hd .mb,html body .site-hd .rt .theme{border-color:transparent;background:transparent}
+html body .site-hd :is(.mb,.rt .theme):active{background:color-mix(in srgb,var(--tx) 10%,transparent)}
+html body .site-hd .rt .theme{gap:8px}
+html body #sort,html body #rsort{border-color:color-mix(in srgb,var(--tx) 14%,transparent)}
+html body .wcard:has(.hasimg) .wtop{padding:24px 12px 12px}
+html body .sm .star{width:36px;height:36px}
+html body .cr .chip{position:relative;height:36px;min-height:36px;padding:0 12px}
+html body .cr .chip::after{content:"";position:absolute;inset:-4px 0}
+html body .cr .cb{min-width:20px;height:20px}
+html body #sort,html body #rsort{height:36px;min-height:36px;padding:0 10px;flex:0 0 auto}
+html body nav.bnav{width:min(270px,78vw)}
+html[data-v=home] body{background-image:linear-gradient(180deg,color-mix(in srgb,var(--ac) 8%,var(--bg)) 0,var(--bg) 460px)}
+html body .stats{background:color-mix(in srgb,var(--ac) 8%,var(--bg))}
+html body .fnd .search:focus-within{box-shadow:none}
+html body nav.bnav .mh .mark{flex:none;width:36px;height:20px}
+html body nav.bnav .mh .mark svg{width:36px;height:20px}
+html body nav.bnav .mt{font-size:18px}
+html body nav.bnav a.on,html body nav.bnav button.on{box-shadow:none;font-weight:600}
+html body .wcard .wfoot{padding:8px 12px}
+/*K10*/html body :is(.wcard,.stats,.box){border-radius:var(--card-r);border-color:var(--card-bd)}
+html body .wcard:has(.tag.hot){border-color:var(--card-bd)}
+html body .grid4 .wrow .ctag{display:none}
+/*K11*/html body :is(.posters.mini .pinfo b,.trr .tp span){font:600 var(--fs-m)/1.3 Newsreader,"Newsreader Fallback",Georgia,"Times New Roman",serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+html body .posters.mini .pinfo{padding:48px 12px 12px}
+html body .posters.mini>div{flex-basis:164px}
+html body .posters.mini .poster{box-shadow:none}
 :root{--scrim:rgba(4,3,10,.64)}
 html body .brand .bt,html body .mt,html body .ft a.fbrand{font-size:18px;font-weight:600}
 html[data-v=results] body .pinfo b{font-family:Newsreader,"Newsreader Fallback",Georgia,"Times New Roman",serif;font-size:16px}
@@ -1089,7 +1182,7 @@ dialog#sugd::backdrop{background:var(--scrim)}
 <noscript><div class="wrap"><p class="box">Cinefind needs JavaScript to show the website directory. Please turn it on and reload.</p></div></noscript>
 <div class="wrap"><main id="app" tabindex="-1"><noscript><p class="mu" style="padding:48px 0">Cinefind needs JavaScript to search titles and list websites. Please enable it and reload.</p></noscript></main></div><div id="live" class="sr" role="status" aria-live="polite"></div>
 <footer><div class="wrap ft"><div class="fb"><a class="fbrand" href="#/" aria-label="Cinefind home"><span class="mark"><svg viewBox="-2 -2 515 282" width="48" height="26" aria-hidden="true" focusable="false"><defs><path id="ffm" d="M248.4 27.8A157.1 138.9 4.8 1 0 150.0 278.2C163.6 277.9 197.5 278.4 211.5 277.5C295.3 256.1 281.2 170.8 324.8 170.8L398 170.8C423.3 170.8 461.5 139.8 461.5 115.0C461.5 110.9 457.0 105.8 453.8 105.8L322 105.8C274.2 105.8 243.0 161.4 218.5 194.0A85.4 67.8 7.9 1 1 214.1 82.8L248.4 27.8Z"/><clipPath id="ffc"><use href="#ffm"/></clipPath></defs><use href="#ffm" class="cm"/><path id="fff" class="cf" clip-path="url(#ffc)" d="M103.4 85.7A92.8 73.6 7.9 1 0 194.1 201.2A85.4 67.8 7.9 0 1 103.4 85.7Z"/><path id="ffa" class="ca" d="M208.2 151.2C225.9 97.5 253.3 2.5 327.0 2.5L500 2.5C505.1 2.5 509.0 7.7 509.0 12.5C509.0 41.6 474.4 67.5 445.0 67.5L323 67.5C269.1 67.5 238.6 115.4 208.2 151.2Z"/></svg></span><span>Cinefind</span></a><span class="ftag">A directory of streaming websites.</span><details class="lg"><summary>Legal &amp; disclaimer</summary><p class="dis">Cinefind is a directory. We do not host, upload, or store any movies, shows, or files. We only link to third-party websites we do not own or control.</p><p class="dis">We are not responsible for their content, safety, or availability. Some websites may show ads or pop-ups, so please use your own judgment.</p><p class="dis">Copyright owners can report a link on our <a href="copyright.html">copyright page</a>.</p><p class="dis">Availability is not verified. Please check each website yourself. Favorites stay on this device only. Visits and online counts use an anonymous session ID.</p></details><small class="fcp">© <span id="fy">2026</span> Cinefind · Not affiliated with the listed sites</small></div><nav aria-label="Browse by category"><b>Browse</b><a href="#brw" data-cat="Movies">Movies</a><a href="#brw" data-cat="Anime">Anime</a><a href="#brw" data-cat="Asian Drama">Asian Drama</a><a href="#brw" data-cat="Filipino/Local">Filipino/Local</a></nav><nav aria-label="Footer"><b>About</b><a href="#" data-about>About Cinefind</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="https://github.com/James-29-00/cinefind/issues" target="_blank" rel="noopener noreferrer">Report an issue</a><a href="copyright.html">Copyright</a><a id="cl" href="#">Contact</a><span id="ct" hidden style="display:none" data-u="kurubokkoruroy" data-d="gmail.com"></span></nav></div></footer><script>document.getElementById('fy').textContent=new Date().getFullYear();{const d=document.querySelector('.lg'),m=matchMedia('(min-width:701px)'),f=()=>{if(m.matches)d.open=true};f();m.addEventListener('change',f)}{const r=document.documentElement,b=document.getElementById('sbtn'),set=o=>{r.classList.toggle('so',o);b.setAttribute('aria-expanded',o)};b.addEventListener('click',()=>{set(!r.classList.contains('so'));if(r.classList.contains('so'))setTimeout(()=>document.getElementById('hq')?.focus(),30)});document.addEventListener('submit',()=>set(false),true);addEventListener('hashchange',()=>set(false));['pointerdown','click'].forEach(t=>document.addEventListener(t,e=>{if(r.classList.contains('so')&&!e.target.closest('#hsf,#sbtn'))set(false)},true));{const f=document.getElementById('fc'),g=document.getElementById('fb'),u=()=>{const n=+f.textContent.trim()||0;g.textContent=n>99?'99+':n||'';g.hidden=!n;const dc=document.getElementById('dfc');dc&&(dc.textContent=g.textContent);const bb=document.getElementById('bfb');bb&&(bb.textContent=g.textContent,bb.hidden=!n);const a0=document.getElementById('fbtn');a0&&a0.classList.toggle('has',n>0);const a=document.getElementById('fbtn');a&&a.setAttribute('aria-label',n?'Favorites, '+n+' saved':'Favorites')};new MutationObserver(u).observe(f,{childList:true,characterData:true,subtree:true});u()}addEventListener('keydown',e=>{if(e.key==='Escape')set(false)})}{const fade=()=>document.querySelectorAll('.cr').forEach(c=>c.classList.toggle('more-r',c.scrollWidth-c.clientWidth-c.scrollLeft>8));document.addEventListener('scroll',e=>{e.target.classList&&e.target.classList.contains('cr')&&fade()},true);addEventListener('resize',fade);new MutationObserver(()=>requestAnimationFrame(fade)).observe(document.getElementById('app'),{childList:true,subtree:true});fade()}{const h=document.getElementById('how');h.addEventListener('click',e=>{(e.target===h||e.target.closest('[data-hx]'))&&h.close()});document.addEventListener('click',e=>{if(e.target.closest('[data-about]')){e.preventDefault();h.open||h.showModal()}})}{const h=document.getElementById('ct'),a=document.getElementById('cl');if(h&&a)a.href='mailto:'+h.dataset.u+'@'+h.dataset.d+'?subject='+encodeURIComponent('Cinefind: enquiry')}document.addEventListener('click',e=>{const a=e.target.closest('.ft a[data-cat]');if(!a)return;e.preventDefault();const go=()=>{const c=document.querySelector('.chip[data-cat="'+a.dataset.cat+'"]');if(c){c.click();setTimeout(()=>document.querySelector('#brw')?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'}),60)}};if(document.querySelector('.chip'))go();else{location.hash='#/';setTimeout(go,300)}});</script>
-<nav class="bnav" id="mnav" aria-label="Primary"><div class="mh"><span class="mark"><svg viewBox="-2 -2 515 282" width="46" height="25" aria-hidden="true" focusable="false"><use href="#cfm" class="cm"/><use href="#cff"/><use href="#cfa"/></svg></span><span class="mt">Cinefind</span><button type="button" class="mx" aria-label="Close menu"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div><a id="bHome" href="#/"><svg class="i fo" aria-hidden="true" focusable="false"><use href="#i-house"/></svg><svg class="i ff" aria-hidden="true" focusable="false"><use href="#i-house-f"/></svg><span>Home</span></a><button data-s="1"><svg class="i is2" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span></button><a id="bFavs" href="#/favorites"><svg class="i fo" aria-hidden="true" focusable="false"><use href="#i-bookmark"/></svg><svg class="i ff" aria-hidden="true" focusable="false"><use href="#i-bookmark-f"/></svg><span>Favorites</span><b class="bdg" id="bfb" hidden></b></a><button type="button" data-how="1"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-help"/></svg><span>Help</span></button></nav>
+<nav class="bnav" id="mnav" aria-label="Primary"><div class="mh"><span class="mark"><svg viewBox="-2 -2 515 282" width="46" height="25" aria-hidden="true" focusable="false"><use href="#cfm" class="cm"/><use href="#cff" class="cf"/><use href="#cfa" class="ca"/></svg></span><span class="mt">Cinefind</span><button type="button" class="mx" aria-label="Close menu"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div><a id="bHome" href="#/"><svg class="i fo" aria-hidden="true" focusable="false"><use href="#i-house"/></svg><svg class="i ff" aria-hidden="true" focusable="false"><use href="#i-house-f"/></svg><span>Home</span></a><button data-s="1"><svg class="i is2" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span></button><a id="bFavs" href="#/favorites"><svg class="i fo" aria-hidden="true" focusable="false"><use href="#i-bookmark"/></svg><svg class="i ff" aria-hidden="true" focusable="false"><use href="#i-bookmark-f"/></svg><span>Favorites</span><b class="bdg" id="bfb" hidden></b></a><button type="button" data-how="1"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-help"/></svg><span>Help</span></button></nav>
 <script>
 const $=s=>document.querySelector(s);
 const STATUS=true,SL={up:['Online','--ok'],down:['Offline','--bad'],flag:['Flagged','--warn'],unk:['Unknown','--unk']};const SK1='<div><div class="poster sk"></div></div>',SKP='<div class="posters">'+SK1.repeat(6)+'</div>';
@@ -1105,7 +1198,7 @@ try{JSON.parse(localStorage.getItem('cf-favs')||'[]').forEach(f=>S.favs.add(f))}
 const saveFavs=()=>{try{localStorage.setItem('cf-favs',JSON.stringify([...S.favs]))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-function art(t,sz){const w=282,h=423,L=t.lines.length;
+function art(t,sz){if(!t)return'';const w=282,h=423,L=t.lines.length;
  const sh=[['0,300 70,190 140,300','150,330 205,250 282,330'],['0,330 0,250 90,250 90,200 170,200 170,330','170,330 170,300 230,300 230,230 282,230 282,330'],['30,210 110,170 90,250','120,423 282,260 282,423'],['0,260 40,260 40,310 0,310','200,230 250,230 250,270 282,270 282,330 200,330']][t.shape];
  const path=['M70 380C20 330 190 310 120 290S150 250 190 250','M50 423V380H100V345H140V300H185V263H238','M150 423 282 290M120 423 282 330','M30 290Q141 470 252 290M60 280Q141 430 222 280'][t.shape];
  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="${w}" height="${h}" fill="${t.bg}"/><circle cx="196" cy="92" r="41" fill="${t.fg}"/><polygon points="${sh[0]}" fill="${t.fg}" opacity=".3"/><polygon points="${sh[1]}" fill="${t.fg}" opacity=".35"/><rect x="138" y="63" width="1" height="224" fill="${t.ln}" opacity=".7"/><path d="${path}" fill="none" stroke="${t.ln}" stroke-width="2"/></svg>`}
@@ -1218,7 +1311,7 @@ document.addEventListener('click',e=>{const al=e.target.closest('a[href^="#/"]')
 document.addEventListener('change',e=>{if(e.target.id==='sort'){S.sort=e.target.value;rr('#sort')}});
 const OR='https://fancy-wildflower-1260.manio-james-g-5588.workers.dev',OC={},OI={};
 const TDL={dulo:'https://dulo.sx'};function apd(t){if(!t||!t.tm)return;document.querySelectorAll('.wl[data-sn]').forEach(a=>{const o=TDL[a.dataset.sn.toLowerCase()];if(!o)return;a.href=o+'/'+(t.tv?'tv':'movie')+'/'+t.tm;const g=a.closest('.wcard').querySelector('.lkst');if(g){g.className='tag lkst dir';g.textContent='Direct link'}})}
-function ap(t,m){const lh=document.getElementById('lkh');lh&&lh.remove();document.querySelectorAll('.wl[data-sn]').forEach(a=>{if(t&&t.tm&&TDL[a.dataset.sn.toLowerCase()])return;const u=m[a.dataset.sn.toLowerCase()],g=a.closest('.wcard').querySelector('.lkst');if(u)a.href=u;if(g){const yt=/youtube\.com/.test(a.href),sk=a.dataset.sn.toLowerCase().replace(/[^a-z0-9]/g,'');g.className='tag lkst'+(u?' dir':'');g.textContent=u?'Direct link':yt?'Click to watch':SU[sk]?'Search on site':'Open site'}})}
+function ap(t,m){const lh=document.getElementById('lkh');lh&&lh.remove();document.querySelectorAll('.wl[data-sn]').forEach(a=>{if(t&&t.tm&&TDL[a.dataset.sn.toLowerCase()])return;const u0=m[a.dataset.sn.toLowerCase()],u=/^https?:\/\//i.test(u0||'')?u0:'',g=a.closest('.wcard').querySelector('.lkst');if(u)a.href=u;if(g){const yt=/youtube\.com/.test(a.href),sk=a.dataset.sn.toLowerCase().replace(/[^a-z0-9]/g,'');g.className='tag lkst'+(u?' dir':'');g.textContent=u?'Direct link':yt?'Click to watch':SU[sk]?'Search on site':'Open site'}})}
 async function omni(t){const ok=()=>S.view==='details'&&TITLES[S.tid]===t;apd(t);if(!t.tm)return ap(t,{});if(t.tv&&t.se&&!t.sd){t.sd=1;try{const s=await(await fetch(TM+'?mode=season&tv_id='+t.tm+'&season_number='+t.se)).json();if(s&&s.id){t.bn=t.name;t.name+=': Season '+t.se;t.yr=parseInt((s.air_date||'').slice(0,4))||t.yr;s.poster_path&&(t.img='https://image.tmdb.org/t/p/w300'+s.poster_path);s.overview&&(t.syn=s.overview)}}catch(e){}if(ok()){const h=$('#app h1');h&&(h.textContent=t.name);const p=$('.over .poster');p&&t.img&&(p.innerHTML=`<img src="${esc(t.img)}" alt="" width="282" height="423" decoding="async" fetchpriority="high" onerror="this.outerHTML=art(TITLES[${S.tid}])" style="width:100%;height:100%;object-fit:cover">`);const s=$('.over .sum>p');s&&(s.textContent=t.syn);document.title=t.name+' · Cinefind'}}const ck=t.tm+':'+(t.bn?t.se:0);if(OC[ck])return ap(t,OC[ck]);if(OI[ck])return;OI[ck]=1;setTimeout(()=>{const l=document.getElementById('lkh');l&&ok()&&(l.textContent='Still looking… this one is taking longer. You can use Visit now.')},12000);const ws=SITES.filter(s=>s.c.includes(t.type)&&s.d);if(!ws.length)return ap(t,{});try{const r=await fetch(OR,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t.bn||t.name,originalTitle:t.ot||null,sites:ws.map(s=>s.n),year:t.yr,type:t.tv?'tv':'movie',season:t.bn?t.se:null,part:t.pt||null,tmdbId:t.tm,episode:null,searchQuery:null}),signal:AbortSignal.timeout(50000)});if(!r.ok)throw 0;const d=await r.json(),T=d.linkTypes||{},P=JSON.parse((d.text||'{}').replace(/^```json\s*|^```\s*|```\s*$/g,'').trim()).links||{},m={};Object.keys(P).forEach(k=>{if(P[k]&&T[k]==='direct')m[k.toLowerCase()]=P[k]});OC[ck]=m;ok()&&ap(t,m)}catch(e){delete OI[ck];ok()&&ap(t,{})}}
 let ST;const SQ={};document.addEventListener('input',e=>{const i=e.target;if(!i.matches('#q'))return;clearTimeout(ST);const v=i.value.trim();if(v.length<3)return;ST=setTimeout(async()=>{try{const d=SQ[v]||(SQ[v]=await(await fetch(TM+'?query='+encodeURIComponent(pq(v).t))).json()),l=[...new Map((d.results||[]).filter(m=>m.media_type==='movie'||m.media_type==='tv').map(m=>[m.title||m.name,m])).values()].slice(0,5),b=i.closest('form').querySelector('.sg');if(i.value.trim()!==v||!l.length)return;b.innerHTML=l.map((x,n)=>{const nm=x.title||x.name,y=(x.release_date||x.first_air_date||'').slice(0,4);return`<button type="button" role="option" tabindex="-1" id="sg${n}" data-rq="${esc(nm)}">${esc(nm)}<span class="mu s12"> · ${y?y+' · ':''}${TC[cat(x,x.media_type==='tv')]}</span></button>`}).join('');b.hidden=false;i.setAttribute('aria-expanded','true')}catch(e){}},500)});
 function fm(){try{if(!localStorage.getItem('cf-fh')){localStorage.setItem('cf-fh','1');return'Saved. Favorites stay on this device only'}}catch(e){}return'Saved to Favorites'}
