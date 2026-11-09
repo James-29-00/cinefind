@@ -1325,21 +1325,40 @@ html body footer .wrap.ft .lg p.dis{color:color-mix(in srgb,var(--tx) 80%,var(--
 html body footer .wrap.ft .fcp{color:var(--mu)}
 html body footer .wrap.ft .lg p.dis a{color:var(--ac2);text-decoration:underline;text-underline-offset:2px}
 
-/* details page: show Privacy / Terms / Report / Copyright as one compact row */
-html[data-v=details] body footer .wrap.ft nav:nth-of-type(2){display:flex!important;flex-direction:row;flex-wrap:wrap;gap:0 20px}
-html[data-v=details] body footer .wrap.ft nav:nth-of-type(2) b,
-html[data-v=details] body footer .wrap.ft nav:nth-of-type(2) a[data-about]{display:none!important}
-
-@media(min-width:701px){
- html[data-v=details] body footer .wrap.ft nav:nth-of-type(2){grid-column:2/-1;grid-row:1;justify-content:flex-end;align-self:center}
- html[data-v=details] body footer .wrap.ft .fbrand{margin:0}
-}
 @media(max-width:700px){
- html[data-v=details] body footer .wrap.ft nav:nth-of-type(2){grid-column:1/-1;order:1}
- html[data-v=details] body footer .wrap.ft nav:nth-of-type(2) a{min-height:44px}
  html body footer .wrap.ft .lg summary{font-size:15px}
  html body footer .wrap.ft .lg p.dis{font-size:14px;line-height:1.6}
  html body footer .wrap.ft .fcp{font-size:13px}
+}
+</style>
+<style id="cf-footer-3">
+/* ===== Details-page footer on phones: brand, one-line note, one even link row, divider, legal toggle, copyright ===== */
+@media(max-width:700px){
+ html[data-v=details] body footer{padding:24px 0 calc(64px + env(safe-area-inset-bottom,0px))}
+ html[data-v=details] body footer .wrap.ft .fcp{margin-top:8px}
+}
+</style>
+<style id="cf-polish-3">
+/* ===== Fewer pills: only "Direct link" is a pill; the other link labels are quiet text ===== */
+html body #app #ww .wcard .tag.lkst.srch,
+html body #app #ww .wcard .tag.lkst.hm,
+html body #app #ww .wcard .tag.lkst.yt{background:none;border-color:transparent;padding:3px 0;font-weight:500;color:color-mix(in srgb,var(--tx) 78%,var(--bg))}
+html body #app #ww .wcard .tag.lkst.srch::before{background:var(--ac2)}
+html body #app #ww .wcard .tag.lkst.hm::before,
+html body #app #ww .wcard .tag.lkst.yt::before{background:var(--unk)}
+
+/* ===== HOT: neutral label, so it no longer shares the amber of "Search on site" ===== */
+html body .wcard .tag.hot,
+html body #ww .wcard:has(.tag.hot) .dom::after{background:color-mix(in srgb,var(--tx) 14%,transparent);color:var(--tx)}
+
+/* ===== Visit: the main action gets a stronger outline ===== */
+html body .wcard .go,
+html body #ww .wcard .go{border:1.5px solid var(--ac);color:var(--ac2);font-weight:700}
+
+/* ===== Desktop: HOT sits top-left, bookmark stays top-right (HOT used to cover the bookmark) ===== */
+@media(min-width:701px){
+ html body .grid4 .wrow{left:0}
+ html body .grid4 .wrow .tag.hot{position:absolute;left:12px;top:50%;margin:0;transform:translateY(-50%);padding:3px 8px;font-size:11px;letter-spacing:.05em}
 }
 </style>
 </head>
