@@ -1357,9 +1357,168 @@ html body #ww .wcard .go{border:1.5px solid var(--ac);color:var(--ac2);font-weig
 
 /* ===== Desktop: HOT sits top-left, bookmark stays top-right (HOT used to cover the bookmark) ===== */
 @media(min-width:701px){
- html body .grid4 .wrow{left:0}
- html body .grid4 .wrow .tag.hot{position:absolute;left:12px;top:50%;margin:0;transform:translateY(-50%);padding:3px 8px;font-size:11px;letter-spacing:.05em}
+ html body .grid4 .wrow{left:0;right:0;top:4px;padding:0 4px 0 12px;justify-content:flex-end;pointer-events:none}
+ html body .grid4 .wrow .star{margin-left:auto;pointer-events:auto}
+ html body #ww .wcard:has(.tag.hot) .dom::after{content:none}
+ html body .grid4 .wrow .tag.hot{position:absolute;left:12px;top:50%;margin:0;transform:translateY(-50%);padding:3px 8px;font-size:11px;letter-spacing:.05em;line-height:1.4}
 }
+/* Visit: neutral until hover/focus, so it doesn't look already clicked */
+html body .wcard .go,html body #ww .wcard .go{border:1px solid color-mix(in srgb,var(--tx) 28%,transparent);color:var(--tx);background:transparent;font-weight:600}
+html body .wcard:hover .go,html body .wcard:has(.wl:focus-visible) .go,html body #ww .wcard:hover .go{background:var(--ac);border-color:var(--ac);color:var(--onac)}
+@media(hover:none){html body .wcard:hover .go,html body #ww .wcard:hover .go{background:transparent;border-color:color-mix(in srgb,var(--tx) 28%,transparent);color:var(--tx)}}
+/* Back to top: keep clear of footer text on phones */
+@media(max-width:700px){html body footer{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}}
+/* ===================================================================
+   PREMIUM PASS: dark, cinematic, minimal. One accent, 1px hairlines,
+   soft shadows, 200ms transitions. Final layer: delete this block to undo.
+   =================================================================== */
+:root{
+ --pm-line:color-mix(in srgb,var(--tx) 10%,transparent);
+ --pm-line-2:color-mix(in srgb,var(--tx) 20%,transparent);
+ --pm-fill:color-mix(in srgb,var(--tx) 4%,transparent);
+ --pm-fill-2:color-mix(in srgb,var(--tx) 8%,transparent);
+ --pm-r:12px;--pm-r-lg:16px;--pm-h:44px;--pm-h-sm:36px;
+ --pm-t:200ms;--pm-e:cubic-bezier(.2,.7,.2,1);
+ --pm-sh:0 1px 2px rgba(0,0,0,.28),0 8px 24px rgba(0,0,0,.20);
+ --pm-sh-up:0 2px 4px rgba(0,0,0,.30),0 16px 40px rgba(0,0,0,.34);
+ --pm-glow:0 0 0 3px color-mix(in srgb,var(--ac) 24%,transparent);
+}
+
+/* ---- Icons: one stroke weight, two sizes (20 controls, 16 inline) ---- */
+html body svg.i{stroke-width:1.75}
+html body :is(.ib,.fbk,.theme,.vx,.star,.sla,.search,.hs,#btt,.mainnav a,.bnav a,.bnav button,.ni,.tip summary,.hh,.box>svg) svg{width:20px!important;height:20px!important}
+html body :is(.chip,.go,.back,.rq,.rx,.more) svg{width:16px!important;height:16px!important}
+
+/* ---- Primary button: filled accent ---- */
+html body .btn{background:var(--ac)!important;border:1px solid var(--ac)!important;color:var(--onac)!important;border-radius:var(--pm-r)!important;font-weight:600;box-shadow:none}
+html body :is(.u-ai,#sugf) .btn{height:var(--pm-h)!important;min-height:var(--pm-h)!important}
+html body .search .btn{border-radius:calc(var(--pm-r) - 4px)!important}
+
+/* ---- Secondary controls: outlined, same height and radius ---- */
+html body :is(.chip,.sel,.jw,.fi,.ib,.fbk,.vx,.rt .theme,.site-hd .theme,.site-hd .mb){
+ height:var(--pm-h)!important;min-height:var(--pm-h)!important;
+ border:1px solid var(--pm-line-2)!important;border-radius:var(--pm-r)!important;
+ background:var(--pm-fill)!important;color:color-mix(in srgb,var(--tx) 88%,var(--bg))!important;box-shadow:none}
+html body :is(.ib,.fbk,.vx){width:var(--pm-h)!important;min-width:var(--pm-h)!important}
+html body .jw{color:var(--ac2)!important;border-color:color-mix(in srgb,var(--ac) 45%,transparent)!important;font-weight:600}
+html body .vx{position:absolute}
+html body .chip{font-weight:600}
+html body .chip .cb{background:var(--pm-fill-2);color:inherit}
+/* selected chip = primary */
+html body .chip.on{background:var(--ac)!important;border-color:var(--ac)!important;color:var(--onac)!important}
+html body .chip.on .cb{background:color-mix(in srgb,var(--onac) 14%,transparent)!important;color:var(--onac)!important}
+
+/* ---- Dropdowns: same shell as chips, one chevron ---- */
+html body .sel,html body #sort,html body #rsort{-webkit-appearance:none!important;appearance:none!important;width:auto;padding:0 36px 0 14px!important;flex:0 0 auto;
+ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a9a69f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")!important;
+ background-repeat:no-repeat!important;background-position:right 12px center!important;background-size:16px!important;background-color:var(--pm-fill)!important;color:var(--tx)!important}
+html body .fi{padding:0 14px!important;width:100%!important;color:var(--tx)!important}
+
+/* ---- Search: rounded, hairline, glow on focus ---- */
+html body :is(.search,.hs){border:1px solid var(--pm-line-2)!important;border-radius:var(--pm-r)!important;background:color-mix(in srgb,var(--bg) 70%,transparent)!important;box-shadow:none}
+html body :is(.search,.hs):focus-within{border-color:var(--ac)!important;box-shadow:var(--pm-glow)!important}
+html body :is(.search,.hs) input{color:var(--tx)}
+html body .search::before{display:none}
+html body .hs{height:var(--pm-h)}
+html body .clr{border-radius:8px;color:var(--mu)}
+html body .clr:hover{color:var(--tx);background:var(--pm-fill-2)}
+html body .sg{border:1px solid var(--pm-line-2);border-radius:var(--pm-r);background:var(--panel);box-shadow:var(--pm-sh-up)}
+html body .sg button{border-radius:8px}
+
+/* ---- Visit: same size on every card, outlined until hover ---- */
+html body :is(.wcard,#ww .wcard) .go{height:var(--pm-h-sm)!important;min-height:var(--pm-h-sm)!important;padding:0 14px!important;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+ border:1px solid var(--pm-line-2)!important;border-radius:var(--pm-r)!important;background:transparent!important;color:var(--tx)!important;font-size:13px;font-weight:600;opacity:1}
+html body .star{border-radius:10px;border:0;background:transparent;color:var(--mu)}
+html body .star.on{color:var(--ac2)}
+
+/* ---- Cards and containers: hairline, soft shadow ---- */
+html body .wcard{background:color-mix(in srgb,var(--tx) 4%,var(--bg))!important;border:1px solid var(--pm-line)!important;border-radius:var(--pm-r-lg)!important;box-shadow:var(--pm-sh)!important}
+html body .wcard:has(.tag.hot){border-color:var(--pm-line)!important;background-image:none!important}
+html body .wcard.flg{border-color:color-mix(in srgb,var(--warn) 38%,transparent)!important;box-shadow:var(--pm-sh)!important}
+html body .stats{border:1px solid var(--pm-line)!important;border-radius:var(--pm-r-lg)!important;box-shadow:var(--pm-sh)!important}
+html body .box{border:1px solid var(--pm-line);border-radius:var(--pm-r-lg);background:var(--pm-fill)}
+html body .kpi{border:1px solid var(--pm-line);border-radius:var(--pm-r)}
+html body .over{border-color:var(--pm-line);border-radius:var(--pm-r-lg)}
+html body :is(.poster,.tp img,.tsk,.poster.sk){border-radius:var(--pm-r)}
+html body :is(dialog#vibe,dialog#how,dialog#sugd){border:1px solid var(--pm-line-2);border-radius:var(--pm-r-lg);box-shadow:var(--pm-sh-up)}
+html body :is(.tip .pop,.bmenu){border:1px solid var(--pm-line-2);border-radius:var(--pm-r-lg);box-shadow:var(--pm-sh-up)}
+html body .vt{border:1px solid var(--pm-line);border-radius:var(--pm-r-lg)}
+html body #toast{border:1px solid var(--pm-line-2);border-radius:var(--pm-r);box-shadow:var(--pm-sh-up)}
+html body #btt{width:var(--pm-h);height:var(--pm-h);border:1px solid var(--pm-line-2);border-radius:var(--pm-r);box-shadow:var(--pm-sh)}
+html body .rlist .rrow{border:1px solid var(--pm-line-2);border-radius:var(--pm-r);background:var(--pm-fill)}
+
+/* ---- Lines and dividers: faint, never harsh ---- */
+html body .site-hd{border-bottom:1px solid var(--pm-line)}
+html body footer{border-top:1px solid var(--pm-line)}
+html body :is(.wcard .wfoot,footer .wrap.ft .lg,.hws){border-top-color:var(--pm-line)!important}
+html body :is(.vh,.rrow){border-bottom-color:var(--pm-line)}
+html body .kpi>div+div{border-left-color:var(--pm-line)}
+html body .wcard .wfoot{border-top:1px solid var(--pm-line)!important}
+
+/* ---- 200ms transitions ---- */
+@media(prefers-reduced-motion:no-preference){
+ html body :is(.chip,.sel,.fi,.theme,.ib,.fbk,.vx,.jw,.btn,.go,.star,.sw,.search,.hs,.wcard,.box,.poster,.tp img,.sla,#btt,.vt,.rrow,.clr,.sg button){
+  transition:background-color var(--pm-t) var(--pm-e),border-color var(--pm-t) var(--pm-e),color var(--pm-t) var(--pm-e),box-shadow var(--pm-t) var(--pm-e),transform var(--pm-t) var(--pm-e),opacity var(--pm-t) var(--pm-e),filter var(--pm-t) var(--pm-e)!important}
+}
+
+/* ---- Hover (pointer devices only) ---- */
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+ html body .wcard:hover{transform:translateY(-2px);border-color:var(--pm-line-2)!important;box-shadow:var(--pm-sh-up)!important}
+ html body .pc:hover .poster{transform:translateY(-2px)}
+}
+@media(hover:hover){
+ html body :is(.chip,.sel,.jw,.ib,.fbk,.vx,.rt .theme,.site-hd .theme,.site-hd .mb,.rlist .rrow):hover{border-color:color-mix(in srgb,var(--ac) 55%,transparent)!important;background:var(--pm-fill-2)!important;color:var(--tx)!important}
+ html body .chip.on:hover{background:var(--ac)!important;border-color:var(--ac)!important;color:var(--onac)!important;filter:brightness(1.07)}
+ html body .btn:hover{filter:brightness(1.08)}
+ html body .wcard:hover .go,html body .wcard:has(.wl:focus-visible) .go{background:var(--ac)!important;border-color:var(--ac)!important;color:var(--onac)!important}
+ html body .star:hover{background:var(--pm-fill-2);color:var(--tx)}
+ html body #btt:hover{background:var(--ac);border-color:var(--ac);color:var(--onac)}
+}
+
+/* ---- Pressed ---- */
+html body :is(.chip,.sel,.jw,.ib,.fbk,.vx,.btn,.go,.star,.theme,#btt,.sw):active{transform:scale(.97)}
+html body .btn:active{filter:brightness(.92)}
+html body .wcard .go:active,html body .wcard:active .go{background:var(--ac)!important;border-color:var(--ac)!important;color:var(--onac)!important}
+html body :is(.chip:not(.on),.sel,.jw,.ib,.fbk,.vx,.theme):active{background:var(--pm-fill-2)!important}
+@media(prefers-reduced-motion:reduce){html body :is(.chip,.sel,.jw,.ib,.fbk,.vx,.btn,.go,.star,.theme,#btt,.sw,.wcard):is(:hover,:active){transform:none!important}}
+/* Report dialog */
+dialog#repd{width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:0;margin:auto;border:1px solid var(--pm-line-2);border-radius:var(--pm-r-lg);background:var(--panel);color:var(--tx);box-shadow:var(--pm-sh-up);overflow:auto;overscroll-behavior:contain}
+dialog#repd::backdrop{background:var(--scrim)}
+#repf{gap:16px}#repf .btn{width:100%}#repm{min-height:20px;text-align:center}#repm a{color:var(--ac2);text-decoration:underline;text-underline-offset:2px}
+html body textarea.fi{height:auto!important;min-height:96px!important;padding:12px 14px!important;resize:vertical;line-height:1.5;font:inherit;font-size:16px}
+html body .fi:focus{border-color:var(--ac)!important;box-shadow:var(--pm-glow);outline:0}
+html body .rpt .lnk{display:inline;min-height:0;padding:10px 2px;border:0;background:none;color:var(--ac2);font:inherit;text-decoration:underline;text-underline-offset:2px}
+@media(max-width:700px){html body dialog#repd .vh{padding:16px 56px 16px 16px}}
+/* Visit arrow: sit level with the text instead of low */
+html body .wcard .go{line-height:1;align-items:center}
+html body .wcard .go svg{display:block;position:relative;top:-1.5px;flex:none}
+/* Controls are pills again (cards stay rounded rectangles) */
+html body :is(.btn,.search .btn,.chip,.sel,#sort,#rsort,.jw,.ib,.fbk,.vx,.rt .theme,.site-hd .theme,.site-hd .mb,.search,.hs,.wcard .go,#ww .wcard .go,#btt,.rlist .rrow,select.fi,input.fi,.sw,.star,#toast){border-radius:999px!important}
+html body textarea.fi{border-radius:16px!important}
+html body .sg{border-radius:20px}
+html body .sg button{border-radius:999px}
+/* Stats panel: no outer border */
+html body .stats .kpi{border:0!important;box-shadow:none!important}
+/* Header: Help and Theme buttons without borders */
+html body .site-hd .rt :is(.ib,.theme){border:0!important;background:transparent!important;box-shadow:none!important}
+@media(hover:hover){html body .site-hd .rt :is(.ib,.theme):hover{background:var(--pm-fill-2)!important}}
+html body .site-hd .rt :is(.ib,.theme):active{background:var(--pm-fill-2)!important}
+/* Desktop spacing: one 8px rhythm (section 80, block 24, card padding 20) */
+@media(min-width:701px){
+ html[data-v=home] body main{gap:80px;padding-top:40px}
+ html body .stats{padding:56px!important}
+ html body .stats .st-in{gap:64px}
+ html body #brw{gap:24px}
+ html body #brw .filters{gap:12px}
+ html body .box{padding:16px 20px;align-items:center}
+ html body .grid4.sm{gap:24px}
+ html body #app .wcard .wtop{padding:40px 20px 12px!important;gap:8px!important}
+ html body #app .wcard .wfoot{padding:12px 20px!important}
+ html body .sec{gap:24px}
+ html body .hiw-steps{gap:32px 64px}
+}
+/* Back to top on phones: higher, in easy thumb reach (bottom-right) */
+@media(max-width:700px){html body #btt{right:16px!important;bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;width:48px!important;height:48px!important;opacity:1}html body #btt:not(.show){opacity:0}}
 </style>
 </head>
 <body>
@@ -1432,7 +1591,7 @@ function results(){const q=nz(S.q);
 function details(){const t=TITLES[S.tid],ws=SITES.filter(s=>s.c.includes(t.type)).sort((a,b)=>b.online-a.online);
  return `<button class="back" data-go="results">${ICON.back} Back to results</button>
  <section class="over"><div class="poster">${t.img?`<img src="${esc(t.img)}" alt="" width="282" height="423" decoding="async" fetchpriority="high" onerror="this.outerHTML=art(TITLES[${S.tid}])" style="width:100%;height:100%;object-fit:cover">`:art(t)}</div><div class="sum"><div class="u-row u-g10"><span class="s13 mu">${esc(ty(t))}${t.yr?' · '+t.yr:''}</span></div><div><h1>${esc(t.name)}</h1>${t.alt?`<p class="s14 mu u-mt8">Also called “${esc(t.alt)}”</p>`:''}</div><button type="button" class="jw">See where to watch ↓</button><p class="mu syn">${esc(t.syn)}</p><button type="button" class="rm">Read more</button></div></section>
- <section class="sec" id="ww"><div class="u-row"><h2>Where to watch</h2>${help}</div><p class="wt">Watching: <b>${esc(t.name)}</b>${t.yr?' ('+t.yr+')':''}</p><div class="box">${ICON.warn}<p class="s13 mu">Availability is not verified. Open a site, then search for this title there.</p>${chk()?`<p class="s13 mu kchk2" style="margin-left:auto">${chk().replace('Status checked','<span class="nx">Status </span>checked')}</p>`:''}</div>${ws.some(s=>s.d&&!/youtube\.com/.test(s.d)&&!TDL[s.n.toLowerCase()])?'<p class="s13 mu lkh" id="lkh" role="status">Looking for direct links. The first lookup for a title can take up to a minute, and you can use Visit in the meantime.</p>':''}${ws.length?`<div class="grid4 sm">${ws.map((s,i)=>siteCard(s,i,true)).join('')}</div>`:'<div class="box"><p class="s14 mu">No websites listed for this category yet.</p></div>'}${ws.length?`<p class="rpt">Link not working or unsafe? <a href="https://github.com/James-29-00/cinefind/issues/new?title=${encodeURIComponent('Broken link: '+t.name)}" target="_blank" rel="noopener noreferrer">Report it</a></p>`:''}</section>`}
+ <section class="sec" id="ww"><div class="u-row"><h2>Where to watch</h2>${help}</div><p class="wt">Watching: <b>${esc(t.name)}</b>${t.yr?' ('+t.yr+')':''}</p><div class="box">${ICON.warn}<p class="s13 mu">Availability is not verified. Open a site, then search for this title there.</p>${chk()?`<p class="s13 mu kchk2" style="margin-left:auto">${chk().replace('Status checked','<span class="nx">Status </span>checked')}</p>`:''}</div>${ws.some(s=>s.d&&!/youtube\.com/.test(s.d)&&!TDL[s.n.toLowerCase()])?'<p class="s13 mu lkh" id="lkh" role="status">Looking for direct links. The first lookup for a title can take up to a minute, and you can use Visit in the meantime.</p>':''}${ws.length?`<div class="grid4 sm">${ws.map((s,i)=>siteCard(s,i,true)).join('')}</div>`:'<div class="box"><p class="s14 mu">No websites listed for this category yet.</p></div>'}${ws.length?`<p class="rpt">Link not working or unsafe? <button type="button" class="lnk" data-rep="1">Report it</button></p>`:''}</section>`}
 
 const cfCK=I('clock',20),svR=()=>{try{localStorage.setItem('cf-recent',JSON.stringify(S.recent))}catch(e){}},trL=()=>(TRD||[]).filter(m=>(m.media_type==='movie'||m.media_type==='tv')&&m.poster_path&&(m.title||m.name)&&(!TF||TF==='all'||(TF==='anime'?(m.genre_ids||[]).includes(16):TF===m.media_type))).slice(0,12),rcH=()=>!S.recent.length?'':`<div class="hrow"><h2>Recent searches</h2>${S.recent.length?'<button class="lnk" data-rxa="1">Clear all</button>':''}</div>${S.recent.length?`<div class="rlist">${S.recent.map(n=>`<div class="rrow"><button class="rq" data-rq="${esc(n)}">${cfCK}<span>${esc(n)}</span></button><button class="rx" data-rx="${esc(n)}" aria-label="Remove ${esc(n)}">${XI}</button></div>`).join('')}</div>${S.recent.length>3?'<button class="lnk rmore" data-rmore="1">Show more</button>':''}`:'<p class="fe">Titles you search for will show up here.</p>'}`,trH=()=>{const t=trL();return TRF&&!t.length?'':`<div class="hrow"><div class="u-row"><h2 class="hh">${HI.tr}Trending now</h2>${t.length?`<span class="cb">${t.length}</span>`:''}</div></div>`+(t.length?`<div class="trr">${t.map(m=>{const n=m.title||m.name;return`<button class="tp" data-rq="${esc(n)}"><img src="https://image.tmdb.org/t/p/w342${m.poster_path}" alt="" loading="lazy" width="104" height="156" onerror="this.hidden=1"><span>${esc(n)}</span></button>`}).join('')}</div>`:TRD&&TRD.length?'<p class="fe">Nothing trending here right now.</p>':TRF?'':'<div class="trr" aria-hidden="true">'+'<i class="tp tsk"></i>'.repeat(10)+'</div>')};
 var TRF,TF='all';function CH(){return '<div class="fch">'+[['all','All'],['movie','Movies'],['tv','TV Series'],['anime','Anime']].map(([k,l])=>`<button class="chip" data-tf="${k}" aria-pressed="${(TF||'all')===k}">${I({all:'grid',movie:'film',tv:'monitor',anime:'sparkle'}[k],16)}<span>${l}</span></button>`).join('')+'</div>'}async function ldTr(){TRF=0;if(!TRD){try{let c;try{c=JSON.parse(localStorage.getItem('cf-tr'))}catch(e){}if(c&&Date.now()-c.t<18e5)TRD=c.d;else{TRD=(await(await fetch(TM+'?mode=trending')).json()).results||[];try{TRD.length&&localStorage.setItem('cf-tr',JSON.stringify({t:Date.now(),d:TRD}))}catch(e){}}}catch(e){}}TRF=!trL().length;const e=$('#trn');e&&(e.innerHTML=trH())}
@@ -1736,6 +1895,15 @@ setTheme(pref);route();visPoll();setInterval(()=>{document.hidden||visPoll()},90
 </script>
 <script>{const r=document.documentElement,b=document.getElementById('mbtn'),set=o=>{r.classList.toggle('mo',o);b.setAttribute('aria-expanded',o);b.querySelector('use').setAttribute('href',o?'#i-x':'#i-menu');const n=document.getElementById('mnav');o?setTimeout(()=>n.querySelector('.mx').focus({preventScroll:true}),60):n.contains(document.activeElement)&&b.focus({preventScroll:true})};b.addEventListener('click',e=>{e.stopPropagation();set(!r.classList.contains('mo'))});document.addEventListener('click',e=>{r.classList.contains('mo')&&!e.target.closest('#mbtn')&&set(false)},true);addEventListener('hashchange',()=>set(false));addEventListener('keydown',e=>e.key==='Escape'&&set(false))}</script>
 <dialog id="sugd" aria-labelledby="sugT"><div class="vh"><h2 id="sugT">Suggest a website</h2><p>Tell us a streaming website to add. We'll review it.</p><button class="vx" type="button" data-sx aria-label="Close"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div><form class="hwb" id="sugf"><label class="fl">Website name<input class="fi" name="name" required maxlength="80" autocomplete="off"></label><label class="fl">Website URL<input class="fi" name="url" type="url" required placeholder="https://" inputmode="url" autocapitalize="off" autocomplete="off"></label><label class="fl">Category<select class="fi" name="category"><option>Movies</option><option>Anime</option><option>Asian Drama</option><option>Filipino/Local</option></select></label><button class="btn" type="submit">Email suggestion</button><p class="s13 mu" id="sugm" role="status"></p></form></dialog>
+<dialog id="repd" aria-labelledby="repT"><div class="vh"><h2 id="repT">Report a problem</h2><p id="rept"></p><button class="vx" type="button" data-px aria-label="Close"><svg class="i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div><form class="hwb" id="repf"><label class="fl">Which website<select class="fi" name="site"></select></label><label class="fl">What's wrong<select class="fi" name="reason"><option>Link doesn't work</option><option>Wrong title or page</option><option>Unsafe or too many pop-ups</option><option>Other</option></select></label><label class="fl">Details (optional)<textarea class="fi" name="details" maxlength="500" rows="3" placeholder="Anything that helps us fix it"></textarea></label><input class="sr" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn" type="submit">Send report</button><p class="s13 mu" id="repm" role="status"></p></form></dialog>
+<script>{const REPORT_URL='';/* paste your Worker URL here, e.g. https://cinefind-report.YOURNAME.workers.dev */
+const d=document.getElementById('repd'),f=document.getElementById('repf'),m=document.getElementById('repm'),b=f.querySelector('.btn'),ct=document.getElementById('ct').dataset;
+const issue=(t,g)=>'https://github.com/James-29-00/cinefind/issues/new?title='+encodeURIComponent('Broken link: '+t.name)+'&body='+encodeURIComponent(g);
+document.addEventListener('click',e=>{const r=e.target.closest('[data-rep]');if(r){const t=TITLES[S.tid];if(!t)return;f.reset();m.textContent='';b.disabled=false;document.getElementById('rept').textContent=t.name+(t.yr?' ('+t.yr+')':'');const ws=SITES.filter(s=>s.c.includes(t.type)&&s.d);f.elements.site.innerHTML='<option value="">Not sure / all of them</option>'+ws.map(s=>'<option>'+esc(s.n)+'</option>').join('');d.showModal();return}if(e.target===d||e.target.closest('[data-px]'))d.close()});
+f.addEventListener('submit',async e=>{e.preventDefault();if(f.elements.hp.value)return d.close();const t=TITLES[S.tid],g=n=>f.elements[n].value.trim(),p={title:t.name,year:t.yr||null,tmdb:t.tm||null,type:t.tv?'tv':'movie',site:g('site')||null,reason:g('reason'),details:g('details').slice(0,500),page:location.href},body='Title: '+p.title+'\nWebsite: '+(p.site||'not sure')+'\nProblem: '+p.reason+'\nDetails: '+p.details;
+if(!REPORT_URL){location.href='mailto:'+ct.u+'@'+ct.d+'?subject='+encodeURIComponent('Cinefind: link report')+'&body='+encodeURIComponent(body);m.textContent='Your email app should open. Press Send to finish.';return}
+b.disabled=true;m.textContent='Sending…';
+try{const r=await fetch(REPORT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p),signal:AbortSignal.timeout(15000)});if(!r.ok)throw 0;d.close();toast('Thanks. Your report was sent.')}catch(_){b.disabled=false;m.innerHTML='Couldn’t send. Please try again, or <a href="'+esc(issue(t,body))+'" target="_blank" rel="noopener noreferrer">report it on GitHub</a>.'}})}</script>
 <script>{const d=document.getElementById('sugd'),f=document.getElementById('sugf'),m=document.getElementById('sugm');document.addEventListener('click',e=>{const a=e.target.closest('a.sug');if(a){e.preventDefault();m.textContent='';f.reset();d.showModal();return}if(e.target===d||e.target.closest('[data-sx]'))d.close()});f.addEventListener('submit',e=>{e.preventDefault();const g=n=>f.elements[n].value.trim(),x=document.getElementById('ct').dataset,body='Website name: '+g('name')+'\nURL: '+g('url')+'\nCategory: '+g('category');location.href='mailto:'+x.u+'@'+x.d+'?subject='+encodeURIComponent('Cinefind: website suggestion')+'&body='+encodeURIComponent(body);m.textContent='Your email app should open. Press Send to finish.'})}</script>
 <script>/* Where to watch: list sites with a direct link first (stable order otherwise) */
 (function(){function s(){var g=document.querySelector('#ww .grid4.sm');if(!g)return;var c=[].slice.call(g.querySelectorAll(':scope>.wcard:not(.sug)'));c.forEach(function(x,i){if(x.dataset.o==null)x.dataset.o=i});var r=c.slice().sort(function(a,b){return(a.querySelector('.lkst.dir')?0:1)-(b.querySelector('.lkst.dir')?0:1)||a.dataset.o-b.dataset.o});if(r.some(function(x,i){return x!==c[i]}))r.forEach(function(x){g.appendChild(x)})}
@@ -1744,8 +1912,8 @@ setTheme(pref);route();visPoll();setInterval(()=>{document.hidden||visPoll()},90
 <script>(function(){var t=document.getElementById('nBrowse'),m=document.getElementById('bmenu');if(!t||!m)return;var set=function(o){m.hidden=!o;t.setAttribute('aria-expanded',o)};t.addEventListener('click',function(e){e.stopPropagation();set(m.hidden)});document.addEventListener('click',function(e){if(!m.hidden&&!e.target.closest('.bm'))set(false)});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!m.hidden){set(false);t.focus()}});m.addEventListener('click',function(e){var b=e.target.closest('[data-bc]');if(!b)return;set(false);var c=b.dataset.bc,run=function(){var ch=document.querySelector('.chip[data-cat="'+c+'"]');ch&&ch.click();setTimeout(function(){var s=document.getElementById('brw');s&&s.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'})},60)};if(document.querySelector('.chip'))run();else{location.hash='#/';setTimeout(run,350)}})})();</script>
 <button id="btt" type="button" aria-label="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
 <script>/* Back to top: appears after scrolling down, scrolls smoothly to the top */
-(function(){var b=document.getElementById('btt'),on=0,t;function u(){var s=(window.scrollY||document.documentElement.scrollTop)>400;if(s!==on){on=s;b.classList.toggle('show',s)}}
-addEventListener('scroll',function(){clearTimeout(t);t=setTimeout(u,50)},{passive:true});u();
+(function(){var b=document.getElementById('btt'),on=0,last=window.scrollY||0,tk=0;function set(v){if(v!==on){on=v;b.classList.toggle('show',v)}}function u(){tk=0;var y=window.scrollY||document.documentElement.scrollTop,d=y-last;if(y<400)set(0);else if(y+innerHeight>=document.documentElement.scrollHeight-8)set(1);else if(d<-4)set(1);else if(d>4)set(0);if(Math.abs(d)>4)last=y}
+addEventListener('scroll',function(){tk||(tk=requestAnimationFrame(u))},{passive:true});u();
 b.addEventListener('click',function(){var rm=matchMedia('(prefers-reduced-motion:reduce)').matches;scrollTo({top:0,behavior:rm?'auto':'smooth'});b.blur()})})();
 </script>
 </body>
