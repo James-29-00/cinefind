@@ -1276,37 +1276,6 @@ html body .mainnav .bm>button .i{width:20px;height:20px}
 @media(min-width:701px){html body #hbtn{display:grid}}@media(max-width:700px){html body #hbtn{display:none}}
 html body dialog#how::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ac) 60%,transparent);border-radius:3px}
 @media(max-width:700px){html body #btt{width:36px;height:36px;right:8px;bottom:calc(96px + env(safe-area-inset-bottom,0px));opacity:.85}html body #btt:not(.show){opacity:0}}
-
-/* ===== Desktop polish (min-width:701px only; phone view untouched) ===== */
-@media(min-width:701px){
-/* 1. consistent section heading */
-html body .sec.hiw h2.hh{font-size:30px;font-weight:600;line-height:1.15}
-/* 2. solid accent on the hero word instead of a mid-word gradient */
-html body .tl .hl,html body .stats .tl .hl{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;-webkit-text-fill-color:currentColor!important;color:var(--ac2)!important;filter:none!important}
-/* 3. tighter hero card, calmer corner glow */
-html body .stats{padding:clamp(24px,2.6vw,36px);background-image:radial-gradient(60% 90% at 0% 0%,color-mix(in srgb,var(--ac) 6%,transparent),transparent 70%)}
-/* 6. quieter background glow */
-:root,:root[data-t]{--veil:.8}
-/* 7. calmer hero waves so they stop competing with the stats box */
-html body .cfa-rbs{opacity:.3}
-/* 11. less teal everywhere: neutral names and Visit, accent only on hover/active */
-html body #app .wcard:not(#ww .wcard) .wlogo b,html body #app .wcard:not(#ww .wcard) .wlogo b *,html body #app .wcard:not(#ww .wcard) .wlogo .lbd{color:var(--tx)!important}
-html body #app .wcard:not(#ww .wcard):not(.flg) .go{color:var(--tx)!important;border-color:color-mix(in srgb,var(--tx) 32%,transparent)!important;background:transparent!important}
-html body #app .wcard:not(#ww .wcard):not(.flg):hover .go,html body #app .wcard:not(#ww .wcard):not(.flg) .go:hover,html body #app .wcard:not(#ww .wcard):not(.flg) .wl:focus-visible~* .go{background:var(--ac)!important;border-color:var(--ac)!important;color:var(--onac)!important}
-/* 12. no glow behind the logo on hover */
-html body .wcard:hover .wlogo,html body .wcard:has(.wl:focus-visible) .wlogo{background:none!important}
-/* 13. fewer caps labels: keep hero + "not a streaming host" only; neutral colour */
-html body #brw>.eyebrow,html body main#app>section.sec:not(.hiw):not(#brw)>.eyebrow{display:none!important}
-html body .hiw .eyebrow{color:var(--mu)}
-/* 9. tighter gap between hero and directory */
-html body main#app>.hero{margin-bottom:-16px}
-/* 10. layered, lightly tinted surfaces (page < hero/card), per theme */
-html body .wcard{background-color:color-mix(in srgb,var(--tx) 9%,color-mix(in srgb,var(--ac) 1.5%,var(--bg)));border-color:color-mix(in srgb,var(--tx) 16%,transparent)}
-html body .stats{background-color:color-mix(in srgb,color-mix(in srgb,var(--tx) 7%,color-mix(in srgb,var(--ac) 3%,var(--bg))) 86%,transparent)}
-/* 8. slimmer availability bar */
-html body #brw .box{background:none;border:0;border-radius:0;padding:4px 2px;min-height:0}
-html body #brw .box svg,html body #brw .box .i{color:var(--mu)!important}
-}
 </style>
 </head>
 <body>
