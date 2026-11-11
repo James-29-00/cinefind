@@ -1541,9 +1541,15 @@ html body .hero .glow::after{display:none}
 <style>html:root[data-t] body :is(.u-rhd,.fnd .frow) .search{box-sizing:border-box;height:56px;min-height:56px;padding:6px;background:var(--panel);border:1px solid color-mix(in srgb,var(--tx) 14%,transparent)}
 html:root[data-t] body :is(.u-rhd,.fnd .frow) .search:focus-within{border-color:var(--ac2)}
 html[data-v=results] .u-rhd{position:sticky;top:var(--hh,64px);z-index:4;padding:10px 0;background:color-mix(in srgb,var(--bg) 92%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}</style>
-<style>@media(min-width:701px){html body .fnd #trn .trr{grid-template-columns:repeat(6,minmax(0,150px));gap:16px}html body .fnd #trn .tp:nth-child(n+7){display:none}}
+<style>@media(min-width:701px){html body .fnd #trn .trr{grid-template-columns:repeat(5,minmax(0,160px));gap:24px 16px}}
 html body .fnd:has(#trn button.tp) .fsec:not(#rcl):not(#trn){display:none}
-html body .fnd .rmore{margin:0;padding:0;min-height:0;font-size:14px;align-self:flex-start}</style>
+html body .fnd .rmore{margin:0;padding:0;min-height:0;font-size:14px;align-self:flex-start}
+@media(min-width:701px){
+html[data-v=details] footer .wrap.ft nav:nth-of-type(2){display:flex!important;grid-column:2/-1;grid-row:1;flex-direction:row;flex-wrap:wrap;gap:4px 24px;justify-content:flex-end;align-self:center}
+html[data-v=details] footer .wrap.ft nav:nth-of-type(2) b{display:none}
+html[data-v=details] footer .lg{max-width:none}
+html[data-v=details] footer .lg .dis{display:inline;margin:0 10px 0 0;font-size:13px}
+}</style>
 <style>@media(max-width:700px){html body .hac .hww.hso{display:none}}</style>
 <style id="cf-ctl">
 @media(min-width:701px){
@@ -1576,7 +1582,16 @@ html:is([data-v=home],[data-v=find],[data-v=results]) body footer .wrap.ft .fcp{
 </style>
 <style id="cf-sug">@media(min-width:1100px){html body #brw .grid4.sm .sug{grid-column:span 2;flex-direction:column;min-height:0}}</style>
 <style id="cf-foot4">@media(min-width:701px){html:is([data-v=home],[data-v=find],[data-v=results]) body footer .wrap.ft .lg p.dis{max-width:560px}}</style>
-<style id="cf-hon">html body .hon{display:inline-flex;align-items:center;gap:8px;margin-left:24px;font-size:14px;color:var(--mu)}html body .hon i{width:8px;height:8px;border-radius:50%;background:var(--ok)}</style>
+<style id="cf-hon">html body .hon{display:inline-flex;align-items:center;gap:8px;margin-left:24px;font-size:14px;color:var(--mu)}html body .hon i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+@media(min-width:701px){
+html body .hero .stats{position:relative}
+html body .hero .hcap{margin-top:calc(var(--u)*44)}
+html body .hero .hct{font-size:calc(var(--u)*26);min-width:0}
+html body .hero .hon{position:absolute;margin:0;right:calc((100vw - min(100vw,var(--u)*1204 + 96px))/2 + 48px);bottom:calc(var(--u)*24 + 15px)}
+html body #brw .u-row>.cb{display:none}
+html body #brw .box{padding:8px 14px;align-items:center;border-radius:10px}
+html body .stats .hbk{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 200px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 200px),transparent)}
+}</style>
 </head>
 <body>
 
@@ -1795,7 +1810,7 @@ const U=m=>m.backdrop_path?'https://image.tmdb.org/t/p/'+(innerWidth>700?'w1280'
 const init=()=>{const h=document.querySelector('.stats .hbk:not([data-i])');if(!h)return;const d=L();if(!d.length){const c=h.parentNode.querySelector('.hcap');if(c&&!c.firstChild){c.innerHTML='<p class="hov">A directory of streaming websites. Check each one yourself. Statuses show what was reachable at the last check.</p><div class="hac"><button class="hww" type="button" data-bw="1">Browse websites</button><button class="hww hso" type="button">Search a title</button></div>';c.hidden=false}if(!W&&N<30){W=1;N++;setTimeout(()=>{W=0;init()},2000)}return}
 h.dataset.i=1;N=0;const st=h.parentNode,cap=st.querySelector('.hcap');let k=0,iv=0,first=1;
 const a=[0,1].map(()=>{const i=new Image();i.alt='';i.decoding='async';h.appendChild(i);return i});
-const txt=m=>{const n=m.title||m.name,g=[...new Set((m.genre_ids||[]).map(x=>G[x]).filter(Boolean))].slice(0,3),o=m.overview||'',t=(o.match(/^.*?[.!?](?=\s|$)/)||[o])[0];return '<div class="hrw"><p class="hct">'+E(n)+'</p>'+(g.length?'<div class="hch">'+g.map(x=>'<span>'+E(x)+'</span>').join('')+'</div>':'')+'</div>'+(t?'<p class="hov">'+E(t)+'</p>':'')+'<div class="hac"><button class="hww" type="button" data-rq="'+E(n)+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>See Websites</button><button class="hww hso" type="button">Search a title</button>'+(d.length>1?'<button class="hnx hpv" type="button" data-hp="1" aria-label="Previous slide"></button><span class="hcnt">0'+(k+1)+' / 0'+d.length+'</span><button class="hnx" type="button" data-hn="1" aria-label="Next slide"></button>':'')+(SITES.some(x=>x.st&&x.st!=='unk')?'<span class="hon"><i></i>'+SITES.filter(x=>x.online).length+' of '+SITES.length+' sites online</span>':'')+'</div>'};
+const txt=m=>{const n=m.title||m.name,g=[...new Set((m.genre_ids||[]).map(x=>G[x]).filter(Boolean))].slice(0,3),o=m.overview||'',t=(o.match(/^.*?[.!?](?=\s|$)/)||[o])[0];return '<div class="hrw"><p class="hct">'+E(n)+'</p>'+(g.length?'<div class="hch">'+g.map(x=>'<span>'+E(x)+'</span>').join('')+'</div>':'')+'</div>'+(t?'<p class="hov">'+E(t)+'</p>':'')+'<div class="hac"><button class="hww" type="button" data-bw="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>See Websites</button><button class="hww hso" type="button">Search a title</button>'+(d.length>1?'<button class="hnx hpv" type="button" data-hp="1" aria-label="Previous slide"></button><span class="hcnt">0'+(k+1)+' / 0'+d.length+'</span><button class="hnx" type="button" data-hn="1" aria-label="Next slide"></button>':'')+(SITES.some(x=>x.st&&x.st!=='unk')?'<span class="hon"><i></i>'+SITES.filter(x=>x.online).length+' of '+SITES.length+' sites online</span>':'')+'</div>'};
 const show=()=>{const j=k,m=d[j],i=a[j%2];i.onload=()=>{i.classList.add('on');a[(j+1)%2].classList.remove('on');st.classList.add('hb')};U(m)&&(i.src=U(m));
 if(cap){const put=()=>{cap.innerHTML=txt(m);cap.hidden=false;cap.classList.remove('o')};if(first){put();first=0}else{cap.classList.add('o');setTimeout(put,R.matches?0:200)}}
 U(d[(j+1)%d.length])&&(new Image().src=U(d[(j+1)%d.length]))};
