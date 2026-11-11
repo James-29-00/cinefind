@@ -1433,6 +1433,10 @@ html{--ud:min(var(--u),1.12px)}
 html body #brw h2{font-size:calc(var(--ud)*30)}
 html body #brw .eyebrow{font-size:calc(var(--ud)*13)}
 html:root[data-t] body #brw .chip{height:calc(var(--ud)*38);padding:0 calc(var(--ud)*16);font-size:calc(var(--ud)*14)}
+html body .stats .hbk img{filter:brightness(1.25) saturate(1.15)}
+html body .stats .hbk::before{content:"";position:absolute;inset:0;z-index:1;background:color-mix(in srgb,var(--ac) 16%,transparent);mix-blend-mode:soft-light}
+html body .stats .hbk::after{z-index:2;background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 82%,transparent) 0%,color-mix(in srgb,var(--bg) 30%,transparent) 50%,transparent 78%),linear-gradient(180deg,color-mix(in srgb,var(--bg) 60%,transparent),transparent 20%),linear-gradient(0deg,var(--bg),transparent 28%)}
+html body .hov{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;max-width:calc(var(--u)*582)}
 html body .stats .hbk{background:radial-gradient(55% 85% at 78% 38%,color-mix(in srgb,var(--ac) 26%,transparent),transparent 70%),radial-gradient(40% 60% at 95% 90%,color-mix(in srgb,var(--ac) 14%,transparent),transparent 70%)}
 html body .hs2{width:calc(var(--u)*380);height:calc(var(--u)*14);margin-top:calc(var(--u)*18)}
 }
@@ -1661,7 +1665,7 @@ addEventListener('scroll',function(){tk||(tk=requestAnimationFrame(u))},{passive
 b.addEventListener('click',function(){var rm=matchMedia('(prefers-reduced-motion:reduce)').matches;scrollTo({top:0,behavior:rm?'auto':'smooth'});b.blur()})})();
 </script>
 <script>(()=>{try{const R=matchMedia('(prefers-reduced-motion:reduce)'),G={28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',27:'Horror',10402:'Music',9648:'Mystery',10749:'Romance',878:'Sci-Fi',53:'Thriller',10752:'War',37:'Western',10759:'Action',10765:'Sci-Fi',10768:'War'},E=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));let N=0,P=0,W=0;document.addEventListener('click',e=>{e.target.closest('.hww:not([data-rq])')&&go('find')});
-const L=()=>{try{const c=JSON.parse(localStorage.getItem('cf-tr'));return((c&&c.d)||[]).filter(m=>(m.media_type==='movie'||m.media_type==='tv')&&m.backdrop_path&&(m.title||m.name)).slice(0,5)}catch(e){return[]}};
+const L=()=>{try{const c=JSON.parse(localStorage.getItem('cf-tr'));return((c&&c.d)||[]).filter(m=>(m.media_type==='movie'||m.media_type==='tv')&&m.backdrop_path&&(m.title||m.name)).slice(0,3)}catch(e){return[]}};
 const U=m=>m.backdrop_path?'https://image.tmdb.org/t/p/'+(innerWidth>700?'w1280':'w780')+m.backdrop_path:'';
 const init=()=>{const h=document.querySelector('.stats .hbk:not([data-i])');if(!h)return;const d=L();if(!d.length){const c=h.parentNode.querySelector('.hcap');if(c&&!c.firstChild){c.innerHTML='<div class="hrw"><i class="hs1"></i><i class="hs3"></i><i class="hs3"></i><i class="hs3"></i></div><i class="hs2"></i><div class="hac"><button class="hww" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Where to Watch</button><span class="hdots"><button type="button" aria-current="true" aria-label="Slide 1"></button><button type="button" aria-label="Slide 2"></button><button type="button" aria-label="Slide 3"></button></span><button class="hnx" type="button" aria-label="Next slide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>';c.hidden=false}if(!W&&N<30){W=1;N++;setTimeout(()=>{W=0;init()},2000)}return}
 h.dataset.i=1;N=0;const st=h.parentNode,cap=st.querySelector('.hcap');let k=0,iv=0,first=1;
