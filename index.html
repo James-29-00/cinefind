@@ -1216,7 +1216,7 @@ html body dialog#how::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(-
 /* ===== Link-type badges: Direct link = green, Search on site = amber, Open site = neutral ===== */
 html body #app #ww .wcard .tag.lkst:not(.chk){display:inline-flex;align-items:center;gap:6px;height:auto;min-height:0;padding:3px 10px 3px 8px;border:1px solid transparent;border-radius:999px;font-size:13px;font-weight:600;line-height:1.3;background:color-mix(in srgb,var(--tx) 8%,transparent);color:var(--mu)}
 html body #app #ww .wcard .tag.lkst:not(.chk)::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
-html body #app #ww .wcard .tag.lkst.dir{color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent);border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+html body #app #ww .wcard .tag.lkst.dir{color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);border-color:color-mix(in srgb,var(--ok) 35%,transparent);padding:2px 10px 2px 8px;font-weight:600;letter-spacing:.01em}
 html body #app #ww .wcard .tag.lkst.srch{color:var(--ac2);background:color-mix(in srgb,var(--ac) 14%,transparent);border-color:color-mix(in srgb,var(--ac) 38%,transparent)}
 html body #app #ww .wcard .tag.lkst.hm,html body #app #ww .wcard .tag.lkst.yt{color:var(--mu)}
 
@@ -1278,7 +1278,7 @@ html body footer .wrap.ft .lg p.dis a{color:var(--ac2);text-decoration:underline
 html body #app #ww .wcard .tag.lkst.srch,
 html body #app #ww .wcard .tag.lkst.hm,
 html body #app #ww .wcard .tag.lkst.yt{background:none;border-color:transparent;padding:3px 0;font-weight:500;color:color-mix(in srgb,var(--tx) 78%,var(--bg))}
-html body #app #ww .wcard .tag.lkst.srch::before{background:var(--ac2)}
+html body #app #ww .wcard .tag.lkst.srch::before{content:none}
 html body #app #ww .wcard .tag.lkst.hm::before,
 html body #app #ww .wcard .tag.lkst.yt::before{background:var(--unk)}
 
@@ -1618,7 +1618,7 @@ html:root[data-t] body .hero .hcap .hac .hso{display:none!important}@media(max-w
 @media(max-width:700px){html:root[data-t] body .site-hd .rt #theme{display:none!important}html:root body .site-hd .wrap.hd{gap:0!important;min-height:56px}html:root body .site-hd #mbtn{order:-1!important;margin:0 0 0 -10px!important}html:root body .site-hd .brand{order:0!important;margin:0 auto 0 4px!important;gap:8px}html:root body .site-hd .rt{order:1!important;gap:0!important;margin-right:-10px!important}html:root body .site-hd .rt .theme{margin:0!important}html:root body .hero .hcap .hww::before{content:none!important;display:none!important}html:root[data-t] body .hero .hcap .hac .hww{flex:none;justify-content:center;white-space:nowrap;font-size:16px!important;padding:0 28px!important;gap:8px!important}html:root[data-t] body .hero .hcap .hac .hso{margin-left:0!important;padding:0 16px!important}html:root body .hero .hcap .hac{width:auto!important;display:flex!important;align-items:center;gap:12px!important}}
 html body #ww .wcard .dom::after{display:none!important}
 .box:empty{display:none}
-@media(min-width:701px){html body #ww .tag.lkst.chk{display:none}}
+html body #ww .tag.lkst.chk{display:inline-flex}
 html body .wcard:not(.dim):not(.flg) .wfoot>span:first-child{display:none}
 html body .wfoot{justify-content:flex-end}
 html body .wcard .wfoot{gap:12px!important}
