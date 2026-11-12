@@ -1216,7 +1216,9 @@ html body dialog#how::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(-
 /* ===== Link-type badges: Direct link = green, Search on site = amber, Open site = neutral ===== */
 html body #app #ww .wcard .tag.lkst:not(.chk){display:inline-flex;align-items:center;gap:6px;height:auto;min-height:0;padding:3px 10px 3px 8px;border:1px solid transparent;border-radius:999px;font-size:13px;font-weight:600;line-height:1.3;background:color-mix(in srgb,var(--tx) 8%,transparent);color:var(--mu)}
 html body #app #ww .wcard .tag.lkst:not(.chk)::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
-html body #app #ww .wcard .tag.lkst.dir{color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);border-color:color-mix(in srgb,var(--ok) 35%,transparent);padding:2px 10px 2px 8px;font-weight:600;letter-spacing:.01em}
+html body #app #ww .wcard .tag.lkst.dir{color:var(--ok);background:none;border-color:transparent;padding:3px 0;font-weight:700;font-size:14px}
+html body #app #ww .wcard .tag.lkst.srch{color:color-mix(in srgb,var(--tx) 85%,var(--bg));font-weight:500}
+html body #app #ww .wcard .tag.lkst.dir::before{content:"\2713";width:auto;height:auto;border-radius:0;background:none;font-size:13px;font-weight:700}
 html body #app #ww .wcard .tag.lkst.srch{color:var(--ac2);background:color-mix(in srgb,var(--ac) 14%,transparent);border-color:color-mix(in srgb,var(--ac) 38%,transparent)}
 html body #app #ww .wcard .tag.lkst.hm,html body #app #ww .wcard .tag.lkst.yt{color:var(--mu)}
 
@@ -1278,7 +1280,7 @@ html body footer .wrap.ft .lg p.dis a{color:var(--ac2);text-decoration:underline
 html body #app #ww .wcard .tag.lkst.srch,
 html body #app #ww .wcard .tag.lkst.hm,
 html body #app #ww .wcard .tag.lkst.yt{background:none;border-color:transparent;padding:3px 0;font-weight:500;color:color-mix(in srgb,var(--tx) 78%,var(--bg))}
-html body #app #ww .wcard .tag.lkst.srch::before{content:none}
+html body #app #ww .wcard .tag.lkst.srch::before{content:"";width:13px;height:13px;border-radius:0;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E") center/contain no-repeat}
 html body #app #ww .wcard .tag.lkst.hm::before,
 html body #app #ww .wcard .tag.lkst.yt::before{background:var(--unk)}
 
