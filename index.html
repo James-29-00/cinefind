@@ -1621,6 +1621,17 @@ html body #ww .wcard .dom::after{display:none!important}
 html body #ww .tag.lkst.chk{display:none}
 html body .wcard:not(.dim):not(.flg) .wfoot>span:first-child{display:none}
 html body .wfoot{justify-content:flex-end}
+html body .wcard .wfoot{gap:12px!important}
+html body .wcard .wfoot>span:first-child{flex:none;white-space:nowrap}
+html body .wcard .wfoot .go{border-radius:8px!important}
+/* phones: let horizontal swipes reach the hero slideshow */
+html body .hero .stats{touch-action:pan-y}
+/* phones: show the hero caption (title, rating, overview, Where to watch, slide dots) like desktop */
+@media(max-width:700px){html body .hero .stats:has(.hbk[data-i]) .hcap:not([hidden]){display:block!important}}
+/* show link status (Online / Offline / Flagged) on every card in every view; hidden only until status data exists */
+html body .wcard .wfoot>span:first-child:not(.nst){display:inline-flex!important;align-items:center}
+html body .wcard .wfoot>span.nst:first-child{display:none!important}
+@media(max-width:700px){html body #ww .wcard .wfoot>span:first-child:not(.nst){grid-column:2 / -1;grid-row:3;gap:6px;font-size:13px;margin-top:2px}}
 @media(max-width:700px){
 html body #ww .wcard .wlogo .wimg{width:auto!important;height:auto!important;max-width:72px!important;max-height:30px!important}
 html body footer .wrap.ft .fcp{padding-right:56px}
@@ -1850,7 +1861,7 @@ if(cap){cap.innerHTML=txt(m,j);cap.hidden=false}
 U(d[(j+1)%d.length])&&(new Image().src=U(d[(j+1)%d.length]))};
 const go=n=>{k=(n+d.length)%d.length;show()},tick=()=>{clearInterval(iv);iv=0;if(R.matches||d.length<2)return;iv=setInterval(()=>{if(!h.isConnected)return clearInterval(iv);if(P||document.hidden)return;go(k+1)},7000)};
 cap&&cap.addEventListener('click',e=>{const b=e.target.closest('[data-hd],[data-hn],[data-hp]');if(!b)return;go(b.dataset.hn?k+1:b.dataset.hp?k-1:+b.dataset.hd);tick()});
-st.addEventListener('pointerenter',()=>P=1);st.addEventListener('pointerleave',()=>P=0);let sx=0;st.addEventListener('pointerdown',e=>sx=e.clientX);st.addEventListener('pointerup',e=>{const x=e.clientX-sx;if(Math.abs(x)>50){go(k+(x<0?1:-1));tick()}});
+st.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')P=1});st.addEventListener('pointerleave',()=>P=0);st.addEventListener('pointercancel',()=>P=0);let sx=0;st.addEventListener('pointerdown',e=>sx=e.clientX);st.addEventListener('pointerup',e=>{const x=e.clientX-sx;if(Math.abs(x)>50){go(k+(x<0?1:-1));tick()}});
 show();tick()};
 new MutationObserver(()=>requestAnimationFrame(init)).observe(document.getElementById('app')||document.body,{childList:true,subtree:true});init()}catch(e){}})()</script>
 <script>(()=>{const h=document.querySelector('.site-hd');if(!h)return;const f=()=>h.classList.toggle('sc',scrollY>40);addEventListener('scroll',f,{passive:true});f()})()</script>
