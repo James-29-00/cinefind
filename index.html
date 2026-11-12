@@ -1887,10 +1887,14 @@ html body .hd{grid-template-columns:1fr auto 1fr;column-gap:24px}
 </style>
 <style id="cf-plain-hero">
 @media(min-width:701px){
-html:root[data-t] body .hero .glow .stats{height:auto;min-height:0;padding:calc(var(--hh,96px) + 56px) 0 72px;background:radial-gradient(55% 90% at 75% 15%,color-mix(in srgb,var(--ac) 20%,transparent),transparent 70%)!important}
+html:root[data-t] body .hero .glow .stats{height:auto;min-height:clamp(560px,80vh,780px);padding:calc(var(--hh,96px) + 96px) 0 120px;background:radial-gradient(55% 90% at 75% 15%,color-mix(in srgb,var(--ac) 20%,transparent),transparent 70%)!important}
 html body .hero .stats .u-hsb{display:none}
 html body .hero .glow .stats{isolation:isolate;overflow:hidden}
-html body .hero .glow .stats::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:url(hero-bg.webp) center 22%/cover no-repeat;filter:sepia(1) hue-rotate(var(--hr,-5deg)) saturate(1.6) brightness(.75) contrast(1.1);opacity:.65;-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}
+html body .hero .glow .stats::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:url(hero-bg.webp) center 30%/cover no-repeat;filter:sepia(1) hue-rotate(var(--hr,-5deg)) saturate(1.6) brightness(.75) contrast(1.1);opacity:.65;-webkit-mask-image:linear-gradient(180deg,#000 65%,transparent);mask-image:linear-gradient(180deg,#000 65%,transparent)}
+html body .hero .glow .stats::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 94%,transparent) 0%,color-mix(in srgb,var(--bg) 78%,transparent) 40%,transparent 80%),linear-gradient(0deg,var(--bg),transparent 35%)}
+html body .hero .tl,html body .hero .hdesc,html body .hero .eyebrow{text-shadow:0 2px 18px var(--bg)}
+html body .hero .hdesc{color:color-mix(in srgb,var(--tx) 85%,transparent)}
+html body .hero .st-in{position:relative;z-index:2}
 :root[data-t=modern]{--hr:-5deg}:root[data-t=ocean]{--hr:172deg}:root[data-t=space]{--hr:217deg}:root[data-t=forest]{--hr:134deg}:root[data-t=red]{--hr:318deg}
 html body .hero .hdesc{display:block;max-width:520px;margin:16px 0 0;color:var(--mu)}
 html body .hero .st-in .hac{display:flex;align-items:center;gap:0;margin-top:32px}
