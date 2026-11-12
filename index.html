@@ -1898,6 +1898,17 @@ html body .hero .st-in{position:relative;z-index:2}
 :root[data-t=modern]{--hr:-5deg}:root[data-t=ocean]{--hr:172deg}:root[data-t=space]{--hr:217deg}:root[data-t=forest]{--hr:134deg}:root[data-t=red]{--hr:318deg}
 html body .hero .hdesc{display:block;max-width:520px;margin:16px 0 0;color:var(--mu)}
 html body .hero .st-in .hac{display:flex;align-items:center;gap:0;margin-top:32px}
+html body .hero{--H:min(46vw,720px)}
+html:root[data-t] body .hero .glow .stats{height:var(--H);min-height:0;padding:calc(var(--H)*.33) 0 0}
+html body .hero .st-in{max-width:none;margin:0;padding:0 13vw;box-sizing:border-box}
+html body .hero .st-in>div:first-child{width:min(45vw,720px)}
+html body .hero .eyebrow{font-size:max(12px,.9vw);font-weight:400;letter-spacing:0;text-transform:none}
+html body .hero .eyebrow::after{display:none}
+html body .hero .stats .tl{font-size:3.5vw!important;line-height:1.05;margin:calc(var(--H)*.04) 0 0}
+html body .hero .hdesc{font-size:max(13px,.95vw);line-height:1.55;max-width:none;margin:calc(var(--H)*.04) 0 0;color:color-mix(in srgb,var(--tx) 85%,transparent)}
+html body .hero .st-in .hac{margin-top:calc(var(--H)*.06)}
+html body .hero .hww{font-size:max(14px,.95vw)}
+html body .hero .glow .stats::before{filter:sepia(.6) hue-rotate(var(--hr,-5deg)) saturate(1.5) brightness(.8) contrast(1.1)}
 }
 </style>
 </body>
