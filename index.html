@@ -1896,7 +1896,7 @@ const txt=(m,j)=>{const n=m.title||m.name,g=(m.genre_ids||[]).map(i=>G[i]).filte
 const show=()=>{const j=k,m=d[j],i=a[j%2];i.onload=()=>{i.classList.add('on');a[(j+1)%2].classList.remove('on');st.classList.add('hb')};U(m)&&(i.src=U(m));
 if(cap){cap.innerHTML=txt(m,j);cap.hidden=false}
 U(d[(j+1)%d.length])&&(new Image().src=U(d[(j+1)%d.length]))};
-const go=n=>{k=(n+d.length)%d.length;show()},tick=()=>{clearInterval(iv);iv=0;if(R.matches||d.length<2)return;iv=setInterval(()=>{if(!h.isConnected)return clearInterval(iv);if(P||document.hidden)return;go(k+1)},7000)};
+const go=n=>{k=(n+d.length)%d.length;show()},tick=()=>{clearInterval(iv);iv=0;if(d.length<2)return;iv=setInterval(()=>{if(!h.isConnected)return clearInterval(iv);if(P||document.hidden)return;go(k+1)},7000)};
 cap&&cap.addEventListener('click',e=>{const b=e.target.closest('[data-hd],[data-hn],[data-hp]');if(!b)return;go(b.dataset.hn?k+1:b.dataset.hp?k-1:+b.dataset.hd);tick()});
 st.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')P=1});st.addEventListener('pointerleave',()=>P=0);st.addEventListener('pointercancel',()=>P=0);let sx=0;st.addEventListener('pointerdown',e=>sx=e.clientX);st.addEventListener('pointerup',e=>{const x=e.clientX-sx;if(Math.abs(x)>50){go(k+(x<0?1:-1));tick()}});
 show();tick()};
