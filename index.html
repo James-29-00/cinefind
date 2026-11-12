@@ -1624,8 +1624,20 @@ html body .wfoot{justify-content:flex-end}
 html body .wcard .wfoot{gap:12px!important}
 html body .wcard .wfoot>span:first-child{flex:none;white-space:nowrap}
 html body .wcard .wfoot .go{border-radius:8px!important}
+html body .wcard .wfoot{justify-content:space-between!important}
+html body .wcard .wfoot .go{margin-left:auto}
+@media(max-width:700px){html body .wcard .wfoot{gap:8px!important}}
 /* phones: let horizontal swipes reach the hero slideshow */
+/* Online only: bring back the on/off switch knob; button stays neutral, the knob shows the state */
+html body .sw i{display:block;flex:none}
+html:root[data-t] body .sw[aria-checked=true]{background:color-mix(in srgb,var(--tx) 6%,var(--bg))!important;border-color:var(--ac)!important;color:var(--tx)!important}
 html body .hero .stats{touch-action:pan-y}
+/* Search page: compact bar, square button */
+html:root[data-t] body .fnd .frow{gap:10px}
+html:root[data-t] body .fnd .search{height:48px!important;min-height:48px!important;padding:5px!important}
+html:root[data-t] body .fnd .search input{height:36px;min-height:36px!important;padding:0 0 0 14px!important}
+html:root[data-t] body .fnd .search .btn{width:36px!important;height:36px!important;min-height:36px!important;min-width:36px!important;margin:0!important;border-radius:8px!important}
+html:root[data-t] body .fnd .search .btn svg{width:18px;height:18px}
 /* phones: show the hero caption (title, rating, overview, Where to watch, slide dots) like desktop */
 @media(max-width:700px){html body .hero .stats:has(.hbk[data-i]) .hcap:not([hidden]){display:block!important}}
 /* show link status (Online / Offline / Flagged) on every card in every view; hidden only until status data exists */
