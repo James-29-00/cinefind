@@ -1618,7 +1618,7 @@ html:root[data-t] body .hero .hcap .hac .hso{display:none!important}@media(max-w
 @media(max-width:700px){html:root[data-t] body .site-hd .rt #theme{display:none!important}html:root body .site-hd .wrap.hd{gap:0!important;min-height:56px}html:root body .site-hd #mbtn{order:-1!important;margin:0 0 0 -10px!important}html:root body .site-hd .brand{order:0!important;margin:0 auto 0 4px!important;gap:8px}html:root body .site-hd .rt{order:1!important;gap:0!important;margin-right:-10px!important}html:root body .site-hd .rt .theme{margin:0!important}html:root body .hero .hcap .hww::before{content:none!important;display:none!important}html:root[data-t] body .hero .hcap .hac .hww{flex:none;justify-content:center;white-space:nowrap;font-size:16px!important;padding:0 28px!important;gap:8px!important}html:root[data-t] body .hero .hcap .hac .hso{margin-left:0!important;padding:0 16px!important}html:root body .hero .hcap .hac{width:auto!important;display:flex!important;align-items:center;gap:12px!important}}
 html body #ww .wcard .dom::after{display:none!important}
 .box:empty{display:none}
-html body #ww .tag.lkst.chk{display:none}
+@media(min-width:701px){html body #ww .tag.lkst.chk{display:none}}
 html body .wcard:not(.dim):not(.flg) .wfoot>span:first-child{display:none}
 html body .wfoot{justify-content:flex-end}
 html body .wcard .wfoot{gap:12px!important}
@@ -1665,7 +1665,8 @@ html:root body .site-hd{background-repeat:no-repeat!important}
 /* desktop Search page: label was clipped by the 36px square button; trending grid left one orphan */
 @media(min-width:701px){
 html:root[data-t] body .fnd .search .btn{width:auto!important;min-width:0!important;padding:0 20px!important}
-html:root[data-t] body .fnd #trn .trr{grid-template-columns:repeat(5,minmax(0,200px))}
+html:root[data-t] body .fnd #trn .trr{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media(min-width:1400px){html:root[data-t] body .fnd #trn .trr{grid-template-columns:repeat(10,minmax(0,1fr))}}
 }
 </style>
 </head>
