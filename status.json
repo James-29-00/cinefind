@@ -1,5 +1,5 @@
 {
-  "lastRun": "2026-11-20T15:07:26.297Z",
+  "lastRun": "2026-11-20T23:50:24.344Z",
   "totalSites": 31,
   "upCount": 26,
   "blockedCount": 4,
@@ -8,125 +8,125 @@
     {
       "name": "MyAsianTV",
       "url": "https://myasiantv.com.lv/",
-      "checkedAt": "2026-11-20T15:06:05.939Z",
+      "checkedAt": "2026-11-20T23:49:03.070Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 1330
+      "avgResponseMs": 1223
     },
     {
       "name": "DramaCool",
       "url": "https://dramacool9.com.ro/",
-      "checkedAt": "2026-11-20T15:06:06.988Z",
+      "checkedAt": "2026-11-20T23:49:04.406Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 548
+      "avgResponseMs": 835
     },
     {
       "name": "KissKH",
       "url": "https://kisskh.co/",
-      "checkedAt": "2026-11-20T15:06:16.676Z",
+      "checkedAt": "2026-11-20T23:49:14.078Z",
       "status": "blocked",
       "httpStatus": 403
     },
     {
       "name": "AsianCrush",
       "url": "https://www.asiancrush.com/",
-      "checkedAt": "2026-11-20T15:06:17.609Z",
+      "checkedAt": "2026-11-20T23:49:15.003Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 433
+      "avgResponseMs": 426
     },
     {
       "name": "Viki",
       "url": "https://www.viki.com/",
-      "checkedAt": "2026-11-20T15:06:18.241Z",
+      "checkedAt": "2026-11-20T23:49:15.608Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 131
+      "avgResponseMs": 105
     },
     {
       "name": "Viu",
       "url": "https://www.viu.com/",
-      "checkedAt": "2026-11-20T15:06:18.953Z",
+      "checkedAt": "2026-11-20T23:49:16.598Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 212
+      "avgResponseMs": 490
     },
     {
       "name": "Kocowa",
       "url": "https://www.kocowa.com/",
-      "checkedAt": "2026-11-20T15:06:19.628Z",
+      "checkedAt": "2026-11-20T23:49:17.392Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 175
+      "avgResponseMs": 294
     },
     {
       "name": "OnDemandKorea",
       "url": "https://www.ondemandkorea.com/",
-      "checkedAt": "2026-11-20T15:06:20.247Z",
+      "checkedAt": "2026-11-20T23:49:18.051Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 119
+      "avgResponseMs": 159
     },
     {
       "name": "WeTV",
       "url": "https://wetv.vip/",
-      "checkedAt": "2026-11-20T15:06:21.155Z",
+      "checkedAt": "2026-11-20T23:49:19.183Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 408
+      "avgResponseMs": 633
     },
     {
       "name": "Amasian TV",
       "url": "https://amasiantv.com/",
-      "checkedAt": "2026-11-20T15:06:22.333Z",
+      "checkedAt": "2026-11-20T23:49:20.351Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 677
+      "avgResponseMs": 668
     },
     {
       "name": "1Shows",
       "url": "https://1shows.org/",
-      "checkedAt": "2026-11-20T15:06:23.344Z",
+      "checkedAt": "2026-11-20T23:49:21.174Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 511
+      "avgResponseMs": 323
     },
     {
       "name": "FlickyStream",
       "url": "https://flickystream.dad/",
-      "checkedAt": "2026-11-20T15:06:33.135Z",
+      "checkedAt": "2026-11-20T23:49:30.912Z",
       "status": "blocked",
       "httpStatus": 403
     },
     {
       "name": "MovieBox",
       "url": "https://movie-box.co/",
-      "checkedAt": "2026-11-20T15:06:35.268Z",
+      "checkedAt": "2026-11-20T23:49:33.410Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 1633
+      "avgResponseMs": 1999
     },
     {
       "name": "1Flex",
       "url": "https://1flex.org/",
-      "checkedAt": "2026-11-20T15:06:36.537Z",
+      "checkedAt": "2026-11-20T23:49:34.671Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 768
+      "avgResponseMs": 762
     },
     {
       "name": "1Tube",
       "url": "https://1tube.org/",
-      "checkedAt": "2026-11-20T15:06:37.383Z",
+      "checkedAt": "2026-11-20T23:49:35.463Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 346
+      "avgResponseMs": 292
     },
     {
       "name": "Cineby",
       "url": "https://cineby.at/",
-      "checkedAt": "2026-11-20T15:06:55.106Z",
+      "checkedAt": "2026-11-20T23:49:52.821Z",
       "status": "down",
       "httpStatus": null,
       "error": "fetch failed"
@@ -134,118 +134,118 @@
     {
       "name": "FMovies",
       "url": "https://fmovies-hd.to/",
-      "checkedAt": "2026-11-20T15:06:56.400Z",
+      "checkedAt": "2026-11-20T23:49:54.079Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 794
+      "avgResponseMs": 758
     },
     {
       "name": "ReAnime",
       "url": "https://reanime.to/",
-      "checkedAt": "2026-11-20T15:06:57.180Z",
+      "checkedAt": "2026-11-20T23:49:55.041Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 280
+      "avgResponseMs": 461
     },
     {
       "name": "Animepahe",
       "url": "https://animepahe.ch/",
-      "checkedAt": "2026-11-20T15:06:58.740Z",
+      "checkedAt": "2026-11-20T23:49:56.439Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 1060
+      "avgResponseMs": 898
     },
     {
       "name": "Miruro",
       "url": "https://www.miruro.to/",
-      "checkedAt": "2026-11-20T15:07:08.388Z",
+      "checkedAt": "2026-11-20T23:50:06.096Z",
       "status": "blocked",
       "httpStatus": 403
     },
     {
       "name": "Anikoto",
       "url": "https://anikototv.to/",
-      "checkedAt": "2026-11-20T15:07:09.357Z",
+      "checkedAt": "2026-11-20T23:50:06.949Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 469
+      "avgResponseMs": 353
     },
     {
       "name": "Enma",
       "url": "https://enma.lol/",
-      "checkedAt": "2026-11-20T15:07:10.187Z",
+      "checkedAt": "2026-11-20T23:50:08.090Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 330
+      "avgResponseMs": 641
     },
     {
       "name": "iWantTFC",
       "url": "https://www.iwanttfc.com/",
-      "checkedAt": "2026-11-20T15:07:11.031Z",
+      "checkedAt": "2026-11-20T23:50:09.113Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 345
+      "avgResponseMs": 523
     },
     {
       "name": "Viva Films",
       "url": "https://www.youtube.com/@VIVAFilms/videos",
-      "checkedAt": "2026-11-20T15:07:11.760Z",
+      "checkedAt": "2026-11-20T23:50:09.833Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 228
+      "avgResponseMs": 220
     },
     {
       "name": "Cinema One",
       "url": "https://www.youtube.com/@CinemaOnePH/",
-      "checkedAt": "2026-11-20T15:07:12.362Z",
+      "checkedAt": "2026-11-20T23:50:10.408Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 102
+      "avgResponseMs": 75
     },
     {
       "name": "Star Cinema",
       "url": "https://www.youtube.com/@ABSstarcinema",
-      "checkedAt": "2026-11-20T15:07:12.961Z",
+      "checkedAt": "2026-11-20T23:50:11.013Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 99
+      "avgResponseMs": 106
     },
     {
       "name": "TBA Studios",
       "url": "https://www.youtube.com/@TBAStudios/",
-      "checkedAt": "2026-11-20T15:07:13.578Z",
+      "checkedAt": "2026-11-20T23:50:11.623Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 117
+      "avgResponseMs": 110
     },
     {
       "name": "Regal Entertainment",
       "url": "https://www.youtube.com/@RegalEntertainmentInc/",
-      "checkedAt": "2026-11-20T15:07:14.306Z",
+      "checkedAt": "2026-11-20T23:50:12.330Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 229
+      "avgResponseMs": 206
     },
     {
       "name": "Dulo",
       "url": "https://dulo.sx/watch/movie/102382",
-      "checkedAt": "2026-11-20T15:07:15.446Z",
+      "checkedAt": "2026-11-20T23:50:13.344Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 640
+      "avgResponseMs": 513
     },
     {
       "name": "CineWhale",
       "url": "https://james-29-00.github.io/cinefind/?admin=cf_x7k9m2",
-      "checkedAt": "2026-11-20T15:07:16.122Z",
+      "checkedAt": "2026-11-20T23:50:14.143Z",
       "status": "up",
       "httpStatus": 200,
-      "avgResponseMs": 175
+      "avgResponseMs": 299
     },
     {
       "name": "PMH",
       "url": "https://pinoymovieshub.org/movies/un-happy-for-you-2024/",
-      "checkedAt": "2026-11-20T15:07:25.797Z",
+      "checkedAt": "2026-11-20T23:50:23.844Z",
       "status": "blocked",
       "httpStatus": 403
     }
