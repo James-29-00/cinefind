@@ -1,69 +1,72 @@
-# POS & Sales Analytics
+# CineFind
 
-A mobile-first point-of-sale web app that helps small store owners record sales, compute change, manage stock, and understand their business through analytics.
+A directory of websites where you can watch movies, series, drama and anime for free. Search a title, see which listed sites to try, and check each one yourself.
 
-**Live demo:** https://pos-sales-analytics-beta.vercel.app/ (sign in with a Google account to use it)
+**Live:** https://mycinefind.vercel.app/
 
-**Status:** In development.
+> CineFind does not host, stream or upload any media. It only links to third-party websites, and availability is not verified.
 
-> UI inspired by the BuildFlow concept design. The code and the POS app are my own work.
-
-## The Problem
-Small store owners often track sales and stock by hand, so it's hard to know what sells best, when customers come, and what's running low.
-
-## The Solution
-A fast, simple POS for checkout, plus a dashboard that turns sales records into clear insights.
+<!-- Add screenshots here, for example: ![CineFind home](assets/screenshot-home.png) -->
 
 ## Features
-- Fast checkout: cart, quick-cash buttons, automatic change
-- Cash, GCash, and Maya payment recording
-- Product and stock management with low-stock alerts
-- Editable categories, with ready-made setups for a sari-sari store and a clothing shop
-- Sales history with filters, search, digital receipts (share / print), and void sale
-- Analytics: best-sellers, peak hours, sales by category, profit estimate
-- Best-sellers shown first; long-press a product to set quantity
-- Google (Gmail) sign-in required before using the app, powered by Supabase, with owner and cashier roles and cloud sync
-- Offline-first: keeps working without internet
-- Settings: store name, light/dark/auto theme, currency, backup and restore (JSON)
 
-## Screenshots
-| Login | Home | New Sale |
-|---|---|---|
-| ![Login](screenshots/login.png) | ![Home](screenshots/home.png) | ![New Sale](screenshots/new-sale.png) |
+- **Title search** with suggestions and recent searches
+- **Popular titles** with posters and details from the TMDB API
+- **Category filters** with counts, plus sorting
+- **Site status** labels (working, flagged, down) and a "Hot" tag for popular sites
+- **Favorites** you can save with a star
+- **Five color themes** through a "Choose your vibe" picker
+- **Installable PWA** with a web manifest and service worker
+- **Responsive**, with a bottom navigation bar on phones
+- **Accessible**: keyboard focus styles, 44px tap targets, and reduced-motion support
+- **Admin page** for managing the site list
 
-| Checkout | Receipt | Products |
-|---|---|---|
-| ![Checkout](screenshots/checkout.png) | ![Receipt](screenshots/receipt.png) | ![Products](screenshots/products.png) |
+## Tech stack
 
-| Sales History | Reports |
-|---|---|
-| ![Sales History](screenshots/sales-history.png) | ![Reports](screenshots/reports.png) |
+| Area | Tools |
+| --- | --- |
+| Front end | HTML, CSS, JavaScript (no framework) |
+| Data | TMDB API, JSON site lists |
+| Backend | Cloudflare Workers, D1 (database), KV (rate limit, search cache, stats) |
+| Hosting | Vercel (front end), Cloudflare (Worker) |
+| PWA | `manifest.json`, `sw.js` |
 
-## Tech Stack
-- React 19 (JavaScript)
-- Tailwind CSS
-- Supabase (Google sign-in and cloud sync)
-- Inter font
+## Project structure
 
-## Challenges and Decisions
-- **Data layer kept separate from the screens.** The app started with localStorage, and keeping the data code apart from the UI let a backend replace it without rewriting the screens.
-- **Analytics as the main difference.** Most small-shop POS apps stop at checkout, so best-sellers, peak hours and profit estimates are built in from the start.
-- **One app for different shops.** Categories are editable, and each store type (sari-sari, clothing) keeps its own setup, so changing one never affects the other.
-- **Offline first.** Shops often have unreliable internet, so the app keeps working offline and syncs to the cloud when a connection is available.
+| Path | Purpose |
+| --- | --- |
+| `index.html` | The app: markup, styles and scripts |
+| `admin.html` | Admin page |
+| `sites.json` and other `*.json` files | Site list and related data |
+| `dramacool-search-worker.js` | Cloudflare Worker (search API) |
+| `wrangler.toml` | Worker config (D1 and KV bindings) |
+| `tmdb-proxy/` | TMDB proxy |
+| `manifest.json`, `sw.js` | PWA files |
+| `DESIGN.md` | Design tokens and rules |
+| `privacy.html`, `terms.html` | Legal pages |
 
-## Project Structure
+## Run locally
+
+The front end is static, so any local web server works:
+
+```bash
+git clone https://github.com/James-29-00/cinefind.git
+cd cinefind
+npx serve .
 ```
-index.html   page shell
-styles.css   Tailwind CSS
-app.js       app code (screens, data, routing)
-vendor.js    React runtime
-```
 
-## Run Locally
-Open `index.html` in a browser. No build step needed.
+Then open the address it prints.
 
-## Deploy
-Static site: upload the folder to GitHub, then import the repo in Vercel (no build command, output is the root folder).
+### Worker (optional)
 
-## Roadmap
-PayMongo test mode, export to CSV/PDF.
+The search API runs as a Cloudflare Worker. To deploy your own:
+
+1. Create a D1 database and three KV namespaces (`RATE_LIMIT_KV`, `SEARCH_CACHE`, `STATS_KV`) in your Cloudflare account.
+2. Put their IDs in `wrangler.toml` and set `GITHUB_REPO` to your own repo.
+3. Run `npx wrangler deploy`.
+
+## Credits
+
+This product uses the TMDB API but is not endorsed or certified by TMDB.
+
+Built by [James G. Manio](https://github.com/James-29-00).
